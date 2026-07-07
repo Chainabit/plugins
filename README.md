@@ -14,8 +14,9 @@ main NEXUS repository under `docs/spec/` and `docs/plugins/`.
 | [`provider-acmegate/`](provider-acmegate/) | `providers`, `security` | A provider-type plugin: lifecycle hooks, an MCP server, and a full dangerous-permission set (`shell`, declared network, `postInstall`/`uninstall` scripts). **Illustrative only** — AcmeGate is a fictional example product, not a real integration. |
 | [`persona-reviewer/`](persona-reviewer/) | `personas`, `code` | An installable agent persona + a slash command, with zero permissions requested. |
 | [`skill-pdf/`](skill-pdf/) | `productivity`, `data` | A minimal skill with zero permissions — the calm, low-friction install every plugin should aim for. |
+| [`provider-solongate/`](provider-solongate/) | `providers`, `security` | A real partner integration: SolonGate, a security proxy / MCP gateway. Unlike the examples above, this is a real, installable product (`@solongate/proxy` on npm). |
 
-`marketplace.json` at the repo root lists all three by id, version, and source, so any Chainabit
+`marketplace.json` at the repo root lists all four by id, version, and source, so any Chainabit
 surface can resolve and install them directly from this repo.
 
 ## Try it

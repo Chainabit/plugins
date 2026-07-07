@@ -29,6 +29,15 @@
       "downloads": 5017,
       "lastChecked": "2026-07-06T09:30:00Z",
       "stale": false
+    },
+    {
+      "id": "provider-solongate",
+      "source": "https://github.com/chainabit/plugins.git#provider-solongate",
+      "version": "0.58.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-07-07T00:00:00Z",
+      "stale": false
     }
   ]
 }
