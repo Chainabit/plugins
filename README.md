@@ -21,9 +21,13 @@ surface can resolve and install them directly from this repo.
 
 ## Try it
 
+There is no standalone `nexus` binary. Install from the NEXUS desktop app's Marketplace, or
+from the `chainabit` CLI (`chainabit-api/apps/cli`, bin names `chainabit`/`cb`) under its
+`nexus` command group:
+
 ```
-nexus marketplace add https://github.com/chainabit/plugins
-nexus install skill-pdf
+chainabit nexus marketplace add https://github.com/chainabit/plugins
+chainabit nexus install skill-pdf
 ```
 
 ## Contributing an example
