@@ -1,0 +1,34 @@
+{
+  "name": "NEXUS Reference Marketplace",
+  "version": "1.0.0",
+  "categories": ["providers", "personas", "productivity", "data", "security", "code"],
+  "plugins": [
+    {
+      "id": "provider-acmegate",
+      "source": "https://github.com/chainabit/plugins.git#provider-acmegate",
+      "version": "1.2.0",
+      "verified": true,
+      "downloads": 1284,
+      "lastChecked": "2026-07-06T09:30:00Z",
+      "stale": false
+    },
+    {
+      "id": "persona-reviewer",
+      "source": "https://github.com/chainabit/plugins.git#persona-reviewer",
+      "version": "0.4.1",
+      "verified": false,
+      "downloads": 342,
+      "lastChecked": "2026-07-05T18:12:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-pdf",
+      "source": "https://github.com/chainabit/plugins.git#skill-pdf",
+      "version": "2.0.3",
+      "verified": true,
+      "downloads": 5017,
+      "lastChecked": "2026-07-06T09:30:00Z",
+      "stale": false
+    }
+  ]
+}
