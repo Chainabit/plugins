@@ -38,6 +38,15 @@
       "downloads": 0,
       "lastChecked": "2026-07-07T00:00:00Z",
       "stale": false
+    },
+    {
+      "id": "provider-codegraph",
+      "source": "https://github.com/chainabit/plugins.git#provider-codegraph",
+      "version": "1.5.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-07-22T00:00:00Z",
+      "stale": false
     }
   ]
 }
