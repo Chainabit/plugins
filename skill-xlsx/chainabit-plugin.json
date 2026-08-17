@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 2,
+  "id": "skill-xlsx",
+  "name": "Excel Workbook Skill",
+  "version": "1.0.0",
+  "description": "Builds real .xlsx workbooks from a JSON spec — typed cells, a styled header row, column widths, and number formats — and validates the result. Ships two Python scripts that run in the sandbox against the pre-installed openpyxl; no network access at any point.",
+  "author": {
+    "name": "NEXUS Community"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/chainabit/plugins/tree/main/skill-xlsx",
+  "categories": ["productivity", "data"],
+  "keywords": ["skill", "xlsx", "excel", "spreadsheet", "openpyxl", "tables", "data"],
+  "compatibility": {
+    "minVersion": "0.9.0"
+  },
+  "components": {
+    "skills": ["skills/xlsx"]
+  },
+  "permissions": {
+    "network": [],
+    "filesystem": [],
+    "shell": false,
+    "execute": true,
+    "dangerousSkipPermissions": false
+  }
+}

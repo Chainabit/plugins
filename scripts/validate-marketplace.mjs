@@ -13,20 +13,31 @@
 //      versions, and every listing's `#fragment` names its own folder.
 //
 // Deliberately implements the contract directly rather than validating against the JSON
-// Schema. The schema cannot express the rule that broke this repo before: a manifest with an
-// executing component (hooks / install scripts / MCP servers) MUST declare `permissions.shell`.
-// That rule lives in the installing client's parser, so a schema-only check passes manifests
+// Schema. The schema cannot express the rules that break an install:
+//
+//   - A manifest with an executing component (hooks / install scripts / MCP servers) MUST
+//     declare `permissions.shell`. That is the rule that broke this repo before.
+//   - A schemaVersion 2 skill directory shipping `scripts/` MUST declare
+//     `permissions.execute`, so the consent sheet can say what the user is accepting.
+//   - A skill directory's basename MUST equal the `name` in its SKILL.md frontmatter,
+//     because the two are separate declarations of the same identity and nothing else
+//     catches them drifting.
+//
+// Those rules live in the installing client's parser, so a schema-only check passes manifests
 // the client then refuses. Keep this file in step with the parser, not just the schema.
 
 import { readFileSync, readdirSync, existsSync, statSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const MANIFEST = "chainabit-plugin.json";
 const SOURCE_REPO = "https://github.com/chainabit/plugins.git";
 
-const SCHEMA_VERSION = 1;
+// 1 is the original frozen contract; 2 adds directory-form skills, components.providers,
+// and permissions.execute. Both remain installable — 2 is additive.
+const SCHEMA_VERSIONS = new Set([1, 2]);
+const SKILL_NAME_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const ID_PATTERN = /^(skill|agent|provider|persona|hook|plugin)-[a-z0-9]+(-[a-z0-9]+)*$/;
 const SEMVER =
   /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z-.]+)?(?:\+[0-9A-Za-z-.]+)?$/;
@@ -41,6 +52,32 @@ const fail = (where, message) => problems.push({ where, message });
 const readJson = (path) => JSON.parse(readFileSync(path, "utf8"));
 
 const isDir = (path) => existsSync(path) && statSync(path).isDirectory();
+
+/** A component path must stay inside its own plugin folder. */
+const escapesFolder = (relative) =>
+  typeof relative !== "string" ||
+  relative.includes("..") ||
+  relative.startsWith("/") ||
+  relative.startsWith("~");
+
+/**
+ * The `name` declared in a SKILL.md's YAML frontmatter, or null when there is no
+ * frontmatter block or no name in it. Read with a regex rather than a YAML parser
+ * to keep this script dependency-free; the frontmatter contract is one flat block
+ * of scalars, so that is enough.
+ */
+const frontmatterName = (path) => {
+  let text;
+  try {
+    text = readFileSync(path, "utf8");
+  } catch {
+    return null;
+  }
+  const block = /^---\r?\n([\s\S]*?)\r?\n---/.exec(text);
+  if (!block) return null;
+  const name = /^name:[ \t]*(\S+)[ \t]*$/m.exec(block[1]);
+  return name ? name[1] : null;
+};
 
 /** Top-level plugin folders: any directory holding a manifest. */
 const pluginFolders = readdirSync(repoRoot)
@@ -68,8 +105,11 @@ for (const folder of pluginFolders) {
   }
   manifests.set(folder, m);
 
-  if (m.schemaVersion !== SCHEMA_VERSION) {
-    fail(folder, `schemaVersion must be ${SCHEMA_VERSION}, found ${m.schemaVersion}`);
+  if (!SCHEMA_VERSIONS.has(m.schemaVersion)) {
+    fail(
+      folder,
+      `schemaVersion must be one of ${[...SCHEMA_VERSIONS].join(", ")}, found ${m.schemaVersion}`,
+    );
   }
   if (!ID_PATTERN.test(m.id ?? "")) {
     fail(folder, `id "${m.id}" is not "<kind>-<slug>"`);
@@ -107,14 +147,10 @@ for (const folder of pluginFolders) {
     );
   }
 
-  // Declared component files must exist and stay inside the plugin folder.
-  const fileComponents = [
-    ...(components.skills ?? []),
-    ...(components.agents ?? []),
-    ...(components.commands ?? []),
-  ];
-  for (const relative of fileComponents) {
-    if (relative.includes("..") || relative.startsWith("/") || relative.startsWith("~")) {
+  // Agents and commands are plain file paths, unchanged since schemaVersion 1.
+  const filePaths = [...(components.agents ?? []), ...(components.commands ?? [])];
+  for (const relative of filePaths) {
+    if (escapesFolder(relative)) {
       fail(folder, `component path "${relative}" escapes the plugin folder`);
       continue;
     }
@@ -123,7 +159,102 @@ for (const folder of pluginFolders) {
     }
   }
 
-  if (fileComponents.length === 0 && !executes) {
+  // Skills take two forms. A path ending in SKILL.md is the schemaVersion 1 form: one
+  // prompt-only document. A directory is the schemaVersion 2 form: SKILL.md plus optional
+  // scripts/, references/, assets/. Only the second can carry code, so only the second
+  // has anything to consent to.
+  const skills = components.skills ?? [];
+  let shipsScripts = false;
+
+  for (const relative of skills) {
+    if (escapesFolder(relative)) {
+      fail(folder, `component path "${relative}" escapes the plugin folder`);
+      continue;
+    }
+
+    const absolute = join(repoRoot, folder, relative);
+
+    if (relative.endsWith("SKILL.md")) {
+      if (!existsSync(absolute)) {
+        fail(folder, `declared skill "${relative}" does not exist`);
+      }
+      continue;
+    }
+
+    if (m.schemaVersion < 2) {
+      fail(
+        folder,
+        `skill "${relative}" is a directory path, which requires schemaVersion 2 — ` +
+          "a version 1 client only understands a path to a SKILL.md file",
+      );
+    }
+    if (!isDir(absolute)) {
+      fail(
+        folder,
+        `declared skill "${relative}" is neither an existing SKILL.md file nor a directory`,
+      );
+      continue;
+    }
+
+    const document = join(absolute, "SKILL.md");
+    if (!existsSync(document)) {
+      fail(folder, `skill directory "${relative}" has no SKILL.md — there is nothing to load`);
+      continue;
+    }
+
+    // The directory name and the frontmatter name are two declarations of one identity.
+    const directoryName = basename(relative.replace(/\/+$/, ""));
+    const declaredName = frontmatterName(document);
+    if (declaredName === null) {
+      fail(folder, `${relative}/SKILL.md has no "name" in its YAML frontmatter`);
+    } else if (!SKILL_NAME_PATTERN.test(declaredName)) {
+      fail(
+        folder,
+        `${relative}/SKILL.md name "${declaredName}" must be lowercase alphanumerics ` +
+          "joined by single hyphens",
+      );
+    } else if (declaredName !== directoryName) {
+      fail(
+        folder,
+        `${relative}/SKILL.md declares name "${declaredName}" but sits in directory ` +
+          `"${directoryName}" — the two must match`,
+      );
+    }
+
+    if (isDir(join(absolute, "scripts"))) {
+      shipsScripts = true;
+    }
+  }
+
+  // The second rule the schema cannot express: shipping runnable scripts is a capability
+  // the user consents to at install, so it has to be declared.
+  if (permissions.execute !== undefined && typeof permissions.execute !== "boolean") {
+    fail(folder, `permissions.execute must be a boolean, found ${typeof permissions.execute}`);
+  }
+  if (permissions.execute === true && m.schemaVersion < 2) {
+    fail(folder, "permissions.execute requires schemaVersion 2");
+  }
+  if (shipsScripts && permissions.execute !== true) {
+    fail(
+      folder,
+      "ships a skill directory containing scripts/ but does not declare " +
+        "permissions.execute — the install consent sheet would not disclose it",
+    );
+  }
+
+  // Providers are AI backend identifiers, not paths, so there is nothing on disk to check.
+  const providers = components.providers ?? [];
+  if (providers.length > 0 && m.schemaVersion < 2) {
+    fail(folder, "components.providers requires schemaVersion 2");
+  }
+  for (const provider of providers) {
+    if (typeof provider !== "string" || provider.trim() === "") {
+      fail(folder, `components.providers entry ${JSON.stringify(provider)} must be a non-empty string`);
+    }
+  }
+
+  const routes = filePaths.length + skills.length + providers.length;
+  if (routes === 0 && !executes) {
     fail(folder, "declares no components — it would install but route nothing");
   }
 }

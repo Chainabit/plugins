@@ -1,27 +1,27 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "skill-pdf",
-  "name": "PDF Extraction Skill",
-  "version": "2.0.3",
-  "description": "A progressive-disclosure skill that teaches an agent to extract text, tables, and metadata from local PDF files. No network or shell access; operates only on files the agent already has in scope.",
+  "name": "PDF Generation Skill",
+  "version": "3.0.0",
+  "description": "Produces real PDF files from Markdown or from a JSON document spec, and validates the result. Ships three Python scripts that run in the sandbox against the pre-installed WeasyPrint and ReportLab toolchain; no network access at any point.",
   "author": {
     "name": "NEXUS Community"
   },
   "license": "MIT",
   "homepage": "https://github.com/chainabit/plugins/tree/main/skill-pdf",
   "categories": ["productivity", "data"],
-  "keywords": ["skill", "pdf", "extraction", "documents"],
+  "keywords": ["skill", "pdf", "generation", "markdown", "report", "weasyprint", "reportlab"],
   "compatibility": {
     "minVersion": "0.9.0"
   },
   "components": {
-    "skills": ["skills/pdf/SKILL.md"]
+    "skills": ["skills/pdf"]
   },
   "permissions": {
     "network": [],
     "filesystem": [],
     "shell": false,
+    "execute": true,
     "dangerousSkipPermissions": false
-  },
-  "signature": "ed25519:7e6d5c4b3a29180f7e6d5c4b3a29180f7e6d5c4b3a29180f7e6d5c4b3a29180f"
+  }
 }

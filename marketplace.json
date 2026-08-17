@@ -24,10 +24,19 @@
     {
       "id": "skill-pdf",
       "source": "https://github.com/chainabit/plugins.git#skill-pdf",
-      "version": "2.0.3",
-      "verified": true,
+      "version": "3.0.0",
+      "verified": false,
       "downloads": 5017,
-      "lastChecked": "2026-07-06T09:30:00Z",
+      "lastChecked": "2026-08-18T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-xlsx",
+      "source": "https://github.com/chainabit/plugins.git#skill-xlsx",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-18T00:00:00Z",
       "stale": false
     },
     {
