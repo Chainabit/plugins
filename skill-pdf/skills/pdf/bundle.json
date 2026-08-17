@@ -1,0 +1,29 @@
+{
+  "files": [
+    {
+      "path": "SKILL.md",
+      "sha256": "a2c9f325b60e8523f21060341ad9378241631280f0bdd11ed695312be5a371be",
+      "bytes": 9947
+    },
+    {
+      "path": "references/typography.md",
+      "sha256": "220dcc5059d55ef163bbafb69ee6e7a453d88f18c002d82098b7ca130b77a06a",
+      "bytes": 3794
+    },
+    {
+      "path": "scripts/md_to_pdf.py",
+      "sha256": "d655f144bbf001fbaf304aed03804a3b09bf4b8b623146e739e71d151c18f4cf",
+      "bytes": 9986
+    },
+    {
+      "path": "scripts/report_pdf.py",
+      "sha256": "635eef3c71f66f73702258983b89b152f6b7143cd0d1fdc4fe217f742765086e",
+      "bytes": 19522
+    },
+    {
+      "path": "scripts/validate_pdf.py",
+      "sha256": "a80897223e1d1c97db52a20646f301254686f6e72ddd7f04b67dcd30fb5fb75f",
+      "bytes": 10804
+    }
+  ]
+}

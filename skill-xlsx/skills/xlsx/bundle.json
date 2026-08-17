@@ -1,0 +1,19 @@
+{
+  "files": [
+    {
+      "path": "SKILL.md",
+      "sha256": "1dc86a74558f23b49fe12b6895de5ee32cda783685981593da1e189f94358a68",
+      "bytes": 10278
+    },
+    {
+      "path": "scripts/build_xlsx.py",
+      "sha256": "23d836cb4445da7041d2a996a7274a3aa4c1ee78fbf702b9dc5cc0f6b7a2f92e",
+      "bytes": 18800
+    },
+    {
+      "path": "scripts/validate_xlsx.py",
+      "sha256": "f824ef5e1e0b4fff6adee670e11a3b41d993d0d5febdac22b74eff5ab58c1a92",
+      "bytes": 11485
+    }
+  ]
+}
