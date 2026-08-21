@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
 """Build an .xlsx workbook from a JSON spec, using openpyxl.
 
 The point of the spec is the column *type*. A spreadsheet whose numbers are stored

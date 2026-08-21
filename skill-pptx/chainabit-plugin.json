@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 2,
+  "id": "skill-pptx",
+  "name": "Presentation Skill",
+  "version": "1.0.0",
+  "description": "Builds real .pptx presentations from a JSON spec using four brand-safe layouts — title, content, comparison, closing — with a palette and type scale checked against WCAG AA, and validates the result for empty slides, overflowing text, low contrast and over-dense bullets. Ships two Python scripts that run in the sandbox against the pre-installed python-pptx; no network access at any point.",
+  "author": {
+    "name": "NEXUS Community"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/chainabit/plugins/tree/main/skill-pptx",
+  "categories": ["productivity", "data"],
+  "keywords": ["skill", "pptx", "powerpoint", "presentation", "slides", "deck", "python-pptx", "design"],
+  "compatibility": {
+    "minVersion": "0.9.0"
+  },
+  "components": {
+    "skills": ["skills/pptx"]
+  },
+  "permissions": {
+    "network": [],
+    "filesystem": [],
+    "shell": false,
+    "execute": true,
+    "dangerousSkipPermissions": false
+  }
+}

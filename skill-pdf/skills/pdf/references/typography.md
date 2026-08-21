@@ -1,3 +1,5 @@
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+
 # Typography and page geometry
 
 Read this before overriding a stylesheet, before debugging characters that render

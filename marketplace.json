@@ -40,6 +40,24 @@
       "stale": false
     },
     {
+      "id": "skill-pptx",
+      "source": "https://github.com/chainabit/plugins.git#skill-pptx",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-21T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-website",
+      "source": "https://github.com/chainabit/plugins.git#skill-website",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-21T00:00:00Z",
+      "stale": false
+    },
+    {
       "id": "provider-solongate",
       "source": "https://github.com/chainabit/plugins.git#provider-solongate",
       "version": "0.58.0",

@@ -1,7 +1,7 @@
 ---
 name: pdf
 description: Generates real PDF files inside the sandbox, either from a Markdown source or from a JSON report spec, and verifies the result before it is handed back. Use when the requested deliverable is a PDF - the request mentions PDF, .pdf, "rapor", "report", an invoice, a certificate, a printable handout or one-pager, or asks to convert Markdown to PDF. Also use to check whether an existing PDF file is valid, readable, or blank. Do NOT use when the deliverable is Markdown, plain text, or a document meant to stay editable; do NOT use for a spreadsheet or tabular data file (.xlsx or .csv), and do NOT use for a website or any HTML page meant to be viewed in a browser. Renders Turkish and other Latin Extended-A characters correctly.
-license: MIT
+license: Apache-2.0
 metadata:
   version: 3.0.0
 ---

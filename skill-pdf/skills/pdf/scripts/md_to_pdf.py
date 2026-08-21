@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
 """Render a Markdown file to PDF via WeasyPrint.
 
 Markdown -> HTML -> PDF. The HTML step exists only so WeasyPrint has something to
