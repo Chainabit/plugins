@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
 """Check that a generated .pptx is a real presentation, and that it is presentable.
 
 A deck fails differently from a document. It is rarely broken; it is usually just

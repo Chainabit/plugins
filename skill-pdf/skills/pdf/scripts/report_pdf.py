@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
 """Build a laid-out PDF report from a JSON spec, using ReportLab Platypus.
 
 Use this instead of md_to_pdf.py when the layout itself carries meaning: a title

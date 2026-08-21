@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
 """Check that a generated .xlsx is a real workbook, and that its data is usable.
 
 Two failures matter here and neither one is visible by opening the file:

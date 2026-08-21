@@ -1,7 +1,7 @@
 ---
 name: pptx
 description: Builds real .pptx presentations inside the sandbox from a JSON spec, using four brand-safe layouts with a checked palette and type scale, and verifies the result is presentable before it is handed back. Use when the requested deliverable is a slide deck: the request mentions PowerPoint, pptx, .pptx, slides, a deck, a presentation, a pitch, "sunum", "slayt", a board update or a talk. Also use to check whether an existing .pptx is valid, or whether its slides are empty, overflowing, unreadably small, or too dense. Do NOT use when the deliverable is a document or report meant to be read rather than shown - use the pdf skill; do NOT use for a spreadsheet (.xlsx), a Markdown outline, or a web page. Renders Turkish and other Latin Extended-A characters correctly.
-license: MIT
+license: Apache-2.0
 metadata:
   version: 1.0.0
 ---

@@ -7,7 +7,7 @@
   "author": {
     "name": "NEXUS Community"
   },
-  "license": "MIT",
+  "license": "Apache-2.0",
   "homepage": "https://github.com/chainabit/plugins/tree/main/skill-pdf",
   "categories": ["productivity", "data"],
   "keywords": ["skill", "pdf", "generation", "markdown", "report", "weasyprint", "reportlab"],

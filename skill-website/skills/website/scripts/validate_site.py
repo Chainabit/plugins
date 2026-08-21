@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
 """Check that a generated directory is actually a servable website.
 
 A broken site does not fail the way a broken document does. Every file is valid,

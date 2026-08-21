@@ -2,28 +2,28 @@
   "files": [
     {
       "path": "SKILL.md",
-      "sha256": "a2c9f325b60e8523f21060341ad9378241631280f0bdd11ed695312be5a371be",
-      "bytes": 9947
+      "sha256": "d4123f48b0390def430766ba5ae4731482ddb56921175bb15ae64afbb9653e05",
+      "bytes": 9954
     },
     {
       "path": "references/typography.md",
-      "sha256": "220dcc5059d55ef163bbafb69ee6e7a453d88f18c002d82098b7ca130b77a06a",
-      "bytes": 3794
+      "sha256": "61047ff7ce6957083cd5ca431d1d189fd47ea61ba49b416d75ef07389b80f382",
+      "bytes": 3840
     },
     {
       "path": "scripts/md_to_pdf.py",
-      "sha256": "d655f144bbf001fbaf304aed03804a3b09bf4b8b623146e739e71d151c18f4cf",
-      "bytes": 9986
+      "sha256": "2f3f473b6c17b3619b167327a27aed474b9de3574af3275d5e7c5095c88add82",
+      "bytes": 10024
     },
     {
       "path": "scripts/report_pdf.py",
-      "sha256": "635eef3c71f66f73702258983b89b152f6b7143cd0d1fdc4fe217f742765086e",
-      "bytes": 19522
+      "sha256": "2c5de5fdbb351fef039dfd183b5ec516926b244bdc2cfdab36900f7e3c5daa33",
+      "bytes": 19560
     },
     {
       "path": "scripts/validate_pdf.py",
-      "sha256": "a80897223e1d1c97db52a20646f301254686f6e72ddd7f04b67dcd30fb5fb75f",
-      "bytes": 10804
+      "sha256": "d381f3c92f613b37415111fb9f2240bb9b5d0dc40f54f7a44ae9bb125b8ca337",
+      "bytes": 10842
     }
   ]
 }

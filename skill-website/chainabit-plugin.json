@@ -7,7 +7,7 @@
   "author": {
     "name": "NEXUS Community"
   },
-  "license": "MIT",
+  "license": "Apache-2.0",
   "homepage": "https://github.com/chainabit/plugins/tree/main/skill-website",
   "categories": ["productivity", "code"],
   "keywords": ["skill", "website", "html", "css", "static-site", "landing-page", "portfolio", "accessibility", "responsive"],

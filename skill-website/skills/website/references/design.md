@@ -1,3 +1,5 @@
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+
 # Web layout, typography and colour
 
 Read this before overriding a colour, before choosing a font size, and before

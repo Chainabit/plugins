@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
 """Generate a static website from a JSON spec, or from one of three starting templates.
 
 A "build me a site" request has no natural exit point. There is no file format to

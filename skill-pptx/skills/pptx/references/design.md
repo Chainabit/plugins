@@ -1,3 +1,5 @@
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+
 # Slide typography, colour and density
 
 Read this before overriding a palette, before choosing a font size, and before

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
 """Build a .pptx deck from a JSON spec using four brand-safe layouts.
 
 python-pptx will happily place a 9pt run of grey text in a box too small for it.

@@ -1,7 +1,7 @@
 ---
 name: website
 description: Builds a real static website inside the sandbox from a JSON spec or one of three templates, with a checked palette, type scale and responsive breakpoints, and verifies every page and link before it is handed back. Use when the deliverable is a website or web page - the request mentions a website, a site, a landing page, a portfolio, a homepage, a blog, "web sitesi", or asks for HTML/CSS to open in a browser. Also use to check whether an existing site directory is servable and its links and assets resolve. Do NOT use when the deliverable is a document or report to be read - use the pdf skill; nor for a slide deck (.pptx) or spreadsheet (.xlsx). Static HTML/CSS only: there is no Node.js in the sandbox, so React, Vite and Next are out of scope. Sets Turkish and other Latin Extended-A text correctly.
-license: MIT
+license: Apache-2.0
 metadata:
   version: 1.0.0
 ---

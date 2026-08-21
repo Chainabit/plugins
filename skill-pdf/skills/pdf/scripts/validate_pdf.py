@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
 """Check that a generated PDF is actually a PDF, and that it is not blank.
 
 The failure this exists to catch is the quiet one: a renderer exits 0, a file
