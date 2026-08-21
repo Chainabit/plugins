@@ -1,0 +1,24 @@
+{
+  "files": [
+    {
+      "path": "SKILL.md",
+      "sha256": "05f9aa6ff81686c3b54ce4085ccaf91f224ce3e0a53f818ad6fa213ccc518d6c",
+      "bytes": 8169
+    },
+    {
+      "path": "references/design.md",
+      "sha256": "a5376bbd9579fb639d65bc33ddcb3d682a75bff3b3368b850900eda63f80251c",
+      "bytes": 9585
+    },
+    {
+      "path": "scripts/scaffold_site.py",
+      "sha256": "53de15a275a128c7794b467479700f6764bfac3bfd6ff3f9a145379a5ca566bf",
+      "bytes": 53803
+    },
+    {
+      "path": "scripts/validate_site.py",
+      "sha256": "ab75c8345de3263fbbd1e9029a2804f96b874e56f7a39a539c1728639588ecce",
+      "bytes": 25105
+    }
+  ]
+}
