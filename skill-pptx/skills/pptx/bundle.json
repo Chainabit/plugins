@@ -1,0 +1,24 @@
+{
+  "files": [
+    {
+      "path": "SKILL.md",
+      "sha256": "aa0a1dc75e80ed3f599905ba92fb568cb493f64720a12b361ce17304d6842f88",
+      "bytes": 7991
+    },
+    {
+      "path": "references/design.md",
+      "sha256": "2003d9b2e27016415e90dfa3a6962d358bc66dfd14226bb0d7458cb04f67c6c2",
+      "bytes": 6688
+    },
+    {
+      "path": "scripts/deck_pptx.py",
+      "sha256": "405f23e0fa6ab40b40b8ba30c29326fb2975a0c0661e56091a91f723c22b5ddd",
+      "bytes": 27579
+    },
+    {
+      "path": "scripts/validate_pptx.py",
+      "sha256": "3507bddd88cb841aeb6b1c4b2ad1e3a3c0c1fa42e8bee664aa41701c126c845d",
+      "bytes": 38204
+    }
+  ]
+}

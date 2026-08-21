@@ -15,10 +15,11 @@ main NEXUS repository under `docs/spec/` and `docs/plugins/`.
 | [`persona-reviewer/`](persona-reviewer/) | `personas`, `code` | An installable agent persona + a slash command, with zero permissions requested. |
 | [`skill-pdf/`](skill-pdf/) | `productivity`, `data` | A `schemaVersion` 2 executable skill: `components.skills` points at a *directory* holding `SKILL.md` plus `scripts/` and `references/`, and the manifest declares `permissions.execute`. Generates real PDFs; the scripts run in a sandbox, never on the host. |
 | [`skill-xlsx/`](skill-xlsx/) | `productivity`, `data` | The same shape applied to spreadsheets. Illustrates a skill whose value is a strict input spec: typed columns in, a real `.xlsx` out, and a validator that catches numbers silently stored as text. |
+| [`skill-pptx/`](skill-pptx/) | `productivity`, `data` | The same shape applied to presentations. Illustrates a skill whose value is refusal: fixed layouts and a checked palette instead of styling knobs, and a validator that fails a deck for empty slides, overflowing text, low contrast, or too many bullets. |
 | [`provider-solongate/`](provider-solongate/) | `providers`, `security` | A real partner integration: SolonGate, a security proxy / MCP gateway. Unlike the examples above, this is a real, installable product (`@solongate/proxy` on npm). |
 | [`provider-codegraph/`](provider-codegraph/) | `code`, `providers` | A real partner integration: CodeGraph, local-first code intelligence over an MCP server. Declares `workspaceAccess`, so it also illustrates how a plugin discloses reading the user's open project. |
 
-`marketplace.json` at the repo root lists all six by id, version, and source, so any Chainabit
+`marketplace.json` at the repo root lists all seven by id, version, and source, so any Chainabit
 surface can resolve and install them directly from this repo.
 
 Each listing's `source` is this repo plus a `#<subdirectory>` fragment naming the plugin's own
