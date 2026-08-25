@@ -9,13 +9,26 @@
   },
   "license": "Apache-2.0",
   "homepage": "https://github.com/chainabit/plugins/tree/main/skill-pdf",
-  "categories": ["productivity", "data"],
-  "keywords": ["skill", "pdf", "generation", "markdown", "report", "weasyprint", "reportlab"],
+  "categories": [
+    "productivity",
+    "data"
+  ],
+  "keywords": [
+    "skill",
+    "pdf",
+    "generation",
+    "markdown",
+    "report",
+    "weasyprint",
+    "reportlab"
+  ],
   "compatibility": {
     "minVersion": "0.9.0"
   },
   "components": {
-    "skills": ["skills/pdf"]
+    "skills": [
+      "skills/pdf"
+    ]
   },
   "permissions": {
     "network": [],
@@ -23,5 +36,16 @@
     "shell": false,
     "execute": true,
     "dangerousSkipPermissions": false
-  }
+  },
+  "validators": [
+    {
+      "id": "skill-pdf.validate_pdf",
+      "entrypoint": "skills/pdf/scripts/validate_pdf.py",
+      "runtime": "python3",
+      "validationClass": "content_present",
+      "extensions": [
+        ".pdf"
+      ]
+    }
+  ]
 }
