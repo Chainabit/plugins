@@ -43,9 +43,12 @@
       "entrypoint": "skills/xlsx/scripts/validate_xlsx.py",
       "runtime": "python3",
       "validationClass": "content_present",
-      "extensions": [
-        ".xlsx"
-      ]
+      "target": {
+        "kind": "file",
+        "extensions": [
+          ".xlsx"
+        ]
+      }
     }
   ]
 }

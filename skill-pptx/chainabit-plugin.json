@@ -44,9 +44,12 @@
       "entrypoint": "skills/pptx/scripts/validate_pptx.py",
       "runtime": "python3",
       "validationClass": "content_present",
-      "extensions": [
-        ".pptx"
-      ]
+      "target": {
+        "kind": "file",
+        "extensions": [
+          ".pptx"
+        ]
+      }
     }
   ]
 }

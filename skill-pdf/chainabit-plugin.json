@@ -43,9 +43,12 @@
       "entrypoint": "skills/pdf/scripts/validate_pdf.py",
       "runtime": "python3",
       "validationClass": "content_present",
-      "extensions": [
-        ".pdf"
-      ]
+      "target": {
+        "kind": "file",
+        "extensions": [
+          ".pdf"
+        ]
+      }
     }
   ]
 }
