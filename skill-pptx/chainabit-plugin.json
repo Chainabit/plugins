@@ -2,8 +2,8 @@
   "schemaVersion": 2,
   "id": "skill-pptx",
   "name": "Presentation Skill",
-  "version": "1.0.0",
-  "description": "Builds real .pptx presentations from a JSON spec using four brand-safe layouts \u2014 title, content, comparison, closing \u2014 with a palette and type scale checked against WCAG AA, and validates the result for empty slides, overflowing text, low contrast and over-dense bullets. Ships two Python scripts that run in the sandbox against the pre-installed python-pptx; no network access at any point.",
+  "version": "1.1.0",
+  "description": "Builds real .pptx presentations from a JSON spec using four brand-safe layouts \u2014 title, content, comparison, closing \u2014 with a palette and type scale checked against WCAG AA, renders the same spec as a matching PDF so a deck asked for in both formats is delivered in both, and validates the result for empty slides, overflowing text, low contrast and over-dense bullets. Ships three Python scripts that run in the sandbox against the pre-installed python-pptx and reportlab.",
   "author": {
     "name": "NEXUS Community"
   },
@@ -51,5 +51,41 @@
         ]
       }
     }
-  ]
+  ],
+  "diagnostics": [
+    {
+      "entrypoint": "skills/pptx/scripts/deck_pptx.py",
+      "inputErrorExitCodes": [
+        1
+      ]
+    },
+    {
+      "entrypoint": "skills/pptx/scripts/deck_pdf.py",
+      "inputErrorExitCodes": [
+        1
+      ]
+    },
+    {
+      "entrypoint": "skills/pptx/scripts/validate_pptx.py",
+      "inputErrorExitCodes": [
+        1
+      ]
+    }
+  ],
+  "produces": [
+    ".pptx",
+    ".pdf"
+  ],
+  "requires": {
+    "python": [
+      "python-pptx",
+      "reportlab"
+    ],
+    "binaries": [
+      "python3"
+    ],
+    "fonts": [
+      "DejaVuSans"
+    ]
+  }
 }

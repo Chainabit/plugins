@@ -3,7 +3,7 @@ name: pdf
 description: Generates real PDF files inside the sandbox, either from a Markdown source or from a JSON report spec, and verifies the result before it is handed back. Use when the requested deliverable is a PDF - the request mentions PDF, .pdf, "rapor", "report", an invoice, a certificate, a printable handout or one-pager, or asks to convert Markdown to PDF. Also use to check whether an existing PDF file is valid, readable, or blank. Do NOT use when the deliverable is Markdown, plain text, or a document meant to stay editable; do NOT use for a spreadsheet or tabular data file (.xlsx or .csv), and do NOT use for a website or any HTML page meant to be viewed in a browser. Renders Turkish and other Latin Extended-A characters correctly.
 license: Apache-2.0
 metadata:
-  version: 3.0.0
+  version: 3.1.0
 ---
 
 # PDF generation
@@ -29,10 +29,14 @@ means `/workspace/.skills/pdf/scripts/md_to_pdf.py`. Run from wherever is conven
 using the full path; the scripts write only to the output path they are given.
 
 Every library used here — `markdown`, `weasyprint`, `reportlab` — is **already
-installed** in the sandbox image, along with the DejaVu fonts. There is no network
-at runtime. Do not run `pip install`, `uv pip install`, or `apt-get`: it will fail,
-and it was never needed. If an import error appears, the script says so explicitly;
-that means the environment is wrong, not that a dependency is missing.
+installed** in the sandbox image, along with the DejaVu fonts, so these scripts
+need no setup step.
+
+Do not assume anything further about the environment, in either direction. What
+else is installed, and whether you may install more, are properties of the
+container and the lease's policy rather than of this skill, and they change.
+Call the `workspace.env` tool to see what is actually there and whether installs
+are permitted right now.
 
 ## Quick start
 
@@ -84,8 +88,10 @@ Notes that change the output:
 - `--css` appends a stylesheet **after** the built-in one, so its rules win. Read
   `references/typography.md` before writing one; it lists the four built-in rules
   that must survive any override.
-- Syntax highlighting is not available (it would need Pygments, which is not in the
-  image). Code blocks render as plain monospaced text.
+- Code blocks render as plain monospaced text. Highlighting would need Pygments,
+  which is not baked into the image — check `workspace.env` before concluding it
+  is out of reach, and do not add an install step to a document that does not
+  need one.
 
 The script validates before rendering and prints one `ERROR: <field>: <reason>` line
 per problem: a missing input, a non-`.pdf` output name, an unwritable output

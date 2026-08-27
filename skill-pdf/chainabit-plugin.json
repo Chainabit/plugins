@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "skill-pdf",
   "name": "PDF Generation Skill",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "description": "Produces real PDF files from Markdown or from a JSON document spec, and validates the result. Ships three Python scripts that run in the sandbox against the pre-installed WeasyPrint and ReportLab toolchain; no network access at any point.",
   "author": {
     "name": "NEXUS Community"
@@ -50,5 +50,41 @@
         ]
       }
     }
-  ]
+  ],
+  "diagnostics": [
+    {
+      "entrypoint": "skills/pdf/scripts/md_to_pdf.py",
+      "inputErrorExitCodes": [
+        1
+      ]
+    },
+    {
+      "entrypoint": "skills/pdf/scripts/report_pdf.py",
+      "inputErrorExitCodes": [
+        1
+      ]
+    },
+    {
+      "entrypoint": "skills/pdf/scripts/validate_pdf.py",
+      "inputErrorExitCodes": [
+        1
+      ]
+    }
+  ],
+  "produces": [
+    ".pdf"
+  ],
+  "requires": {
+    "python": [
+      "markdown",
+      "weasyprint",
+      "reportlab"
+    ],
+    "binaries": [
+      "python3"
+    ],
+    "fonts": [
+      "DejaVuSans"
+    ]
+  }
 }

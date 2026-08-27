@@ -3,7 +3,7 @@ name: xlsx
 description: Builds real .xlsx workbooks inside the sandbox from a JSON spec - typed cells, a styled header row, column widths, number formats, freeze panes and autofilter - and verifies the result. Use when the requested deliverable is an Excel file: the request mentions Excel, xlsx, .xlsx, a spreadsheet, a workbook, "tablo", "çalışma kitabı", a budget, an inventory or a data export meant to be opened in Excel, Numbers, or Google Sheets. Also use to check whether an existing .xlsx is a valid workbook or has numbers stored as text. Do NOT use when a CSV is what was asked for - write the CSV directly instead; do NOT use for a PDF, a Markdown table, a chart image, or a database.
 license: Apache-2.0
 metadata:
-  version: 1.0.0
+  version: 1.1.0
 ---
 
 # Excel workbook generation
@@ -24,10 +24,11 @@ the skill is materialised at `/workspace/.skills/xlsx/`, then `scripts/build_xls
 means `/workspace/.skills/xlsx/scripts/build_xlsx.py`. The scripts write only to the
 output path they are given.
 
-`openpyxl` is **already installed** in the sandbox image, and there is no network at
-runtime. Do not run `pip install`, `uv pip install`, or `apt-get`. If an import error
-appears, the script says so explicitly; that means the environment is wrong, not that
-a dependency is missing.
+`openpyxl` and `pandas` are **already installed** in the sandbox image, so these
+scripts need no setup step and tabular analysis needs no download. What else is
+installed, and whether you may install more, are properties of the container and
+the lease's policy rather than of this skill, and they change — call the
+`workspace.env` tool rather than assuming either way.
 
 ### When this is the wrong tool
 
