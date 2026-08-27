@@ -3,7 +3,7 @@ name: website
 description: Builds a real static website inside the sandbox from a JSON spec or one of three templates, with a checked palette, type scale and responsive breakpoints, and verifies every page and link before it is handed back. Use when the deliverable is a website or web page - the request mentions a website, a site, a landing page, a portfolio, a homepage, a blog, "web sitesi", or asks for HTML/CSS to open in a browser. Also use to check whether an existing site directory is servable and its links and assets resolve. Do NOT use when the deliverable is a document or report to be read - use the pdf skill; nor for a slide deck (.pptx) or spreadsheet (.xlsx). Static HTML/CSS only: there is no Node.js in the sandbox, so React, Vite and Next are out of scope. Sets Turkish and other Latin Extended-A text correctly.
 license: Apache-2.0
 metadata:
-  version: 1.0.0
+  version: 1.1.0
 ---
 
 # Static website generation
@@ -34,8 +34,10 @@ environment, not a style preference:
 - **Egress is deny-all.** Nothing is fetchable at build time and nothing remote
   is linkable: no CDN `<script>`, no Google Fonts `@import`, no remote image. An
   asset lives in the site directory or is inlined as a `data:` URI.
-- **Scripts are Python 3 stdlib only.** Jinja2 is not installed. Do not run
-  `pip install`, `uv pip install` or `apt-get`; it fails, and was never needed.
+- **Scripts are Python 3 stdlib only**, so they need no setup step and no
+  template engine. That is a property of these scripts, not a claim about the
+  container: call the `workspace.env` tool to see what is installed and whether
+  installs are permitted before concluding a library is out of reach.
 
 A static site is not a consolation prize: system fonts, one stylesheet and no
 JavaScript is the fastest a page can be. If a request truly needs a framework,

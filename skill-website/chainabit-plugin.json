@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "skill-website",
   "name": "Static Website Skill",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Generates real static websites from a JSON spec or one of three starting templates \u2014 a single-page landing page, a flat multi-page site, and a multi-page site with article pages \u2014 with a palette and fluid type scale checked against WCAG AA, and validates the result for a missing or nested entry point, broken links, unresolvable assets, remote assets that cannot load, and missing alt text. Ships two Python scripts that run in the sandbox on the stdlib alone; static HTML and CSS only, with no build step and no network access at any point.",
   "author": {
     "name": "NEXUS Community"
@@ -49,5 +49,30 @@
         "kind": "tree"
       }
     }
-  ]
+  ],
+  "diagnostics": [
+    {
+      "entrypoint": "skills/website/scripts/scaffold_site.py",
+      "inputErrorExitCodes": [
+        1
+      ]
+    },
+    {
+      "entrypoint": "skills/website/scripts/validate_site.py",
+      "inputErrorExitCodes": [
+        1
+      ]
+    }
+  ],
+  "produces": [
+    ".html",
+    ".css"
+  ],
+  "requires": {
+    "python": [],
+    "binaries": [
+      "python3"
+    ],
+    "fonts": []
+  }
 }

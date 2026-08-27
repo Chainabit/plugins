@@ -31,46 +31,46 @@
     {
       "id": "skill-pdf",
       "source": "https://github.com/chainabit/plugins.git#skill-pdf",
-      "version": "3.0.0",
+      "version": "3.1.0",
       "verified": false,
       "downloads": 5017,
-      "lastChecked": "2026-08-18T00:00:00Z",
+      "lastChecked": "2026-08-27T00:00:00Z",
       "stale": false
     },
     {
       "id": "skill-xlsx",
       "source": "https://github.com/chainabit/plugins.git#skill-xlsx",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "verified": false,
       "downloads": 0,
-      "lastChecked": "2026-08-18T00:00:00Z",
+      "lastChecked": "2026-08-27T00:00:00Z",
       "stale": false
     },
     {
       "id": "skill-pptx",
       "source": "https://github.com/chainabit/plugins.git#skill-pptx",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "verified": false,
       "downloads": 0,
-      "lastChecked": "2026-08-21T00:00:00Z",
+      "lastChecked": "2026-08-27T00:00:00Z",
       "stale": false
     },
     {
       "id": "skill-website",
       "source": "https://github.com/chainabit/plugins.git#skill-website",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "verified": false,
       "downloads": 0,
-      "lastChecked": "2026-08-21T00:00:00Z",
+      "lastChecked": "2026-08-27T00:00:00Z",
       "stale": false
     },
     {
       "id": "skill-docx",
       "source": "https://github.com/chainabit/plugins.git#skill-docx",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "verified": false,
       "downloads": 0,
-      "lastChecked": "2026-08-26T00:00:00Z",
+      "lastChecked": "2026-08-27T00:00:00Z",
       "stale": false
     },
     {

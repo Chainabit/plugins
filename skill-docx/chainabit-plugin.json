@@ -2,8 +2,8 @@
   "schemaVersion": 2,
   "id": "skill-docx",
   "name": "Word Document Skill",
-  "version": "1.0.0",
-  "description": "Builds real .docx documents from a JSON spec — headings, styled paragraphs, bulleted and numbered lists, tables and page breaks — and validates the result. Ships two Python scripts that run in the sandbox against the pre-installed python-docx; no network access at any point.",
+  "version": "1.1.0",
+  "description": "Builds real .docx documents from a JSON spec \u2014 headings, styled paragraphs, bulleted and numbered lists, tables and page breaks \u2014 and validates the result. Ships two Python scripts that run in the sandbox against the pre-installed python-docx; no network access at any point.",
   "author": {
     "name": "NEXUS Community"
   },
@@ -49,5 +49,31 @@
         ]
       }
     }
-  ]
+  ],
+  "diagnostics": [
+    {
+      "entrypoint": "skills/docx/scripts/build_docx.py",
+      "inputErrorExitCodes": [
+        1
+      ]
+    },
+    {
+      "entrypoint": "skills/docx/scripts/validate_docx.py",
+      "inputErrorExitCodes": [
+        1
+      ]
+    }
+  ],
+  "produces": [
+    ".docx"
+  ],
+  "requires": {
+    "python": [
+      "python-docx"
+    ],
+    "binaries": [
+      "python3"
+    ],
+    "fonts": []
+  }
 }

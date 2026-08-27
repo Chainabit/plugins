@@ -3,7 +3,7 @@ name: docx
 description: Builds real .docx documents inside the sandbox from a JSON spec - headings, styled paragraphs, bulleted and numbered lists, tables and page breaks - and verifies the result. Use when the requested deliverable is a Word document: the request mentions Word, docx, .docx, a document, a report, a proposal, a resume or CV, a letter, a contract, "belge", "rapor", "özgeçmiş", or anything meant to be opened in Word, Pages, or Google Docs. Also use to check whether an existing .docx is a valid document or has raw Markdown rendered into its text. Do NOT use when Markdown or plain text is what was asked for - write that file directly instead; do NOT use for a PDF, a spreadsheet, a slide deck, or an HTML page.
 license: Apache-2.0
 metadata:
-  version: 1.0.0
+  version: 1.1.0
 ---
 
 # Word document generation
@@ -24,10 +24,11 @@ the skill is materialised at `/workspace/.skills/docx/`, then `scripts/build_doc
 means `/workspace/.skills/docx/scripts/build_docx.py`. The scripts write only to the
 output path they are given.
 
-`python-docx` is **already installed** in the sandbox image, and there is no network
-at runtime. Do not run `pip install`, `uv pip install`, or `apt-get`. If an import
-error appears, the script says so explicitly; that means the environment is wrong,
-not that a dependency is missing.
+`python-docx` is **already installed** in the sandbox image, so these scripts
+need no setup step. What else is installed, and whether you may install more,
+are properties of the container and the lease's policy rather than of this
+skill, and they change — call the `workspace.env` tool rather than assuming
+either way.
 
 ### When this is the wrong tool
 

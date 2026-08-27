@@ -2,8 +2,8 @@
   "files": [
     {
       "path": "SKILL.md",
-      "sha256": "ca67c0abf5cbf61c426ea39fe69390a4f5495193825a4e61ba7c570587d56bc1",
-      "bytes": 7998
+      "sha256": "fc9e2a3dc91c6aece39e3f4173430480544657298c3a64bca24bdef5b81fd899",
+      "bytes": 10706
     },
     {
       "path": "references/design.md",
@@ -14,6 +14,11 @@
       "path": "scripts/deck_pptx.py",
       "sha256": "ed7710f142d840bae2283b353935930df022df852c91bf314db7d20a6e6911d5",
       "bytes": 27617
+    },
+    {
+      "path": "scripts/deck_pdf.py",
+      "sha256": "0a0eb8f875313625a851e1649a2a8bf4aa1cad9558f907f23e979d8563755941",
+      "bytes": 15921
     },
     {
       "path": "scripts/validate_pptx.py",

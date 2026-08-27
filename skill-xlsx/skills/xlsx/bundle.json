@@ -2,8 +2,8 @@
   "files": [
     {
       "path": "SKILL.md",
-      "sha256": "b98dfa18b93f441ddb1233626f177ce2d9d5d228fe26a8bb0d5df9ea4280aa78",
-      "bytes": 10285
+      "sha256": "508b8ca011e7ebcb44a80e47c7800ece5618ce7e88507a3d06c4923f8cc304ff",
+      "bytes": 10374
     },
     {
       "path": "scripts/build_xlsx.py",
