@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 2,
+  "id": "skill-elasticsearch",
+  "name": "Elasticsearch",
+  "version": "1.0.0",
+  "description": "Elasticsearch engineering for mappings, analyzers, query relevance, shards, indexing, aliases, and safe cluster operations.",
+  "author": {
+    "name": "Chainabit"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/chainabit/plugins.git/tree/main/databases/skill-elasticsearch",
+  "categories": [
+    "code",
+    "databases"
+  ],
+  "keywords": [
+    "elasticsearch",
+    "search",
+    "mappings",
+    "shards"
+  ],
+  "compatibility": {
+    "minVersion": "0.9.0"
+  },
+  "components": {
+    "skills": [
+      "skills/elasticsearch"
+    ]
+  },
+  "composition": {
+    "requires": [
+      "skill-software-engineering"
+    ],
+    "role": "specialist"
+  },
+  "permissions": {
+    "network": [],
+    "filesystem": [],
+    "shell": false,
+    "execute": false,
+    "dangerousSkipPermissions": false
+  }
+}

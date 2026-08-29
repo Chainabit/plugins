@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 2,
+  "id": "skill-fsharp",
+  "name": "F#",
+  "version": "1.0.0",
+  "description": "F# engineering for discriminated unions, computation expressions, .NET interop, project files, and functional domain modeling.",
+  "author": {
+    "name": "Chainabit"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/chainabit/plugins.git/tree/main/languages/skill-fsharp",
+  "categories": [
+    "code"
+  ],
+  "keywords": [
+    "f-sharp",
+    "dotnet",
+    "functional",
+    "unions"
+  ],
+  "compatibility": {
+    "minVersion": "0.9.0"
+  },
+  "components": {
+    "skills": [
+      "skills/fsharp"
+    ]
+  },
+  "composition": {
+    "requires": [
+      "skill-software-engineering"
+    ],
+    "role": "language"
+  },
+  "permissions": {
+    "network": [],
+    "filesystem": [],
+    "shell": false,
+    "execute": false,
+    "dangerousSkipPermissions": false
+  }
+}

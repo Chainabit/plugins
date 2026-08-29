@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 2,
+  "id": "skill-nestjs",
+  "name": "NestJS",
+  "version": "1.0.0",
+  "description": "NestJS engineering for modules, providers, guards, interceptors, transport boundaries, validation, and testable application services.",
+  "author": {
+    "name": "Chainabit"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/chainabit/plugins.git/tree/main/frameworks/skill-nestjs",
+  "categories": [
+    "code"
+  ],
+  "keywords": [
+    "nestjs",
+    "node",
+    "modules",
+    "dependency-injection"
+  ],
+  "compatibility": {
+    "minVersion": "0.9.0"
+  },
+  "components": {
+    "skills": [
+      "skills/nestjs"
+    ]
+  },
+  "composition": {
+    "requires": [
+      "skill-software-engineering"
+    ],
+    "role": "framework"
+  },
+  "permissions": {
+    "network": [],
+    "filesystem": [],
+    "shell": false,
+    "execute": false,
+    "dangerousSkipPermissions": false
+  }
+}

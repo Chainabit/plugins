@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 2,
+  "id": "skill-flutter",
+  "name": "Flutter",
+  "version": "1.0.0",
+  "description": "Flutter engineering for widget boundaries, state ownership, rendering performance, platform channels, and release testing.",
+  "author": {
+    "name": "Chainabit"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/chainabit/plugins.git/tree/main/frameworks/skill-flutter",
+  "categories": [
+    "code"
+  ],
+  "keywords": [
+    "flutter",
+    "dart",
+    "widgets",
+    "platform-channels"
+  ],
+  "compatibility": {
+    "minVersion": "0.9.0"
+  },
+  "components": {
+    "skills": [
+      "skills/flutter"
+    ]
+  },
+  "composition": {
+    "requires": [
+      "skill-software-engineering"
+    ],
+    "role": "framework"
+  },
+  "permissions": {
+    "network": [],
+    "filesystem": [],
+    "shell": false,
+    "execute": false,
+    "dangerousSkipPermissions": false
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 2,
+  "id": "skill-stream-processing",
+  "name": "Stream Processing",
+  "version": "1.0.0",
+  "description": "Stream-processing engineering for partitions, windows, watermarks, state, delivery guarantees, and replayable consumers.",
+  "author": {
+    "name": "Chainabit"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/chainabit/plugins.git/tree/main/data/skill-stream-processing",
+  "categories": [
+    "code",
+    "data"
+  ],
+  "keywords": [
+    "streaming",
+    "kafka",
+    "windows",
+    "watermarks"
+  ],
+  "compatibility": {
+    "minVersion": "0.9.0"
+  },
+  "components": {
+    "skills": [
+      "skills/stream-processing"
+    ]
+  },
+  "composition": {
+    "requires": [
+      "skill-software-engineering"
+    ],
+    "role": "specialist"
+  },
+  "permissions": {
+    "network": [],
+    "filesystem": [],
+    "shell": false,
+    "execute": false,
+    "dangerousSkipPermissions": false
+  }
+}

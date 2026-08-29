@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 2,
+  "id": "skill-clojure",
+  "name": "Clojure",
+  "version": "1.0.0",
+  "description": "Clojure engineering for immutable data, protocols, sequences, concurrency primitives, deps.edn, and JVM services.",
+  "author": {
+    "name": "Chainabit"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/chainabit/plugins.git/tree/main/languages/skill-clojure",
+  "categories": [
+    "code"
+  ],
+  "keywords": [
+    "clojure",
+    "immutable",
+    "deps-edn",
+    "jvm"
+  ],
+  "compatibility": {
+    "minVersion": "0.9.0"
+  },
+  "components": {
+    "skills": [
+      "skills/clojure"
+    ]
+  },
+  "composition": {
+    "requires": [
+      "skill-software-engineering"
+    ],
+    "role": "language"
+  },
+  "permissions": {
+    "network": [],
+    "filesystem": [],
+    "shell": false,
+    "execute": false,
+    "dangerousSkipPermissions": false
+  }
+}

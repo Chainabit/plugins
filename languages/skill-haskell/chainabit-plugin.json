@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 2,
+  "id": "skill-haskell",
+  "name": "Haskell",
+  "version": "1.0.0",
+  "description": "Haskell engineering for purity boundaries, typeclasses, effects, laziness, Cabal or Stack, and reliable property tests.",
+  "author": {
+    "name": "Chainabit"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/chainabit/plugins.git/tree/main/languages/skill-haskell",
+  "categories": [
+    "code"
+  ],
+  "keywords": [
+    "haskell",
+    "ghc",
+    "cabal",
+    "purity"
+  ],
+  "compatibility": {
+    "minVersion": "0.9.0"
+  },
+  "components": {
+    "skills": [
+      "skills/haskell"
+    ]
+  },
+  "composition": {
+    "requires": [
+      "skill-software-engineering"
+    ],
+    "role": "language"
+  },
+  "permissions": {
+    "network": [],
+    "filesystem": [],
+    "shell": false,
+    "execute": false,
+    "dangerousSkipPermissions": false
+  }
+}

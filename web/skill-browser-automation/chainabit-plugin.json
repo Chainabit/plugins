@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 2,
+  "id": "skill-browser-automation",
+  "name": "Browser Automation",
+  "version": "1.0.0",
+  "description": "Browser automation engineering for deterministic fixtures, selectors, waits, isolation, tracing, and safe end-to-end verification.",
+  "author": {
+    "name": "Chainabit"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/chainabit/plugins.git/tree/main/web/skill-browser-automation",
+  "categories": [
+    "code"
+  ],
+  "keywords": [
+    "playwright",
+    "selenium",
+    "e2e",
+    "browsers"
+  ],
+  "compatibility": {
+    "minVersion": "0.9.0"
+  },
+  "components": {
+    "skills": [
+      "skills/browser-automation"
+    ]
+  },
+  "composition": {
+    "requires": [
+      "skill-software-engineering"
+    ],
+    "role": "specialist"
+  },
+  "permissions": {
+    "network": [],
+    "filesystem": [],
+    "shell": false,
+    "execute": false,
+    "dangerousSkipPermissions": false
+  }
+}

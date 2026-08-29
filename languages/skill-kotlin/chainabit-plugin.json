@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 2,
+  "id": "skill-kotlin",
+  "name": "Kotlin",
+  "version": "1.0.0",
+  "description": "Kotlin engineering for null safety, coroutines, sealed types, Gradle builds, interoperability, and tests.",
+  "author": {
+    "name": "Chainabit"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/chainabit/plugins.git/tree/main/languages/skill-kotlin",
+  "categories": [
+    "code"
+  ],
+  "keywords": [
+    "kotlin",
+    "coroutines",
+    "gradle",
+    "jvm"
+  ],
+  "compatibility": {
+    "minVersion": "0.9.0"
+  },
+  "components": {
+    "skills": [
+      "skills/kotlin"
+    ]
+  },
+  "composition": {
+    "requires": [
+      "skill-software-engineering"
+    ],
+    "role": "language"
+  },
+  "permissions": {
+    "network": [],
+    "filesystem": [],
+    "shell": false,
+    "execute": false,
+    "dangerousSkipPermissions": false
+  }
+}

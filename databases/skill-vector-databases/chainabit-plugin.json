@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 2,
+  "id": "skill-vector-databases",
+  "name": "Vector Databases",
+  "version": "1.0.0",
+  "description": "Vector-database engineering for embedding lineage, index choice, filtering, recall/latency trade-offs, and safe retrieval systems.",
+  "author": {
+    "name": "Chainabit"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/chainabit/plugins.git/tree/main/databases/skill-vector-databases",
+  "categories": [
+    "code",
+    "databases"
+  ],
+  "keywords": [
+    "vectors",
+    "embeddings",
+    "retrieval",
+    "ann"
+  ],
+  "compatibility": {
+    "minVersion": "0.9.0"
+  },
+  "components": {
+    "skills": [
+      "skills/vector-databases"
+    ]
+  },
+  "composition": {
+    "requires": [
+      "skill-software-engineering"
+    ],
+    "role": "specialist"
+  },
+  "permissions": {
+    "network": [],
+    "filesystem": [],
+    "shell": false,
+    "execute": false,
+    "dangerousSkipPermissions": false
+  }
+}

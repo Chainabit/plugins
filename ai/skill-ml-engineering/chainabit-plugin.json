@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 2,
+  "id": "skill-ml-engineering",
+  "name": "ML Engineering",
+  "version": "1.0.0",
+  "description": "ML engineering for reproducible data, training, evaluation, serving, drift, lineage, and safe model lifecycle.",
+  "author": {
+    "name": "Chainabit"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/chainabit/plugins.git/tree/main/ai/skill-ml-engineering",
+  "categories": [
+    "code",
+    "ai"
+  ],
+  "keywords": [
+    "machine-learning",
+    "mlops",
+    "evaluation",
+    "drift"
+  ],
+  "compatibility": {
+    "minVersion": "0.9.0"
+  },
+  "components": {
+    "skills": [
+      "skills/ml-engineering"
+    ]
+  },
+  "composition": {
+    "requires": [
+      "skill-software-engineering"
+    ],
+    "role": "specialist"
+  },
+  "permissions": {
+    "network": [],
+    "filesystem": [],
+    "shell": false,
+    "execute": false,
+    "dangerousSkipPermissions": false
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 2,
+  "id": "skill-pulumi",
+  "name": "Pulumi",
+  "version": "1.0.0",
+  "description": "Pulumi engineering for typed infrastructure, stack state, previews, secrets, component resources, and safe replacements.",
+  "author": {
+    "name": "Chainabit"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/chainabit/plugins.git/tree/main/infrastructure/skill-pulumi",
+  "categories": [
+    "code",
+    "infrastructure"
+  ],
+  "keywords": [
+    "pulumi",
+    "iac",
+    "cloud",
+    "stacks"
+  ],
+  "compatibility": {
+    "minVersion": "0.9.0"
+  },
+  "components": {
+    "skills": [
+      "skills/pulumi"
+    ]
+  },
+  "composition": {
+    "requires": [
+      "skill-software-engineering"
+    ],
+    "role": "specialist"
+  },
+  "permissions": {
+    "network": [],
+    "filesystem": [],
+    "shell": false,
+    "execute": false,
+    "dangerousSkipPermissions": false
+  }
+}

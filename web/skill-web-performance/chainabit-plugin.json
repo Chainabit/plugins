@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 2,
+  "id": "skill-web-performance",
+  "name": "Web Performance",
+  "version": "1.0.0",
+  "description": "Web performance engineering for budgets, loading, rendering, network waterfalls, runtime cost, and measurable regressions.",
+  "author": {
+    "name": "Chainabit"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/chainabit/plugins.git/tree/main/web/skill-web-performance",
+  "categories": [
+    "code"
+  ],
+  "keywords": [
+    "web-performance",
+    "vitals",
+    "bundle",
+    "profiling"
+  ],
+  "compatibility": {
+    "minVersion": "0.9.0"
+  },
+  "components": {
+    "skills": [
+      "skills/web-performance"
+    ]
+  },
+  "composition": {
+    "requires": [
+      "skill-software-engineering"
+    ],
+    "role": "specialist"
+  },
+  "permissions": {
+    "network": [],
+    "filesystem": [],
+    "shell": false,
+    "execute": false,
+    "dangerousSkipPermissions": false
+  }
+}

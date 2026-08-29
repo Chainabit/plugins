@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 2,
+  "id": "skill-go",
+  "name": "Go",
+  "version": "1.0.0",
+  "description": "Go engineering for modules, interfaces, goroutines, channels, errors, testing, and production services.",
+  "author": {
+    "name": "Chainabit"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/chainabit/plugins.git/tree/main/languages/skill-go",
+  "categories": [
+    "code"
+  ],
+  "keywords": [
+    "go",
+    "golang",
+    "goroutines",
+    "modules"
+  ],
+  "compatibility": {
+    "minVersion": "0.9.0"
+  },
+  "components": {
+    "skills": [
+      "skills/go"
+    ]
+  },
+  "composition": {
+    "requires": [
+      "skill-software-engineering"
+    ],
+    "role": "language"
+  },
+  "permissions": {
+    "network": [],
+    "filesystem": [],
+    "shell": false,
+    "execute": false,
+    "dangerousSkipPermissions": false
+  }
+}

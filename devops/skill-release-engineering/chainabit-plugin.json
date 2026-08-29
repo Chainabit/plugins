@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 2,
+  "id": "skill-release-engineering",
+  "name": "Release Engineering",
+  "version": "1.0.0",
+  "description": "Release engineering for versioning, changelogs, artifacts, provenance, rollout strategy, rollback, and reproducible delivery.",
+  "author": {
+    "name": "Chainabit"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/chainabit/plugins.git/tree/main/devops/skill-release-engineering",
+  "categories": [
+    "code",
+    "devops"
+  ],
+  "keywords": [
+    "releases",
+    "versioning",
+    "provenance",
+    "rollback"
+  ],
+  "compatibility": {
+    "minVersion": "0.9.0"
+  },
+  "components": {
+    "skills": [
+      "skills/release-engineering"
+    ]
+  },
+  "composition": {
+    "requires": [
+      "skill-software-engineering"
+    ],
+    "role": "specialist"
+  },
+  "permissions": {
+    "network": [],
+    "filesystem": [],
+    "shell": false,
+    "execute": false,
+    "dangerousSkipPermissions": false
+  }
+}

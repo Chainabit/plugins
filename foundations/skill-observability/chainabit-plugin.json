@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 2,
+  "id": "skill-observability",
+  "name": "Observability",
+  "version": "1.0.0",
+  "description": "Observability engineering for useful logs, metrics, traces, correlation, cardinality, privacy, and actionable diagnostics.",
+  "author": {
+    "name": "Chainabit"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/chainabit/plugins.git/tree/main/foundations/skill-observability",
+  "categories": [
+    "code",
+    "foundations"
+  ],
+  "keywords": [
+    "observability",
+    "metrics",
+    "logs",
+    "traces"
+  ],
+  "compatibility": {
+    "minVersion": "0.9.0"
+  },
+  "components": {
+    "skills": [
+      "skills/observability"
+    ]
+  },
+  "composition": {
+    "requires": [
+      "skill-software-engineering"
+    ],
+    "role": "specialist"
+  },
+  "permissions": {
+    "network": [],
+    "filesystem": [],
+    "shell": false,
+    "execute": false,
+    "dangerousSkipPermissions": false
+  }
+}

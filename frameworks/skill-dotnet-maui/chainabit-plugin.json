@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 2,
+  "id": "skill-dotnet-maui",
+  "name": ".NET MAUI",
+  "version": "1.0.0",
+  "description": ".NET MAUI engineering for cross-platform UI, lifecycle, navigation, native capabilities, packaging, and testable state.",
+  "author": {
+    "name": "Chainabit"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/chainabit/plugins.git/tree/main/frameworks/skill-dotnet-maui",
+  "categories": [
+    "code"
+  ],
+  "keywords": [
+    "maui",
+    "dotnet",
+    "mobile",
+    "desktop"
+  ],
+  "compatibility": {
+    "minVersion": "0.9.0"
+  },
+  "components": {
+    "skills": [
+      "skills/dotnet-maui"
+    ]
+  },
+  "composition": {
+    "requires": [
+      "skill-software-engineering"
+    ],
+    "role": "framework"
+  },
+  "permissions": {
+    "network": [],
+    "filesystem": [],
+    "shell": false,
+    "execute": false,
+    "dangerousSkipPermissions": false
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 2,
+  "id": "skill-micronaut",
+  "name": "Micronaut",
+  "version": "1.0.0",
+  "description": "Micronaut engineering for compile-time DI, HTTP clients, configuration, validation, reactive execution, and native deployment.",
+  "author": {
+    "name": "Chainabit"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/chainabit/plugins.git/tree/main/frameworks/skill-micronaut",
+  "categories": [
+    "code"
+  ],
+  "keywords": [
+    "micronaut",
+    "java",
+    "kotlin",
+    "aot"
+  ],
+  "compatibility": {
+    "minVersion": "0.9.0"
+  },
+  "components": {
+    "skills": [
+      "skills/micronaut"
+    ]
+  },
+  "composition": {
+    "requires": [
+      "skill-software-engineering"
+    ],
+    "role": "framework"
+  },
+  "permissions": {
+    "network": [],
+    "filesystem": [],
+    "shell": false,
+    "execute": false,
+    "dangerousSkipPermissions": false
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 2,
+  "id": "skill-database-design",
+  "name": "Database Design",
+  "version": "1.0.0",
+  "description": "Database design for invariants, normalization, keys, transactions, indexes, lifecycle, and safe schema evolution.",
+  "author": {
+    "name": "Chainabit"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/chainabit/plugins.git/tree/main/foundations/skill-database-design",
+  "categories": [
+    "code",
+    "foundations"
+  ],
+  "keywords": [
+    "database",
+    "schema",
+    "normalization",
+    "indexes"
+  ],
+  "compatibility": {
+    "minVersion": "0.9.0"
+  },
+  "components": {
+    "skills": [
+      "skills/database-design"
+    ]
+  },
+  "composition": {
+    "requires": [
+      "skill-software-engineering"
+    ],
+    "role": "specialist"
+  },
+  "permissions": {
+    "network": [],
+    "filesystem": [],
+    "shell": false,
+    "execute": false,
+    "dangerousSkipPermissions": false
+  }
+}

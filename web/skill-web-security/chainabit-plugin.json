@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 2,
+  "id": "skill-web-security",
+  "name": "Web Security",
+  "version": "1.0.0",
+  "description": "Web security engineering for browser trust boundaries, XSS, CSRF, cookies, CSP, CORS, and secure client-server flows.",
+  "author": {
+    "name": "Chainabit"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/chainabit/plugins.git/tree/main/web/skill-web-security",
+  "categories": [
+    "code"
+  ],
+  "keywords": [
+    "xss",
+    "csrf",
+    "csp",
+    "cors"
+  ],
+  "compatibility": {
+    "minVersion": "0.9.0"
+  },
+  "components": {
+    "skills": [
+      "skills/web-security"
+    ]
+  },
+  "composition": {
+    "requires": [
+      "skill-software-engineering"
+    ],
+    "role": "specialist"
+  },
+  "permissions": {
+    "network": [],
+    "filesystem": [],
+    "shell": false,
+    "execute": false,
+    "dangerousSkipPermissions": false
+  }
+}

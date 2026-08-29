@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 2,
+  "id": "skill-ocaml",
+  "name": "OCaml",
+  "version": "1.0.0",
+  "description": "OCaml engineering for algebraic types, modules, effects, dune builds, interoperability, and tested native code.",
+  "author": {
+    "name": "Chainabit"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/chainabit/plugins.git/tree/main/languages/skill-ocaml",
+  "categories": [
+    "code"
+  ],
+  "keywords": [
+    "ocaml",
+    "dune",
+    "modules",
+    "types"
+  ],
+  "compatibility": {
+    "minVersion": "0.9.0"
+  },
+  "components": {
+    "skills": [
+      "skills/ocaml"
+    ]
+  },
+  "composition": {
+    "requires": [
+      "skill-software-engineering"
+    ],
+    "role": "language"
+  },
+  "permissions": {
+    "network": [],
+    "filesystem": [],
+    "shell": false,
+    "execute": false,
+    "dangerousSkipPermissions": false
+  }
+}

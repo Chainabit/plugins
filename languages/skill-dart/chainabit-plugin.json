@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 2,
+  "id": "skill-dart",
+  "name": "Dart",
+  "version": "1.0.0",
+  "description": "Dart engineering for sound null safety, isolates, packages, async code, testing, and Flutter-independent libraries.",
+  "author": {
+    "name": "Chainabit"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/chainabit/plugins.git/tree/main/languages/skill-dart",
+  "categories": [
+    "code"
+  ],
+  "keywords": [
+    "dart",
+    "pub",
+    "isolates",
+    "null-safety"
+  ],
+  "compatibility": {
+    "minVersion": "0.9.0"
+  },
+  "components": {
+    "skills": [
+      "skills/dart"
+    ]
+  },
+  "composition": {
+    "requires": [
+      "skill-software-engineering"
+    ],
+    "role": "language"
+  },
+  "permissions": {
+    "network": [],
+    "filesystem": [],
+    "shell": false,
+    "execute": false,
+    "dangerousSkipPermissions": false
+  }
+}

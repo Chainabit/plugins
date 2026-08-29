@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 2,
+  "id": "skill-django",
+  "name": "Django",
+  "version": "1.0.0",
+  "description": "Focused Django methodology for project/app boundaries, models, views, services, configuration, migrations, security, tests, and verified commands. Composes Python and web/engineering foundations.",
+  "author": {
+    "name": "Chainabit"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/chainabit/plugins/tree/main/frameworks/skill-django",
+  "categories": [
+    "code"
+  ],
+  "keywords": [
+    "django",
+    "python",
+    "web",
+    "orm",
+    "migrations"
+  ],
+  "compatibility": {
+    "minVersion": "0.9.0"
+  },
+  "components": {
+    "skills": [
+      "skills/django"
+    ]
+  },
+  "composition": {
+    "requires": [
+      "skill-python",
+      "skill-software-engineering",
+      "skill-project-bootstrap",
+      "skill-git",
+      "skill-project-documentation",
+      "skill-web-engineering"
+    ],
+    "role": "technology"
+  },
+  "permissions": {
+    "network": [],
+    "filesystem": [],
+    "shell": false,
+    "execute": false,
+    "dangerousSkipPermissions": false
+  }
+}

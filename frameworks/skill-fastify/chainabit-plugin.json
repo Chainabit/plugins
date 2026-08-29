@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 2,
+  "id": "skill-fastify",
+  "name": "Fastify",
+  "version": "1.0.0",
+  "description": "Fastify engineering for schema-first routes, plugin encapsulation, lifecycle hooks, serialization, and high-throughput Node services.",
+  "author": {
+    "name": "Chainabit"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/chainabit/plugins.git/tree/main/frameworks/skill-fastify",
+  "categories": [
+    "code"
+  ],
+  "keywords": [
+    "fastify",
+    "node",
+    "schemas",
+    "plugins"
+  ],
+  "compatibility": {
+    "minVersion": "0.9.0"
+  },
+  "components": {
+    "skills": [
+      "skills/fastify"
+    ]
+  },
+  "composition": {
+    "requires": [
+      "skill-software-engineering"
+    ],
+    "role": "framework"
+  },
+  "permissions": {
+    "network": [],
+    "filesystem": [],
+    "shell": false,
+    "execute": false,
+    "dangerousSkipPermissions": false
+  }
+}

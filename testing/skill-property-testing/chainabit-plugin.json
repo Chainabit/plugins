@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 2,
+  "id": "skill-property-testing",
+  "name": "Property Testing",
+  "version": "1.0.0",
+  "description": "Property-testing engineering for invariants, generators, shrinking, state models, and reproducible counterexamples.",
+  "author": {
+    "name": "Chainabit"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/chainabit/plugins.git/tree/main/testing/skill-property-testing",
+  "categories": [
+    "code",
+    "testing"
+  ],
+  "keywords": [
+    "property-testing",
+    "quickcheck",
+    "invariants",
+    "fuzzing"
+  ],
+  "compatibility": {
+    "minVersion": "0.9.0"
+  },
+  "components": {
+    "skills": [
+      "skills/property-testing"
+    ]
+  },
+  "composition": {
+    "requires": [
+      "skill-software-engineering"
+    ],
+    "role": "specialist"
+  },
+  "permissions": {
+    "network": [],
+    "filesystem": [],
+    "shell": false,
+    "execute": false,
+    "dangerousSkipPermissions": false
+  }
+}

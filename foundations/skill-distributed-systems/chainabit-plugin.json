@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 2,
+  "id": "skill-distributed-systems",
+  "name": "Distributed Systems",
+  "version": "1.0.0",
+  "description": "Distributed-systems reasoning for time, retries, consistency, partitions, coordination, and failure-aware designs.",
+  "author": {
+    "name": "Chainabit"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/chainabit/plugins.git/tree/main/foundations/skill-distributed-systems",
+  "categories": [
+    "code",
+    "foundations"
+  ],
+  "keywords": [
+    "distributed-systems",
+    "consistency",
+    "retries",
+    "partitions"
+  ],
+  "compatibility": {
+    "minVersion": "0.9.0"
+  },
+  "components": {
+    "skills": [
+      "skills/distributed-systems"
+    ]
+  },
+  "composition": {
+    "requires": [
+      "skill-software-engineering"
+    ],
+    "role": "specialist"
+  },
+  "permissions": {
+    "network": [],
+    "filesystem": [],
+    "shell": false,
+    "execute": false,
+    "dangerousSkipPermissions": false
+  }
+}

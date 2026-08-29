@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 2,
+  "id": "skill-software-engineering",
+  "name": "Software Engineering Foundation",
+  "version": "1.0.0",
+  "description": "Reusable engineering methodology for responsibility ownership, GRASP/OOAD, evidence-driven implementation, testability, idempotency, and systemic fixes. Select for maintainable software projects; composes with technology skills.",
+  "author": {
+    "name": "Chainabit"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/chainabit/plugins/tree/main/foundations/skill-software-engineering",
+  "categories": [
+    "code"
+  ],
+  "keywords": [
+    "engineering",
+    "grasp",
+    "ooad",
+    "architecture",
+    "testing",
+    "methodology"
+  ],
+  "compatibility": {
+    "minVersion": "0.9.0"
+  },
+  "components": {
+    "skills": [
+      "skills/software-engineering"
+    ]
+  },
+  "permissions": {
+    "network": [],
+    "filesystem": [],
+    "shell": false,
+    "execute": false,
+    "dangerousSkipPermissions": false
+  }
+}

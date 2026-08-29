@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 2,
+  "id": "skill-cpp",
+  "name": "C++",
+  "version": "1.0.0",
+  "description": "C++ engineering for RAII, value semantics, templates, concurrency, ABI stability, and tested performance.",
+  "author": {
+    "name": "Chainabit"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/chainabit/plugins.git/tree/main/languages/skill-cpp",
+  "categories": [
+    "code"
+  ],
+  "keywords": [
+    "c++",
+    "cpp",
+    "raii",
+    "cmake"
+  ],
+  "compatibility": {
+    "minVersion": "0.9.0"
+  },
+  "components": {
+    "skills": [
+      "skills/cpp"
+    ]
+  },
+  "composition": {
+    "requires": [
+      "skill-software-engineering"
+    ],
+    "role": "language"
+  },
+  "permissions": {
+    "network": [],
+    "filesystem": [],
+    "shell": false,
+    "execute": false,
+    "dangerousSkipPermissions": false
+  }
+}

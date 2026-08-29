@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 2,
+  "id": "skill-swift",
+  "name": "Swift",
+  "version": "1.0.0",
+  "description": "Swift engineering for value semantics, protocols, concurrency, actors, packages, and safe Apple-platform code.",
+  "author": {
+    "name": "Chainabit"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/chainabit/plugins.git/tree/main/languages/skill-swift",
+  "categories": [
+    "code"
+  ],
+  "keywords": [
+    "swift",
+    "concurrency",
+    "actors",
+    "spm"
+  ],
+  "compatibility": {
+    "minVersion": "0.9.0"
+  },
+  "components": {
+    "skills": [
+      "skills/swift"
+    ]
+  },
+  "composition": {
+    "requires": [
+      "skill-software-engineering"
+    ],
+    "role": "language"
+  },
+  "permissions": {
+    "network": [],
+    "filesystem": [],
+    "shell": false,
+    "execute": false,
+    "dangerousSkipPermissions": false
+  }
+}

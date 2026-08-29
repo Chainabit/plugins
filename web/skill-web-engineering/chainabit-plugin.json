@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 2,
+  "id": "skill-web-engineering",
+  "name": "Web Engineering",
+  "version": "1.0.0",
+  "description": "Framework-independent web engineering methodology for semantic structure, responsive UX, accessibility, performance, SEO, browser compatibility, and safe asset strategy.",
+  "author": {
+    "name": "Chainabit"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/chainabit/plugins/tree/main/web/skill-web-engineering",
+  "categories": [
+    "code"
+  ],
+  "keywords": [
+    "web",
+    "accessibility",
+    "responsive",
+    "performance",
+    "seo"
+  ],
+  "compatibility": {
+    "minVersion": "0.9.0"
+  },
+  "components": {
+    "skills": [
+      "skills/web-engineering"
+    ]
+  },
+  "composition": {
+    "requires": [
+      "skill-software-engineering"
+    ],
+    "role": "foundation"
+  },
+  "permissions": {
+    "network": [],
+    "filesystem": [],
+    "shell": false,
+    "execute": false,
+    "dangerousSkipPermissions": false
+  }
+}

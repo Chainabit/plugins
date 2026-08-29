@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 2,
+  "id": "skill-gcp",
+  "name": "Google Cloud",
+  "version": "1.0.0",
+  "description": "Google Cloud engineering for projects, IAM, service accounts, networking, managed runtimes, data protection, and operations.",
+  "author": {
+    "name": "Chainabit"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/chainabit/plugins.git/tree/main/cloud/skill-gcp",
+  "categories": [
+    "code",
+    "cloud"
+  ],
+  "keywords": [
+    "gcp",
+    "google-cloud",
+    "iam",
+    "cloud-run"
+  ],
+  "compatibility": {
+    "minVersion": "0.9.0"
+  },
+  "components": {
+    "skills": [
+      "skills/gcp"
+    ]
+  },
+  "composition": {
+    "requires": [
+      "skill-software-engineering"
+    ],
+    "role": "specialist"
+  },
+  "permissions": {
+    "network": [],
+    "filesystem": [],
+    "shell": false,
+    "execute": false,
+    "dangerousSkipPermissions": false
+  }
+}

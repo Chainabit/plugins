@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 2,
+  "id": "skill-grpc",
+  "name": "gRPC",
+  "version": "1.0.0",
+  "description": "gRPC engineering for protobuf contracts, deadlines, streaming, compatibility, interceptors, and service observability.",
+  "author": {
+    "name": "Chainabit"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/chainabit/plugins.git/tree/main/web/skill-grpc",
+  "categories": [
+    "code"
+  ],
+  "keywords": [
+    "grpc",
+    "protobuf",
+    "streaming",
+    "rpc"
+  ],
+  "compatibility": {
+    "minVersion": "0.9.0"
+  },
+  "components": {
+    "skills": [
+      "skills/grpc"
+    ]
+  },
+  "composition": {
+    "requires": [
+      "skill-software-engineering"
+    ],
+    "role": "specialist"
+  },
+  "permissions": {
+    "network": [],
+    "filesystem": [],
+    "shell": false,
+    "execute": false,
+    "dangerousSkipPermissions": false
+  }
+}

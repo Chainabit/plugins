@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 2,
+  "id": "skill-python",
+  "name": "Python",
+  "version": "1.0.0",
+  "description": "Language-level Python practices for package structure, isolated environments, dependencies, typing, errors, configuration, testing, and maintainable architecture. Framework-neutral.",
+  "author": {
+    "name": "Chainabit"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/chainabit/plugins/tree/main/languages/skill-python",
+  "categories": [
+    "code"
+  ],
+  "keywords": [
+    "python",
+    "typing",
+    "pytest",
+    "packages"
+  ],
+  "compatibility": {
+    "minVersion": "0.9.0"
+  },
+  "components": {
+    "skills": [
+      "skills/python"
+    ]
+  },
+  "composition": {
+    "requires": [
+      "skill-software-engineering"
+    ],
+    "role": "language"
+  },
+  "permissions": {
+    "network": [],
+    "filesystem": [],
+    "shell": false,
+    "execute": false,
+    "dangerousSkipPermissions": false
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 2,
+  "id": "skill-website",
+  "name": "Static Website Compatibility",
+  "version": "1.0.0",
+  "description": "Deprecated compatibility alias for skill-static-website. New installations should select the canonical static website capability.",
+  "author": {
+    "name": "NEXUS Community"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/chainabit/plugins/tree/main/artifacts/skill-website",
+  "categories": [
+    "productivity",
+    "code"
+  ],
+  "keywords": [
+    "skill",
+    "website",
+    "html",
+    "css",
+    "static-site",
+    "landing-page",
+    "portfolio",
+    "accessibility",
+    "responsive"
+  ],
+  "compatibility": {
+    "minVersion": "0.9.0"
+  },
+  "components": {},
+  "composition": {
+    "requires": [
+      "skill-static-website"
+    ],
+    "role": "compatibility"
+  },
+  "permissions": {
+    "network": [],
+    "filesystem": [],
+    "shell": false,
+    "execute": false,
+    "dangerousSkipPermissions": false
+  }
+}

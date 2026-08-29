@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 2,
+  "id": "skill-web-accessibility",
+  "name": "Web Accessibility",
+  "version": "1.0.0",
+  "description": "Web accessibility engineering for semantic HTML, keyboard flow, focus, names, contrast, motion, and assistive-technology validation.",
+  "author": {
+    "name": "Chainabit"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/chainabit/plugins.git/tree/main/web/skill-web-accessibility",
+  "categories": [
+    "code"
+  ],
+  "keywords": [
+    "accessibility",
+    "wcag",
+    "aria",
+    "keyboard"
+  ],
+  "compatibility": {
+    "minVersion": "0.9.0"
+  },
+  "components": {
+    "skills": [
+      "skills/web-accessibility"
+    ]
+  },
+  "composition": {
+    "requires": [
+      "skill-software-engineering"
+    ],
+    "role": "specialist"
+  },
+  "permissions": {
+    "network": [],
+    "filesystem": [],
+    "shell": false,
+    "execute": false,
+    "dangerousSkipPermissions": false
+  }
+}

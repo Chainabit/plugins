@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 2,
+  "id": "skill-react",
+  "name": "React",
+  "version": "1.0.0",
+  "description": "Focused React paved road for component responsibility, state ownership, dependency boundaries, testing, performance, and build/run verification. Composes web and engineering foundations; it is not an execution allowlist.",
+  "author": {
+    "name": "Chainabit"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/chainabit/plugins/tree/main/web/skill-react",
+  "categories": [
+    "code"
+  ],
+  "keywords": [
+    "react",
+    "components",
+    "hooks",
+    "frontend"
+  ],
+  "compatibility": {
+    "minVersion": "0.9.0"
+  },
+  "components": {
+    "skills": [
+      "skills/react"
+    ]
+  },
+  "composition": {
+    "requires": [
+      "skill-software-engineering",
+      "skill-project-bootstrap",
+      "skill-git",
+      "skill-project-documentation",
+      "skill-web-engineering"
+    ],
+    "role": "technology"
+  },
+  "permissions": {
+    "network": [],
+    "filesystem": [],
+    "shell": false,
+    "execute": false,
+    "dangerousSkipPermissions": false
+  }
+}

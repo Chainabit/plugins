@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 2,
+  "id": "skill-docker",
+  "name": "Docker",
+  "version": "1.0.0",
+  "description": "Docker engineering for minimal images, build context, layer reuse, runtime users, secrets, health, and reproducible builds.",
+  "author": {
+    "name": "Chainabit"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/chainabit/plugins.git/tree/main/infrastructure/skill-docker",
+  "categories": [
+    "code",
+    "infrastructure"
+  ],
+  "keywords": [
+    "docker",
+    "containers",
+    "images",
+    "buildkit"
+  ],
+  "compatibility": {
+    "minVersion": "0.9.0"
+  },
+  "components": {
+    "skills": [
+      "skills/docker"
+    ]
+  },
+  "composition": {
+    "requires": [
+      "skill-software-engineering"
+    ],
+    "role": "specialist"
+  },
+  "permissions": {
+    "network": [],
+    "filesystem": [],
+    "shell": false,
+    "execute": false,
+    "dangerousSkipPermissions": false
+  }
+}

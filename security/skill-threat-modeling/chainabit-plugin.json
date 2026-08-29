@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 2,
+  "id": "skill-threat-modeling",
+  "name": "Threat Modeling",
+  "version": "1.0.0",
+  "description": "Threat modeling for assets, trust boundaries, abuse cases, mitigations, residual risk, and verifiable security decisions.",
+  "author": {
+    "name": "Chainabit"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/chainabit/plugins.git/tree/main/security/skill-threat-modeling",
+  "categories": [
+    "code",
+    "security"
+  ],
+  "keywords": [
+    "threat-modeling",
+    "stride",
+    "security",
+    "abuse-cases"
+  ],
+  "compatibility": {
+    "minVersion": "0.9.0"
+  },
+  "components": {
+    "skills": [
+      "skills/threat-modeling"
+    ]
+  },
+  "composition": {
+    "requires": [
+      "skill-software-engineering"
+    ],
+    "role": "specialist"
+  },
+  "permissions": {
+    "network": [],
+    "filesystem": [],
+    "shell": false,
+    "execute": false,
+    "dangerousSkipPermissions": false
+  }
+}

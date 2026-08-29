@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 2,
+  "id": "skill-static-website",
+  "name": "Static Website",
+  "version": "1.0.0",
+  "description": "Static-site implementation variation for producing servable HTML/CSS sites with deterministic scaffolding and validation. Composes web engineering and software foundations; it does not define all websites.",
+  "author": {
+    "name": "Chainabit"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/chainabit/plugins/tree/main/web/skill-static-website",
+  "categories": [
+    "code"
+  ],
+  "keywords": [
+    "static-site",
+    "html",
+    "css",
+    "website",
+    "landing-page"
+  ],
+  "compatibility": {
+    "minVersion": "0.9.0"
+  },
+  "components": {
+    "skills": [
+      "skills/static-website"
+    ]
+  },
+  "composition": {
+    "requires": [
+      "skill-software-engineering",
+      "skill-project-bootstrap",
+      "skill-git",
+      "skill-project-documentation",
+      "skill-web-engineering"
+    ],
+    "role": "implementation"
+  },
+  "permissions": {
+    "network": [],
+    "filesystem": [],
+    "shell": false,
+    "execute": true,
+    "dangerousSkipPermissions": false
+  }
+}

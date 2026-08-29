@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 2,
+  "id": "skill-vue",
+  "name": "Vue",
+  "version": "1.0.0",
+  "description": "Vue engineering for component contracts, reactivity, composables, routing, state, accessibility, and tested browser behavior.",
+  "author": {
+    "name": "Chainabit"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/chainabit/plugins.git/tree/main/frameworks/skill-vue",
+  "categories": [
+    "code"
+  ],
+  "keywords": [
+    "vue",
+    "reactivity",
+    "composition-api",
+    "vite"
+  ],
+  "compatibility": {
+    "minVersion": "0.9.0"
+  },
+  "components": {
+    "skills": [
+      "skills/vue"
+    ]
+  },
+  "composition": {
+    "requires": [
+      "skill-software-engineering"
+    ],
+    "role": "framework"
+  },
+  "permissions": {
+    "network": [],
+    "filesystem": [],
+    "shell": false,
+    "execute": false,
+    "dangerousSkipPermissions": false
+  }
+}

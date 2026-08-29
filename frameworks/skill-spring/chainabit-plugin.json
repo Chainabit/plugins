@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 2,
+  "id": "skill-spring",
+  "name": "Spring",
+  "version": "1.0.0",
+  "description": "Focused Spring methodology for modules, controllers, services, repositories, configuration, security, tests, and verified build/run commands. Composes Java and web/engineering foundations.",
+  "author": {
+    "name": "Chainabit"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/chainabit/plugins/tree/main/frameworks/skill-spring",
+  "categories": [
+    "code"
+  ],
+  "keywords": [
+    "spring",
+    "java",
+    "spring-boot",
+    "web",
+    "services"
+  ],
+  "compatibility": {
+    "minVersion": "0.9.0"
+  },
+  "components": {
+    "skills": [
+      "skills/spring"
+    ]
+  },
+  "composition": {
+    "requires": [
+      "skill-java",
+      "skill-software-engineering",
+      "skill-project-bootstrap",
+      "skill-git",
+      "skill-project-documentation",
+      "skill-web-engineering"
+    ],
+    "role": "technology"
+  },
+  "permissions": {
+    "network": [],
+    "filesystem": [],
+    "shell": false,
+    "execute": false,
+    "dangerousSkipPermissions": false
+  }
+}

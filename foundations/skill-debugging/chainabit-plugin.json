@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 2,
+  "id": "skill-debugging",
+  "name": "Debugging",
+  "version": "1.0.0",
+  "description": "Evidence-driven debugging for reproduction, hypothesis testing, root causes, minimal fixes, and regression proof.",
+  "author": {
+    "name": "Chainabit"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/chainabit/plugins.git/tree/main/foundations/skill-debugging",
+  "categories": [
+    "code",
+    "foundations"
+  ],
+  "keywords": [
+    "debugging",
+    "root-cause",
+    "reproduction",
+    "diagnosis"
+  ],
+  "compatibility": {
+    "minVersion": "0.9.0"
+  },
+  "components": {
+    "skills": [
+      "skills/debugging"
+    ]
+  },
+  "composition": {
+    "requires": [
+      "skill-software-engineering"
+    ],
+    "role": "specialist"
+  },
+  "permissions": {
+    "network": [],
+    "filesystem": [],
+    "shell": false,
+    "execute": false,
+    "dangerousSkipPermissions": false
+  }
+}

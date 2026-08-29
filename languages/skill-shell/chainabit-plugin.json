@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 2,
+  "id": "skill-shell",
+  "name": "Shell and Bash",
+  "version": "1.0.0",
+  "description": "Portable shell engineering for strict modes, process boundaries, quoting, pipelines, cleanup, and safe automation.",
+  "author": {
+    "name": "Chainabit"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/chainabit/plugins.git/tree/main/languages/skill-shell",
+  "categories": [
+    "code"
+  ],
+  "keywords": [
+    "shell",
+    "bash",
+    "posix",
+    "scripting"
+  ],
+  "compatibility": {
+    "minVersion": "0.9.0"
+  },
+  "components": {
+    "skills": [
+      "skills/shell"
+    ]
+  },
+  "composition": {
+    "requires": [
+      "skill-software-engineering"
+    ],
+    "role": "language"
+  },
+  "permissions": {
+    "network": [],
+    "filesystem": [],
+    "shell": false,
+    "execute": false,
+    "dangerousSkipPermissions": false
+  }
+}

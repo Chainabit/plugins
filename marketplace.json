@@ -7,12 +7,23 @@
     "productivity",
     "data",
     "security",
-    "code"
+    "code",
+    "languages",
+    "frameworks",
+    "web",
+    "foundations",
+    "tooling",
+    "infrastructure",
+    "databases",
+    "cloud",
+    "devops",
+    "testing",
+    "ai"
   ],
   "plugins": [
     {
       "id": "provider-acmegate",
-      "source": "https://github.com/chainabit/plugins.git#provider-acmegate",
+      "source": "https://github.com/chainabit/plugins.git#providers/provider-acmegate",
       "version": "1.2.0",
       "verified": true,
       "downloads": 1284,
@@ -21,7 +32,7 @@
     },
     {
       "id": "persona-reviewer",
-      "source": "https://github.com/chainabit/plugins.git#persona-reviewer",
+      "source": "https://github.com/chainabit/plugins.git#personas/persona-reviewer",
       "version": "0.4.1",
       "verified": false,
       "downloads": 342,
@@ -30,7 +41,7 @@
     },
     {
       "id": "skill-pdf",
-      "source": "https://github.com/chainabit/plugins.git#skill-pdf",
+      "source": "https://github.com/chainabit/plugins.git#artifacts/skill-pdf",
       "version": "3.1.0",
       "verified": false,
       "downloads": 5017,
@@ -39,7 +50,7 @@
     },
     {
       "id": "skill-xlsx",
-      "source": "https://github.com/chainabit/plugins.git#skill-xlsx",
+      "source": "https://github.com/chainabit/plugins.git#artifacts/skill-xlsx",
       "version": "1.1.0",
       "verified": false,
       "downloads": 0,
@@ -48,7 +59,7 @@
     },
     {
       "id": "skill-pptx",
-      "source": "https://github.com/chainabit/plugins.git#skill-pptx",
+      "source": "https://github.com/chainabit/plugins.git#artifacts/skill-pptx",
       "version": "1.1.0",
       "verified": false,
       "downloads": 0,
@@ -57,7 +68,7 @@
     },
     {
       "id": "skill-website",
-      "source": "https://github.com/chainabit/plugins.git#skill-website",
+      "source": "https://github.com/chainabit/plugins.git#artifacts/skill-website",
       "version": "1.1.0",
       "verified": false,
       "downloads": 0,
@@ -66,7 +77,7 @@
     },
     {
       "id": "skill-docx",
-      "source": "https://github.com/chainabit/plugins.git#skill-docx",
+      "source": "https://github.com/chainabit/plugins.git#artifacts/skill-docx",
       "version": "1.1.0",
       "verified": false,
       "downloads": 0,
@@ -75,7 +86,7 @@
     },
     {
       "id": "provider-solongate",
-      "source": "https://github.com/chainabit/plugins.git#provider-solongate",
+      "source": "https://github.com/chainabit/plugins.git#providers/provider-solongate",
       "version": "0.58.0",
       "verified": false,
       "downloads": 0,
@@ -84,11 +95,1019 @@
     },
     {
       "id": "provider-codegraph",
-      "source": "https://github.com/chainabit/plugins.git#provider-codegraph",
+      "source": "https://github.com/chainabit/plugins.git#providers/provider-codegraph",
       "version": "1.5.0",
       "verified": false,
       "downloads": 0,
       "lastChecked": "2026-07-22T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-software-engineering",
+      "source": "https://github.com/chainabit/plugins.git#foundations/skill-software-engineering",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-project-bootstrap",
+      "source": "https://github.com/chainabit/plugins.git#foundations/skill-project-bootstrap",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-git",
+      "source": "https://github.com/chainabit/plugins.git#foundations/skill-git",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-project-documentation",
+      "source": "https://github.com/chainabit/plugins.git#foundations/skill-project-documentation",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-web-engineering",
+      "source": "https://github.com/chainabit/plugins.git#web/skill-web-engineering",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-static-website",
+      "source": "https://github.com/chainabit/plugins.git#web/skill-static-website",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-angular",
+      "source": "https://github.com/chainabit/plugins.git#web/skill-angular",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-react",
+      "source": "https://github.com/chainabit/plugins.git#web/skill-react",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-python",
+      "source": "https://github.com/chainabit/plugins.git#languages/skill-python",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-java",
+      "source": "https://github.com/chainabit/plugins.git#languages/skill-java",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-django",
+      "source": "https://github.com/chainabit/plugins.git#frameworks/skill-django",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-spring",
+      "source": "https://github.com/chainabit/plugins.git#frameworks/skill-spring",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-rust",
+      "source": "https://github.com/chainabit/plugins.git#languages/skill-rust",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-go",
+      "source": "https://github.com/chainabit/plugins.git#languages/skill-go",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-php",
+      "source": "https://github.com/chainabit/plugins.git#languages/skill-php",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-c",
+      "source": "https://github.com/chainabit/plugins.git#languages/skill-c",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-cpp",
+      "source": "https://github.com/chainabit/plugins.git#languages/skill-cpp",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-csharp",
+      "source": "https://github.com/chainabit/plugins.git#languages/skill-csharp",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-javascript",
+      "source": "https://github.com/chainabit/plugins.git#languages/skill-javascript",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-typescript",
+      "source": "https://github.com/chainabit/plugins.git#languages/skill-typescript",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-kotlin",
+      "source": "https://github.com/chainabit/plugins.git#languages/skill-kotlin",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-swift",
+      "source": "https://github.com/chainabit/plugins.git#languages/skill-swift",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-ruby",
+      "source": "https://github.com/chainabit/plugins.git#languages/skill-ruby",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-scala",
+      "source": "https://github.com/chainabit/plugins.git#languages/skill-scala",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-dart",
+      "source": "https://github.com/chainabit/plugins.git#languages/skill-dart",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-shell",
+      "source": "https://github.com/chainabit/plugins.git#languages/skill-shell",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-powershell",
+      "source": "https://github.com/chainabit/plugins.git#languages/skill-powershell",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-sql",
+      "source": "https://github.com/chainabit/plugins.git#languages/skill-sql",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-lua",
+      "source": "https://github.com/chainabit/plugins.git#languages/skill-lua",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-elixir",
+      "source": "https://github.com/chainabit/plugins.git#languages/skill-elixir",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-haskell",
+      "source": "https://github.com/chainabit/plugins.git#languages/skill-haskell",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-ocaml",
+      "source": "https://github.com/chainabit/plugins.git#languages/skill-ocaml",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-fsharp",
+      "source": "https://github.com/chainabit/plugins.git#languages/skill-fsharp",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-clojure",
+      "source": "https://github.com/chainabit/plugins.git#languages/skill-clojure",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-laravel",
+      "source": "https://github.com/chainabit/plugins.git#frameworks/skill-laravel",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-symfony",
+      "source": "https://github.com/chainabit/plugins.git#frameworks/skill-symfony",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-aspnet-core",
+      "source": "https://github.com/chainabit/plugins.git#frameworks/skill-aspnet-core",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-dotnet-maui",
+      "source": "https://github.com/chainabit/plugins.git#frameworks/skill-dotnet-maui",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-flutter",
+      "source": "https://github.com/chainabit/plugins.git#frameworks/skill-flutter",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-react-native",
+      "source": "https://github.com/chainabit/plugins.git#frameworks/skill-react-native",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-nextjs",
+      "source": "https://github.com/chainabit/plugins.git#frameworks/skill-nextjs",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-nuxt",
+      "source": "https://github.com/chainabit/plugins.git#frameworks/skill-nuxt",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-vue",
+      "source": "https://github.com/chainabit/plugins.git#frameworks/skill-vue",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-sveltekit",
+      "source": "https://github.com/chainabit/plugins.git#frameworks/skill-sveltekit",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-express",
+      "source": "https://github.com/chainabit/plugins.git#frameworks/skill-express",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-fastify",
+      "source": "https://github.com/chainabit/plugins.git#frameworks/skill-fastify",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-nestjs",
+      "source": "https://github.com/chainabit/plugins.git#frameworks/skill-nestjs",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-gin",
+      "source": "https://github.com/chainabit/plugins.git#frameworks/skill-gin",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-actix",
+      "source": "https://github.com/chainabit/plugins.git#frameworks/skill-actix",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-axum",
+      "source": "https://github.com/chainabit/plugins.git#frameworks/skill-axum",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-ktor",
+      "source": "https://github.com/chainabit/plugins.git#frameworks/skill-ktor",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-micronaut",
+      "source": "https://github.com/chainabit/plugins.git#frameworks/skill-micronaut",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-quarkus",
+      "source": "https://github.com/chainabit/plugins.git#frameworks/skill-quarkus",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-graphql",
+      "source": "https://github.com/chainabit/plugins.git#web/skill-graphql",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-grpc",
+      "source": "https://github.com/chainabit/plugins.git#web/skill-grpc",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-webassembly",
+      "source": "https://github.com/chainabit/plugins.git#web/skill-webassembly",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-web-accessibility",
+      "source": "https://github.com/chainabit/plugins.git#web/skill-web-accessibility",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-progressive-web-apps",
+      "source": "https://github.com/chainabit/plugins.git#web/skill-progressive-web-apps",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-web-performance",
+      "source": "https://github.com/chainabit/plugins.git#web/skill-web-performance",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-web-security",
+      "source": "https://github.com/chainabit/plugins.git#web/skill-web-security",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-browser-automation",
+      "source": "https://github.com/chainabit/plugins.git#web/skill-browser-automation",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-backend-architecture",
+      "source": "https://github.com/chainabit/plugins.git#foundations/skill-backend-architecture",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-api-design",
+      "source": "https://github.com/chainabit/plugins.git#foundations/skill-api-design",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-distributed-systems",
+      "source": "https://github.com/chainabit/plugins.git#foundations/skill-distributed-systems",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-event-driven-design",
+      "source": "https://github.com/chainabit/plugins.git#foundations/skill-event-driven-design",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-concurrency",
+      "source": "https://github.com/chainabit/plugins.git#foundations/skill-concurrency",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-systems-programming",
+      "source": "https://github.com/chainabit/plugins.git#foundations/skill-systems-programming",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-database-design",
+      "source": "https://github.com/chainabit/plugins.git#foundations/skill-database-design",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-data-modeling",
+      "source": "https://github.com/chainabit/plugins.git#foundations/skill-data-modeling",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-debugging",
+      "source": "https://github.com/chainabit/plugins.git#foundations/skill-debugging",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-refactoring",
+      "source": "https://github.com/chainabit/plugins.git#foundations/skill-refactoring",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-code-review",
+      "source": "https://github.com/chainabit/plugins.git#foundations/skill-code-review",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-code-quality",
+      "source": "https://github.com/chainabit/plugins.git#foundations/skill-code-quality",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-performance-engineering",
+      "source": "https://github.com/chainabit/plugins.git#foundations/skill-performance-engineering",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-observability",
+      "source": "https://github.com/chainabit/plugins.git#foundations/skill-observability",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-reliability",
+      "source": "https://github.com/chainabit/plugins.git#foundations/skill-reliability",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-incident-response",
+      "source": "https://github.com/chainabit/plugins.git#foundations/skill-incident-response",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-desktop-engineering",
+      "source": "https://github.com/chainabit/plugins.git#foundations/skill-desktop-engineering",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-mobile-architecture",
+      "source": "https://github.com/chainabit/plugins.git#foundations/skill-mobile-architecture",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-cli-design",
+      "source": "https://github.com/chainabit/plugins.git#tooling/skill-cli-design",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-developer-tooling",
+      "source": "https://github.com/chainabit/plugins.git#tooling/skill-developer-tooling",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-docker",
+      "source": "https://github.com/chainabit/plugins.git#infrastructure/skill-docker",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-kubernetes",
+      "source": "https://github.com/chainabit/plugins.git#infrastructure/skill-kubernetes",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-terraform",
+      "source": "https://github.com/chainabit/plugins.git#infrastructure/skill-terraform",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-ansible",
+      "source": "https://github.com/chainabit/plugins.git#infrastructure/skill-ansible",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-helm",
+      "source": "https://github.com/chainabit/plugins.git#infrastructure/skill-helm",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-pulumi",
+      "source": "https://github.com/chainabit/plugins.git#infrastructure/skill-pulumi",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-postgresql",
+      "source": "https://github.com/chainabit/plugins.git#databases/skill-postgresql",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-mysql",
+      "source": "https://github.com/chainabit/plugins.git#databases/skill-mysql",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-redis",
+      "source": "https://github.com/chainabit/plugins.git#databases/skill-redis",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-mongodb",
+      "source": "https://github.com/chainabit/plugins.git#databases/skill-mongodb",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-elasticsearch",
+      "source": "https://github.com/chainabit/plugins.git#databases/skill-elasticsearch",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-vector-databases",
+      "source": "https://github.com/chainabit/plugins.git#databases/skill-vector-databases",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-aws",
+      "source": "https://github.com/chainabit/plugins.git#cloud/skill-aws",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-azure",
+      "source": "https://github.com/chainabit/plugins.git#cloud/skill-azure",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-gcp",
+      "source": "https://github.com/chainabit/plugins.git#cloud/skill-gcp",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-cloudflare",
+      "source": "https://github.com/chainabit/plugins.git#cloud/skill-cloudflare",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-github-actions",
+      "source": "https://github.com/chainabit/plugins.git#devops/skill-github-actions",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-gitlab-ci",
+      "source": "https://github.com/chainabit/plugins.git#devops/skill-gitlab-ci",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-release-engineering",
+      "source": "https://github.com/chainabit/plugins.git#devops/skill-release-engineering",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-test-strategy",
+      "source": "https://github.com/chainabit/plugins.git#testing/skill-test-strategy",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-property-testing",
+      "source": "https://github.com/chainabit/plugins.git#testing/skill-property-testing",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-contract-testing",
+      "source": "https://github.com/chainabit/plugins.git#testing/skill-contract-testing",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-load-testing",
+      "source": "https://github.com/chainabit/plugins.git#testing/skill-load-testing",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-threat-modeling",
+      "source": "https://github.com/chainabit/plugins.git#security/skill-threat-modeling",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-application-security",
+      "source": "https://github.com/chainabit/plugins.git#security/skill-application-security",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-supply-chain-security",
+      "source": "https://github.com/chainabit/plugins.git#security/skill-supply-chain-security",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-data-engineering",
+      "source": "https://github.com/chainabit/plugins.git#data/skill-data-engineering",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-stream-processing",
+      "source": "https://github.com/chainabit/plugins.git#data/skill-stream-processing",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-ml-engineering",
+      "source": "https://github.com/chainabit/plugins.git#ai/skill-ml-engineering",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-llm-applications",
+      "source": "https://github.com/chainabit/plugins.git#ai/skill-llm-applications",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
+      "stale": false
+    },
+    {
+      "id": "skill-ai-evaluation",
+      "source": "https://github.com/chainabit/plugins.git#ai/skill-ai-evaluation",
+      "version": "1.0.0",
+      "verified": false,
+      "downloads": 0,
+      "lastChecked": "2026-08-29T00:00:00Z",
       "stale": false
     }
   ]

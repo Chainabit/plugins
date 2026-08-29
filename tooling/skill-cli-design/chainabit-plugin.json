@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 2,
+  "id": "skill-cli-design",
+  "name": "CLI Design",
+  "version": "1.0.0",
+  "description": "CLI design for discoverable commands, safe defaults, structured output, config precedence, errors, and automation compatibility.",
+  "author": {
+    "name": "Chainabit"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/chainabit/plugins.git/tree/main/tooling/skill-cli-design",
+  "categories": [
+    "code",
+    "tooling"
+  ],
+  "keywords": [
+    "cli",
+    "command-line",
+    "ux",
+    "automation"
+  ],
+  "compatibility": {
+    "minVersion": "0.9.0"
+  },
+  "components": {
+    "skills": [
+      "skills/cli-design"
+    ]
+  },
+  "composition": {
+    "requires": [
+      "skill-software-engineering"
+    ],
+    "role": "specialist"
+  },
+  "permissions": {
+    "network": [],
+    "filesystem": [],
+    "shell": false,
+    "execute": false,
+    "dangerousSkipPermissions": false
+  }
+}

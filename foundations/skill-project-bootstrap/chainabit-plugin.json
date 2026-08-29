@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 2,
+  "id": "skill-project-bootstrap",
+  "name": "Project Bootstrap",
+  "version": "1.0.0",
+  "description": "Establishes a clean, evidence-based project boundary, source/build/test layout, environment configuration, temporary-output separation, and integrations for maintainable software artifacts.",
+  "author": {
+    "name": "Chainabit"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/chainabit/plugins/tree/main/foundations/skill-project-bootstrap",
+  "categories": [
+    "code"
+  ],
+  "keywords": [
+    "bootstrap",
+    "project-root",
+    "structure",
+    "environment"
+  ],
+  "compatibility": {
+    "minVersion": "0.9.0"
+  },
+  "components": {
+    "skills": [
+      "skills/project-bootstrap"
+    ]
+  },
+  "composition": {
+    "requires": [
+      "skill-software-engineering"
+    ],
+    "role": "foundation"
+  },
+  "permissions": {
+    "network": [],
+    "filesystem": [],
+    "shell": false,
+    "execute": false,
+    "dangerousSkipPermissions": false
+  }
+}

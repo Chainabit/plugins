@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 2,
+  "id": "skill-nextjs",
+  "name": "Next.js",
+  "version": "1.0.0",
+  "description": "Next.js engineering for server/client boundaries, routing, rendering modes, caching, data access, security, and deployable builds.",
+  "author": {
+    "name": "Chainabit"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/chainabit/plugins.git/tree/main/frameworks/skill-nextjs",
+  "categories": [
+    "code"
+  ],
+  "keywords": [
+    "nextjs",
+    "react",
+    "ssr",
+    "app-router"
+  ],
+  "compatibility": {
+    "minVersion": "0.9.0"
+  },
+  "components": {
+    "skills": [
+      "skills/nextjs"
+    ]
+  },
+  "composition": {
+    "requires": [
+      "skill-software-engineering"
+    ],
+    "role": "framework"
+  },
+  "permissions": {
+    "network": [],
+    "filesystem": [],
+    "shell": false,
+    "execute": false,
+    "dangerousSkipPermissions": false
+  }
+}

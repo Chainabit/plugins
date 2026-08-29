@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 2,
+  "id": "skill-incident-response",
+  "name": "Incident Response",
+  "version": "1.0.0",
+  "description": "Incident-response engineering for triage, containment, communication, evidence preservation, recovery, and learning.",
+  "author": {
+    "name": "Chainabit"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/chainabit/plugins.git/tree/main/foundations/skill-incident-response",
+  "categories": [
+    "code",
+    "foundations"
+  ],
+  "keywords": [
+    "incidents",
+    "on-call",
+    "recovery",
+    "postmortem"
+  ],
+  "compatibility": {
+    "minVersion": "0.9.0"
+  },
+  "components": {
+    "skills": [
+      "skills/incident-response"
+    ]
+  },
+  "composition": {
+    "requires": [
+      "skill-software-engineering"
+    ],
+    "role": "specialist"
+  },
+  "permissions": {
+    "network": [],
+    "filesystem": [],
+    "shell": false,
+    "execute": false,
+    "dangerousSkipPermissions": false
+  }
+}

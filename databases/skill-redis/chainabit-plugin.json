@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 2,
+  "id": "skill-redis",
+  "name": "Redis",
+  "version": "1.0.0",
+  "description": "Redis engineering for data structures, TTLs, atomicity, streams, caching, durability, and failure-aware clients.",
+  "author": {
+    "name": "Chainabit"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/chainabit/plugins.git/tree/main/databases/skill-redis",
+  "categories": [
+    "code",
+    "databases"
+  ],
+  "keywords": [
+    "redis",
+    "cache",
+    "streams",
+    "ttl"
+  ],
+  "compatibility": {
+    "minVersion": "0.9.0"
+  },
+  "components": {
+    "skills": [
+      "skills/redis"
+    ]
+  },
+  "composition": {
+    "requires": [
+      "skill-software-engineering"
+    ],
+    "role": "specialist"
+  },
+  "permissions": {
+    "network": [],
+    "filesystem": [],
+    "shell": false,
+    "execute": false,
+    "dangerousSkipPermissions": false
+  }
+}

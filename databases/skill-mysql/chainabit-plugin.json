@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 2,
+  "id": "skill-mysql",
+  "name": "MySQL",
+  "version": "1.0.0",
+  "description": "MySQL engineering for InnoDB behavior, schema and index design, transactions, replication considerations, and safe migrations.",
+  "author": {
+    "name": "Chainabit"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/chainabit/plugins.git/tree/main/databases/skill-mysql",
+  "categories": [
+    "code",
+    "databases"
+  ],
+  "keywords": [
+    "mysql",
+    "innodb",
+    "sql",
+    "replication"
+  ],
+  "compatibility": {
+    "minVersion": "0.9.0"
+  },
+  "components": {
+    "skills": [
+      "skills/mysql"
+    ]
+  },
+  "composition": {
+    "requires": [
+      "skill-software-engineering"
+    ],
+    "role": "specialist"
+  },
+  "permissions": {
+    "network": [],
+    "filesystem": [],
+    "shell": false,
+    "execute": false,
+    "dangerousSkipPermissions": false
+  }
+}

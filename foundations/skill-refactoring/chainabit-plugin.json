@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 2,
+  "id": "skill-refactoring",
+  "name": "Refactoring",
+  "version": "1.0.0",
+  "description": "Safe refactoring for responsibility boundaries, behavior preservation, dependency direction, and incremental verification.",
+  "author": {
+    "name": "Chainabit"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/chainabit/plugins.git/tree/main/foundations/skill-refactoring",
+  "categories": [
+    "code",
+    "foundations"
+  ],
+  "keywords": [
+    "refactoring",
+    "design",
+    "behavior-preservation"
+  ],
+  "compatibility": {
+    "minVersion": "0.9.0"
+  },
+  "components": {
+    "skills": [
+      "skills/refactoring"
+    ]
+  },
+  "composition": {
+    "requires": [
+      "skill-software-engineering"
+    ],
+    "role": "specialist"
+  },
+  "permissions": {
+    "network": [],
+    "filesystem": [],
+    "shell": false,
+    "execute": false,
+    "dangerousSkipPermissions": false
+  }
+}

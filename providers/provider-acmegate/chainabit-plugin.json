@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "id": "provider-acmegate",
+  "name": "AcmeGate Security Gateway",
+  "version": "1.2.0",
+  "description": "Registers the fictional AcmeGate proxy as an AI provider: a detect/install/launch descriptor plus behavioral hooks that route an agent's CLI traffic through a policy-enforcing egress gateway. Illustrative example only — AcmeGate is not a real product.",
+  "author": {
+    "name": "Acme Corp",
+    "email": "plugins@acme.example",
+    "url": "https://acme.example"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://acme.example/acmegate",
+  "categories": [
+    "providers",
+    "security"
+  ],
+  "keywords": [
+    "provider",
+    "proxy",
+    "egress",
+    "policy",
+    "security",
+    "example"
+  ],
+  "compatibility": {
+    "minVersion": "0.9.0"
+  },
+  "components": {
+    "hooks": [
+      {
+        "event": "PreToolUse",
+        "command": "acmegate guard --pre"
+      },
+      {
+        "event": "PostToolUse",
+        "command": "acmegate guard --post"
+      }
+    ],
+    "mcpServers": [
+      {
+        "name": "acmegate-policy",
+        "command": "acmegate-mcp",
+        "args": [
+          "--stdio"
+        ],
+        "env": {
+          "ACMEGATE_ENDPOINT": "https://gateway.acme.example"
+        }
+      }
+    ]
+  },
+  "permissions": {
+    "network": [
+      "gateway.acme.example",
+      "api.acme.example"
+    ],
+    "filesystem": [
+      "~/.acmegate"
+    ],
+    "shell": true,
+    "dangerousSkipPermissions": false
+  },
+  "install": {
+    "postInstall": "acmegate init",
+    "uninstall": "acmegate cleanup"
+  },
+  "signature": "ed25519:9f1c2b7a4e0d8c6f3b5a1e9d7c4f2a08b6d3e1f0a9c8b7d6e5f4a3b2c1d0e9f8"
+}

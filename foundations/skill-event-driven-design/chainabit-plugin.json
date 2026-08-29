@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 2,
+  "id": "skill-event-driven-design",
+  "name": "Event-Driven Design",
+  "version": "1.0.0",
+  "description": "Event-driven design for durable event contracts, ownership, ordering, replay, delivery, and consumer evolution.",
+  "author": {
+    "name": "Chainabit"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/chainabit/plugins.git/tree/main/foundations/skill-event-driven-design",
+  "categories": [
+    "code",
+    "foundations"
+  ],
+  "keywords": [
+    "events",
+    "messaging",
+    "outbox",
+    "streaming"
+  ],
+  "compatibility": {
+    "minVersion": "0.9.0"
+  },
+  "components": {
+    "skills": [
+      "skills/event-driven-design"
+    ]
+  },
+  "composition": {
+    "requires": [
+      "skill-software-engineering"
+    ],
+    "role": "specialist"
+  },
+  "permissions": {
+    "network": [],
+    "filesystem": [],
+    "shell": false,
+    "execute": false,
+    "dangerousSkipPermissions": false
+  }
+}

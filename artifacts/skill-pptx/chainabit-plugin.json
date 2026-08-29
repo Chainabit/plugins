@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 2,
+  "id": "skill-pptx",
+  "name": "Presentation Skill",
+  "version": "1.1.0",
+  "description": "Builds real .pptx presentations from a JSON spec using four brand-safe layouts \u2014 title, content, comparison, closing \u2014 with a palette and type scale checked against WCAG AA, renders the same spec as a matching PDF so a deck asked for in both formats is delivered in both, and validates the result for empty slides, overflowing text, low contrast and over-dense bullets. Ships three Python scripts that run in the sandbox against the pre-installed python-pptx and reportlab.",
+  "author": {
+    "name": "NEXUS Community"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/chainabit/plugins/tree/main/artifacts/skill-pptx",
+  "categories": [
+    "productivity",
+    "data"
+  ],
+  "keywords": [
+    "skill",
+    "pptx",
+    "powerpoint",
+    "presentation",
+    "slides",
+    "deck",
+    "python-pptx",
+    "design"
+  ],
+  "compatibility": {
+    "minVersion": "0.9.0"
+  },
+  "components": {
+    "skills": [
+      "skills/pptx"
+    ]
+  },
+  "permissions": {
+    "network": [],
+    "filesystem": [],
+    "shell": false,
+    "execute": true,
+    "dangerousSkipPermissions": false
+  },
+  "validators": [
+    {
+      "id": "skill-pptx.validate_pptx",
+      "entrypoint": "skills/pptx/scripts/validate_pptx.py",
+      "runtime": "python3",
+      "validationClass": "content_present",
+      "target": {
+        "kind": "file",
+        "extensions": [
+          ".pptx"
+        ]
+      }
+    }
+  ],
+  "diagnostics": [
+    {
+      "entrypoint": "skills/pptx/scripts/deck_pptx.py",
+      "inputErrorExitCodes": [
+        1
+      ]
+    },
+    {
+      "entrypoint": "skills/pptx/scripts/deck_pdf.py",
+      "inputErrorExitCodes": [
+        1
+      ]
+    },
+    {
+      "entrypoint": "skills/pptx/scripts/validate_pptx.py",
+      "inputErrorExitCodes": [
+        1
+      ]
+    }
+  ],
+  "produces": [
+    ".pptx",
+    ".pdf"
+  ],
+  "requires": {
+    "python": [
+      "python-pptx",
+      "reportlab"
+    ],
+    "binaries": [
+      "python3"
+    ],
+    "fonts": [
+      "DejaVuSans"
+    ]
+  }
+}
