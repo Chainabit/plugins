@@ -45,6 +45,16 @@ The current resolver supports exact versions, caret ranges, and tilde ranges. A 
 multi-marketplace resolver must add explicit source/priority and lock-state rules before
 allowing multiple versions to coexist; it must not select by network order or index order.
 
+## Bundle assets
+
+Directory-form skills may use `assets/` for inert resources such as PNG/JPEG/WebP images, SVG
+without script/event/remote content, WOFF/WOFF2 fonts, CSS without remote imports, JSON, CSV, and
+text. Asset bytes are checked against their declared type and are never executable. Each bundle is
+limited to 64 files, 512 KiB per file, and 4 MiB total; PNG dimensions are limited to 8192 pixels
+per axis. Symlinks, unsupported extensions, malformed signatures, and remote asset references are
+rejected. These limits are package-contract limits, not a claim that every consuming runtime uses
+the same storage or rendering limits.
+
 ## Trust model
 
 File integrity, package integrity, publisher identity, publisher trust, security review, and
