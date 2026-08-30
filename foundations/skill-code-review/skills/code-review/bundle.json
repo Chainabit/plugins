@@ -2,6 +2,7 @@
   "files": [
     {
       "path": "SKILL.md",
+      "type": "instructions",
       "sha256": "4202c1717567d916eaa5a266999e312287a539bd4d8f0eb995367cd937b516f6",
       "bytes": 2063
     }

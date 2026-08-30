@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "provider-acmegate",
   "name": "AcmeGate Security Gateway",
   "version": "1.2.0",
@@ -58,12 +58,13 @@
     "filesystem": [
       "~/.acmegate"
     ],
-    "shell": true,
-    "dangerousSkipPermissions": false
-  },
-  "install": {
-    "postInstall": "acmegate init",
-    "uninstall": "acmegate cleanup"
-  },
-  "signature": "ed25519:9f1c2b7a4e0d8c6f3b5a1e9d7c4f2a08b6d3e1f0a9c8b7d6e5f4a3b2c1d0e9f8"
+    "shell": false,
+    "dangerousSkipPermissions": false,
+    "permissionModelVersion": 2,
+    "requested": [
+      "host.process.execute",
+      "network.connect",
+      "filesystem.read"
+    ]
+  }
 }

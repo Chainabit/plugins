@@ -4,20 +4,25 @@
 // loads every installed skill. Use: node tooling/resolve-skills.mjs skill-django
 
 import { readFileSync } from "node:fs";
-import { join, dirname, posix } from "node:path";
+import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  packageDigest,
+  resolveCompositionGraph,
+  sourceFragment,
+} from "./marketplace-contract.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const marketplace = JSON.parse(readFileSync(join(root, "marketplace.json"), "utf8"));
 const manifests = new Map();
 for (const entry of marketplace.plugins) {
-  const fragment = entry.source?.split("#")[1];
-  if (!fragment || posix.isAbsolute(fragment) || fragment.includes("\\") || fragment.split("/").some((part) => !/^[a-z0-9][a-z0-9._-]{0,63}$/.test(part) || part.startsWith(".") || part.includes(".."))) {
-    throw new Error(`Unsafe marketplace path for ${entry.id}: ${fragment ?? "<none>"}`);
-  }
+  const fragment = sourceFragment(entry.source);
+  if (!fragment || !/^[a-f0-9]{40}$/.test(entry.revision ?? "")) throw new Error(`Unpinned marketplace source for ${entry.id}`);
   const pluginRoot = join(root, ...fragment.split("/"));
   const manifest = JSON.parse(readFileSync(join(pluginRoot, "chainabit-plugin.json"), "utf8"));
   if (manifest.id !== entry.id) throw new Error(`Manifest identity mismatch at ${fragment}: ${manifest.id}`);
+  if (manifest.version !== entry.version) throw new Error(`Version mismatch for ${entry.id}`);
+  if (entry.integrity?.packageSha256 !== packageDigest(pluginRoot)) throw new Error(`Package integrity mismatch for ${entry.id}`);
   manifests.set(entry.id, { manifest, pluginRoot, path: fragment });
 }
 
@@ -28,19 +33,7 @@ if (requested.length === 0) {
   process.exit(2);
 }
 
-const resolved = [];
-const states = new Map();
-const visit = (id, trail = []) => {
-  if (states.get(id) === "done") return;
-  if (states.get(id) === "visiting") throw new Error(`Dependency cycle: ${[...trail, id].join(" -> ")}`);
-  const entry = manifests.get(id);
-  if (!entry) throw new Error(`Unknown plugin: ${id}`);
-  states.set(id, "visiting");
-  for (const dependency of entry.manifest.composition?.requires ?? []) visit(dependency, [...trail, id]);
-  states.set(id, "done");
-  resolved.push(id);
-};
-for (const id of requested) visit(id);
+const resolved = resolveCompositionGraph(manifests, requested);
 
 const summary = [...resolved].map((id) => {
   const { manifest, pluginRoot } = manifests.get(id);

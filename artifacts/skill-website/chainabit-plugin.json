@@ -32,13 +32,16 @@
     "requires": [
       "skill-static-website"
     ],
-    "role": "compatibility"
+    "role": "compatibility",
+    "aliasOf": "skill-static-website"
   },
   "permissions": {
     "network": [],
     "filesystem": [],
     "shell": false,
     "execute": false,
-    "dangerousSkipPermissions": false
+    "dangerousSkipPermissions": false,
+    "permissionModelVersion": 2,
+    "requested": []
   }
 }

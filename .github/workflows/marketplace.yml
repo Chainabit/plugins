@@ -1,0 +1,58 @@
+name: marketplace
+
+on:
+  pull_request:
+    paths:
+      - "marketplace.json"
+      - "**/chainabit-plugin.json"
+      - "**/SKILL.md"
+      - "**/bundle.json"
+      - "**/scripts/**"
+      - "**/references/**"
+      - "**/assets/**"
+      - "tooling/**"
+      - "spec/**"
+      - ".github/workflows/marketplace.yml"
+  push:
+    branches: [main, development-rebased]
+    paths:
+      - "marketplace.json"
+      - "**/chainabit-plugin.json"
+      - "**/SKILL.md"
+      - "**/bundle.json"
+      - "**/scripts/**"
+      - "**/references/**"
+      - "**/assets/**"
+      - "tooling/**"
+      - "spec/**"
+      - ".github/workflows/marketplace.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Validate marketplace and bundles
+        run: node tooling/validate-marketplace.mjs
+      - name: Run semantic contract fixtures
+        run: node --test tooling/marketplace-contract.test.mjs
+      - name: Resolve representative composition
+        run: node tooling/resolve-skills.mjs skill-pdf
+      - name: Check common credential patterns
+        run: |
+          if git grep -n -I -E '(AKIA[0-9A-Z]{16}|-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----|npm_[A-Za-z0-9]{20,}|ghp_[A-Za-z0-9]{20,})' -- ':!spec/fixtures'; then
+            echo "Potential credential material found; review and remove it before merge."
+            exit 1
+          fi

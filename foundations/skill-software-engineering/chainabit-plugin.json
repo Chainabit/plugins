@@ -33,6 +33,8 @@
     "filesystem": [],
     "shell": false,
     "execute": false,
-    "dangerousSkipPermissions": false
+    "dangerousSkipPermissions": false,
+    "permissionModelVersion": 2,
+    "requested": []
   }
 }

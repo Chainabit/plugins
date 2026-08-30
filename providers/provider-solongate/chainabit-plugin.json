@@ -46,11 +46,27 @@
     "filesystem": [
       "~/.solongate"
     ],
-    "shell": true,
-    "dangerousSkipPermissions": false
+    "shell": false,
+    "dangerousSkipPermissions": false,
+    "permissionModelVersion": 2,
+    "requested": [
+      "host.process.execute",
+      "network.connect",
+      "filesystem.read",
+      "lifecycle.install",
+      "host.package.install"
+    ]
   },
-  "install": {
-    "postInstall": "npm install -g @solongate/proxy",
-    "uninstall": "npm uninstall -g @solongate/proxy"
+  "installation": {
+    "packages": [
+      {
+        "manager": "npm",
+        "name": "@solongate/proxy",
+        "version": "0.58.0",
+        "integrity": "sha512-ZFdIz4Dn3TbyzmKN80kLSPTnzuE0MLgC4Cv80OlP6wtwIC6rwWolACPEWXXqE7/FEjWh4cMLMEDsBZMs6LDMwQ==",
+        "scope": "global",
+        "executables": ["solongate-proxy"]
+      }
+    ]
   }
 }

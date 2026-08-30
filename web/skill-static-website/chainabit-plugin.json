@@ -42,6 +42,10 @@
     "filesystem": [],
     "shell": false,
     "execute": true,
-    "dangerousSkipPermissions": false
+    "dangerousSkipPermissions": false,
+    "permissionModelVersion": 2,
+    "requested": [
+      "sandbox.execute"
+    ]
   }
 }

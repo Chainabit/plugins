@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://chainabit.com/spec/integrity.schema.json",
+  "type": "object",
+  "required": ["algorithm", "packageSha256"],
+  "properties": {
+    "algorithm": { "const": "sha256" },
+    "packageSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+  },
+  "additionalProperties": false
+}

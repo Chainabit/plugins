@@ -2,16 +2,19 @@
   "files": [
     {
       "path": "SKILL.md",
-      "sha256": "7b17ad62f0147d347739d7ea5ea3e17d8cfe7335757d510577dffc0de30956eb",
-      "bytes": 7228
+      "type": "instructions",
+      "sha256": "6ec4677e4cd5e660b96afae2df8e0c4991681eab0f848dcb654e468f04cc3d67",
+      "bytes": 7236
     },
     {
       "path": "scripts/build_docx.py",
+      "type": "scripts",
       "sha256": "2ede54d23c3e266310be80791cca499c445bf759caca68d2c59141cd8c4e10a9",
       "bytes": 11882
     },
     {
       "path": "scripts/validate_docx.py",
+      "type": "scripts",
       "sha256": "cd824db6158a273133ca1b15255c88053d9b16b6a89bb4de8d6364fdab6aae95",
       "bytes": 11727
     }

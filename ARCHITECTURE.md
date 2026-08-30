@@ -1,30 +1,58 @@
-# Composable capability architecture
+# Plugin architecture
 
-```mermaid
-flowchart TD
-  Intent[User intent] --> Chao[Chao: select strategy]
-  Chao --> Discovery[Small discovery metadata]
-  Discovery --> Compose[Resolve composition.requires]
-  Compose --> Core[Selected core instructions]
-  Core --> Evidence[Chainabit Computer: inspect/build/run/test/preview/clean]
-  Evidence --> Artifact[Verified artifact]
-  Security[Security: authority] -. controls .-> Evidence
+Chainabit plugins use a portable, versioned package format for distributing skills and related
+capabilities. This document describes the public format and compatibility boundary. It does not
+describe Chainabit's internal runtime, authorization implementation, registry operations, or
+release-control topology.
+
+## Package structure
+
+```text
+plugin/
+├── chainabit-plugin.json
+└── skills/
+    └── <skill-name>/
+        ├── SKILL.md
+        ├── bundle.json
+        ├── scripts/
+        ├── references/
+        └── assets/
 ```
 
-Each plugin owns one coherent capability and may declare `composition.requires` in its
-manifest. Resolution is dependency-first and deduplicated by `tooling/resolve-skills.mjs`.
-The manifest and discovery description are selection metadata; they are not a permission
-system. Install permissions remain explicit in `chainabit-plugin.json`, while runtime
-authority remains with security and Chainabit Computer.
+`SKILL.md` is the portable Agent Skills boundary. The surrounding plugin manifest adds identity,
+versioning, component references, compatibility, composition, permissions disclosure, and optional
+installation metadata. Portable skill instructions should not depend on Chainabit-specific runtime
+internals.
 
-The repository is physically grouped into foundations, web, languages, frameworks, artifacts,
-providers, personas, infrastructure, databases, cloud, devops, testing, security, data, ai,
-and tooling. These directories organize source code only; they are not execution or
-authorization boundaries. Manifests own stable plugin identity, while marketplace fragments
-locate roots and the resolver composes capabilities by ID. The validator owns the canonical
-physical-category allowlist so discovery and registration cannot drift apart.
+Only files accepted by the supported package contract are distributable. `scripts/` contains code
+that may be executed in an isolated environment; `references/` contains supporting documentation;
+`assets/` contains explicitly permitted, non-executable resources. The presence of a file does not
+grant authority or make that file executable.
 
-Foundations provide shared methodology. Language and framework plugins add only their
-technology-specific decisions. Artifact plugins remain independent. Detailed references and
-validators stay with the plugin that owns them and should be loaded only when the task needs
-them.
+## Composition and capabilities
+
+Plugins may declare dependencies on other compatible capabilities. Composition describes dependency
+relationships only; it is not an authorization or technology allowlist. Required dependencies are
+distinct from optional dependencies, and a capability declaration describes advertised behavior,
+not proof that every host has the supporting runtime installed.
+
+## Permissions and integrity
+
+Plugins disclose requested authorities using the granular permission vocabulary. Declarations are
+requests, not grants; the host decides what can run and under which constraints. Categories are
+organizational labels only and are not security boundaries.
+
+Marketplace listings may bind a package to an immutable source revision and package digest. Bundle
+inventories independently record file hashes. These are integrity signals, not publisher identity,
+publisher trust, or a security-review result. Signed attestations, when supported by a consuming
+registry, are separate from all three.
+
+## Compatibility
+
+Marketplace validation checks manifests, component references, package structure, versions,
+composition, permission disclosure, bundle inventories, and supported asset types before publication.
+Schema evolution is additive where practical. Compatibility aliases preserve an old plugin ID only
+when they are explicitly marked and contain no duplicate payload.
+
+See [`spec/`](spec/) for machine-readable contracts, [`CONTRIBUTING.md`](CONTRIBUTING.md) for
+authoring rules, and [`SECURITY.md`](SECURITY.md) for reporting and security expectations.

@@ -45,12 +45,27 @@
   "permissions": {
     "network": [],
     "filesystem": [],
-    "shell": true,
+    "shell": false,
     "workspaceAccess": true,
-    "dangerousSkipPermissions": false
+    "dangerousSkipPermissions": false,
+    "permissionModelVersion": 2,
+    "requested": [
+      "host.process.execute",
+      "workspace.read",
+      "lifecycle.install",
+      "host.package.install"
+    ]
   },
-  "install": {
-    "postInstall": "npm install -g @colbymchenry/codegraph",
-    "uninstall": "npm uninstall -g @colbymchenry/codegraph"
+  "installation": {
+    "packages": [
+      {
+        "manager": "npm",
+        "name": "@colbymchenry/codegraph",
+        "version": "1.5.0",
+        "integrity": "sha512-/l1JMVOQ9WGQLrc/IIuAg7Igr944t79/oNCJTcnGkYtIeQx2XFIqI0ho+9Les/Yu4zKfmPU17hIUshD6yP1fKw==",
+        "scope": "global",
+        "executables": ["codegraph"]
+      }
+    ]
   }
 }

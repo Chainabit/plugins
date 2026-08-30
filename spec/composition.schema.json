@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://chainabit.com/spec/composition.schema.json",
+  "type": "object",
+  "required": ["requires"],
+  "properties": {
+    "requires": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/requirement" }
+    },
+    "role": { "type": "string" },
+    "aliasOf": { "type": "string" }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "requirement": {
+      "oneOf": [
+        { "type": "string", "pattern": "^(skill|agent|provider|persona|hook|plugin)-[a-z0-9]+(-[a-z0-9]+)*$" },
+        { "type": "object", "required": ["id", "version"], "properties": { "id": { "type": "string" }, "version": { "type": "string", "minLength": 1 } }, "additionalProperties": false }
+      ]
+    }
+  }
+}

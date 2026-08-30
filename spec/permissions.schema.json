@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://chainabit.com/spec/permissions.schema.json",
+  "type": "object",
+  "required": ["permissionModelVersion", "requested"],
+  "properties": {
+    "permissionModelVersion": { "const": 2 },
+    "requested": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "enum": ["sandbox.execute", "host.process.execute", "host.package.install", "workspace.read", "workspace.write", "filesystem.read", "filesystem.write", "network.connect", "environment.read", "credential.use", "lifecycle.install", "lifecycle.uninstall"] }
+    },
+    "network": { "type": "array", "items": { "type": "string" } },
+    "filesystem": { "type": "array", "items": { "type": "string" } },
+    "workspaceAccess": { "type": "boolean" },
+    "shell": { "const": false },
+    "execute": { "type": "boolean" },
+    "dangerousSkipPermissions": { "const": false }
+  },
+  "additionalProperties": false
+}

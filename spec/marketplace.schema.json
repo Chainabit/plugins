@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://chainabit.com/spec/marketplace.schema.json",
+  "type": "object",
+  "required": ["schemaVersion", "name", "version", "categories", "plugins"],
+  "properties": {
+    "schemaVersion": { "const": 2 },
+    "name": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "version": { "type": "string", "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)" },
+    "categories": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+    "plugins": { "type": "array", "items": { "$ref": "#/$defs/listing" }, "uniqueItems": true }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "listing": {
+      "type": "object",
+      "required": ["id", "source", "version", "revision", "integrity"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^(skill|agent|provider|persona|hook|plugin)-[a-z0-9]+(-[a-z0-9]+)*$" },
+        "source": { "type": "string", "pattern": "^https://github\\.com/chainabit/plugins\\.git#[a-z0-9][a-z0-9._/-]*$" },
+        "version": { "type": "string", "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(-[0-9A-Za-z.-]+)?(\\+[0-9A-Za-z.-]+)?$" },
+        "revision": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+        "integrity": { "$ref": "integrity.schema.json" }
+      },
+      "additionalProperties": false
+    }
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/chainabit/plugins/spec/plugin-manifest.schema.json",
+  "title": "Chainabit Plugin Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "id", "name", "version", "components", "permissions"],
+  "properties": {
+    "schemaVersion": { "type": "integer", "enum": [1, 2] },
+    "id": { "type": "string", "pattern": "^(skill|agent|provider|persona|hook|plugin)-[a-z0-9]+(-[a-z0-9]+)*$" },
+    "name": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "version": { "$ref": "#/$defs/semver" },
+    "description": { "type": "string", "maxLength": 2000 },
+    "author": {
+      "oneOf": [
+        { "type": "string", "minLength": 1 },
+        { "type": "object", "additionalProperties": false, "required": ["name"], "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "url": { "type": "string", "format": "uri" }
+        } }
+      ]
+    },
+    "license": { "type": "string", "minLength": 1 },
+    "homepage": { "type": "string", "format": "uri" },
+    "categories": { "$ref": "#/$defs/stringArray" },
+    "keywords": { "$ref": "#/$defs/stringArray" },
+    "compatibility": {
+      "type": "object", "additionalProperties": false,
+      "properties": { "minVersion": { "$ref": "#/$defs/semver" } }
+    },
+    "components": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "skills": { "$ref": "#/$defs/pathArray" },
+        "agents": { "$ref": "#/$defs/pathArray" },
+        "commands": { "$ref": "#/$defs/pathArray" },
+        "hooks": { "type": "array", "items": { "type": "object" } },
+        "mcpServers": { "type": "array", "items": { "type": "object" } },
+        "providers": { "type": "array", "items": { "type": "object" } }
+      }
+    },
+    "composition": {
+      "type": "object", "additionalProperties": false,
+      "required": ["requires"],
+      "properties": {
+        "requires": { "type": "array", "items": { "$ref": "composition.schema.json#/$defs/requirement" } },
+        "role": { "type": "string", "minLength": 1 },
+        "aliasOf": { "type": "string" }
+      }
+    },
+    "permissions": { "$ref": "permissions.schema.json" },
+    "validators": {
+      "type": "array", "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["id", "entrypoint", "runtime", "validationClass", "target"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "entrypoint": { "$ref": "#/$defs/relativePath" },
+          "runtime": { "type": "string", "minLength": 1 },
+          "validationClass": { "type": "string", "minLength": 1 },
+          "target": { "type": "object" }
+        }
+      }
+    },
+    "diagnostics": {
+      "type": "array", "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["entrypoint", "inputErrorExitCodes"],
+        "properties": {
+          "entrypoint": { "$ref": "#/$defs/relativePath" },
+          "inputErrorExitCodes": { "type": "array", "items": { "type": "integer" }, "uniqueItems": true }
+        }
+      }
+    },
+    "produces": { "$ref": "#/$defs/stringArray" },
+    "requires": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "python": { "$ref": "#/$defs/stringArray" },
+        "binaries": { "$ref": "#/$defs/stringArray" },
+        "fonts": { "$ref": "#/$defs/stringArray" }
+      }
+    },
+    "dependencies": {
+      "type": "object", "additionalProperties": false,
+      "required": ["required", "optional"],
+      "properties": {
+        "required": { "type": "object" },
+        "optional": { "type": "object" }
+      }
+    },
+    "capabilities": { "$ref": "capabilities.schema.json" },
+    "installation": { "$ref": "installation.schema.json" }
+  },
+  "$defs": {
+    "semver": { "type": "string", "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?(\\+[0-9A-Za-z.-]+)?$" },
+    "stringArray": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true },
+    "relativePath": { "type": "string", "pattern": "^(?!/)(?!.*\\\\)(?!.*\\.\\.)(?!.*//)[A-Za-z0-9_][A-Za-z0-9._/-]*$" },
+    "pathArray": { "type": "array", "items": { "$ref": "#/$defs/relativePath" }, "uniqueItems": true }
+  }
+}
