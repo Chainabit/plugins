@@ -31,13 +31,11 @@ needs and what most default font stacks do not cover in this image. When a glyph
 is missing, the renderer substitutes a notdef box, so the text does not error, it
 just becomes unreadable. Both scripts therefore name a family explicitly:
 
-- `md_to_pdf.py` sets `font-family: "DejaVu Sans"` on `html, body` and on every
-  heading, so nothing inherits an unknown default.
-- `report_pdf.py` registers `DejaVuSans.ttf` and `DejaVuSans-Bold.ttf` as TrueType
-  fonts with ReportLab. This matters more there: ReportLab's built-in Helvetica is
-  a Type 1 font restricted to WinAnsi encoding, which has no `ğ`, `ş`, `İ`, or `ı`
-  at all. If the TTF files are not found the script warns and falls back — treat
-  that warning as a defect in any Turkish document.
+- The rich HTML adapter sets `font-family: "DejaVu Sans"` explicitly. The
+  deterministic backend does not claim Unicode and must reject Turkish text.
+- A ReportLab adapter may register approved DejaVu TrueType fonts, but must fail
+  with `font_failure` when coverage or embedding cannot be verified; it must never
+  fall back to Helvetica for Turkish content.
 
 Verify by generating a document containing `Çağrı Şişli İğne ıspanak öğün ürün`
 and reading the glyphs back out of the PDF, not by trusting exit code 0.
