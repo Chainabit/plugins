@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { cpSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -34,6 +34,15 @@ test("the checked-in marketplace is valid and every source is immutable", () => 
     assert.match(entry.integrity.packageSha256, /^[a-f0-9]{64}$/);
     assert.equal(entry.integrity.packageSha256, result.packageDigests.get(entry.id));
   }
+});
+
+test("skill-website keeps one canonical implementation and an explicit compatibility alias", () => {
+  const alias = json(join(root, "artifacts", "skill-website", "chainabit-plugin.json"));
+  assert.equal(alias.id, "skill-website");
+  assert.equal(alias.composition.role, "compatibility");
+  assert.equal(alias.composition.aliasOf, "skill-static-website");
+  assert.equal(readFileSync(join(root, "marketplace.json"), "utf8").includes('"id": "skill-website"'), true);
+  assert.equal(existsSync(join(root, "skill-website", "chainabit-plugin.json")), false);
 });
 
 test("detects listing version drift, duplicate identity, unsafe paths, and forged signatures", () => {
@@ -79,6 +88,12 @@ test("rejects missing execution disclosure and arbitrary lifecycle commands", ()
     save(pdfPath, pdf);
     result = validateMarketplace(copy);
     assert.ok(result.problems.some((problem) => problem.message.includes("scripts and requires permissions.execute")));
+
+    delete pdf.permissions.requested;
+    pdf.permissions.execute = true;
+    save(pdfPath, pdf);
+    result = validateMarketplace(copy);
+    assert.ok(result.problems.some((problem) => problem.message.includes("permissions.requested must be an explicit array")));
   });
 });
 
