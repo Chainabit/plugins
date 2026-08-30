@@ -1,2 +1,10 @@
-# Global owner — required reviewer on all PRs
+# Default review owner.
 * @ofcskn
+
+# Contract and supply-chain boundaries need explicit review.
+/spec/ @ofcskn
+/tooling/ @ofcskn
+/marketplace.json @ofcskn
+/SECURITY.md @ofcskn
+/security/ @ofcskn
+/providers/ @ofcskn

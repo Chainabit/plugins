@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://chainabit.com/spec/installation.schema.json",
+  "type": "object",
+  "required": ["packages"],
+  "properties": {
+    "packages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["manager", "name", "version", "integrity", "scope"],
+        "properties": {
+          "manager": { "enum": ["npm", "pip", "cargo", "brew", "system"] },
+          "name": { "type": "string", "pattern": "^[^\\s\\0]+$" },
+          "version": { "type": "string", "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(-[0-9A-Za-z.-]+)?$" },
+          "integrity": { "type": "string", "pattern": "^(sha256|sha512)-[A-Za-z0-9+/=]+$" },
+          "scope": { "enum": ["user", "global", "workspace"] },
+          "executables": { "type": "array", "items": { "type": "string", "pattern": "^[A-Za-z0-9._-]+$" } }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

@@ -3,3 +3,24 @@
 *.bak
 coverage/
 node_modules/
+# Credentials and local package-manager state must never enter this public repo.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cer
+.npmrc
+.pypirc
+.cargo/credentials*
+.docker/config.json
+.aws/credentials
+.aws/config
+credentials.json
+service-account*.json
+*-secrets.*
+tmp/
+dist/

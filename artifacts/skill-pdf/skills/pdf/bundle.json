@@ -1,18 +1,100 @@
-{"files":[
-{"path":"SKILL.md","sha256":"f3bb855bb8a3c7a4ce696c3114ae7b968b63f668b812d688465b16763a375880","bytes":2663},
-{"path":"references/architecture.md","sha256":"76030ded7d690192c76c8a558eb13bf986efcbc272235141297c9f6d263492cf","bytes":1485},
-{"path":"references/dependencies.md","sha256":"0bd22985043314370004c83b9bf3e9dd0270028605f25716fcda0f0bbe6d3932","bytes":995},
-{"path":"references/typography.md","sha256":"87ff83e21b8e8caa199d1a362c043ed3046402d3bae2bfb98781d4d0bba0f610","bytes":3682},
-{"path":"scripts/md_to_pdf.py","sha256":"30b9d43f61e7521b77a1b97d9bc705d736258eca16958a8d0f4a3f2d8008fc99","bytes":1215},
-{"path":"scripts/pdf_tool.py","sha256":"e944c0fcb9d295495f561c972f19c18164b91f62869075cec51e3829f3b0a064","bytes":2875},
-{"path":"scripts/report_pdf.py","sha256":"1867fbb76fbf56635745cf55de34628cf2c072dfdba54201be67a0e8ed4ec13e","bytes":1330},
-{"path":"scripts/validate_pdf.py","sha256":"d071b4dfdc297fbf03908e7a246a6c99105b16a25f54f98267bf6474dfb448de","bytes":843},
-{"path":"pdf_system/__init__.py","sha256":"351aa328d8da03feb8d95802bf6b40c962d511baf9ae35a960a78f46b252d823","bytes":231},
-{"path":"pdf_system/backends.py","sha256":"1fda3ec6294757b6b40fa75bfe21a952076a22d78cdad376a18f1b31faf06a2c","bytes":13557},
-{"path":"pdf_system/errors.py","sha256":"d544ac79db08c3ffcb3024d8cce66d0b452d82284056ec131f3c515fd23be892","bytes":985},
-{"path":"pdf_system/models.py","sha256":"bc4b25fe0a7264f601d1f2dd94ee1fcc3006264a110b019f805a872395719efd","bytes":6581},
-{"path":"pdf_system/safety.py","sha256":"ffbf43076d196cb68d743d0ce53a5cc62687433783351756c9e8f46b9e7cb7c9","bytes":3469},
-{"path":"pdf_system/service.py","sha256":"1495906f3b958bd1e5f9bc4d1e49927a0a66663d7cfd776c08479c6c7863e990","bytes":15262},
-{"path":"pdf_system/verification.py","sha256":"5a1bb809e37a9a1b584c6501d36564c17124b1935f9c247df3796b31a1b2a77a","bytes":1359},
-{"path":"tests/test_pdf_system.py","sha256":"1ad8e8a4f5afaf2ebf4b56987bc5af5a1019000b92499c43d6489ad9bd2c3a49","bytes":3284}
-]}
+{
+  "files": [
+    {
+      "path": "SKILL.md",
+      "type": "instructions",
+      "sha256": "f3bb855bb8a3c7a4ce696c3114ae7b968b63f668b812d688465b16763a375880",
+      "bytes": 2663
+    },
+    {
+      "path": "pdf_system/__init__.py",
+      "type": "metadata",
+      "sha256": "351aa328d8da03feb8d95802bf6b40c962d511baf9ae35a960a78f46b252d823",
+      "bytes": 231
+    },
+    {
+      "path": "pdf_system/backends.py",
+      "type": "metadata",
+      "sha256": "1fda3ec6294757b6b40fa75bfe21a952076a22d78cdad376a18f1b31faf06a2c",
+      "bytes": 13557
+    },
+    {
+      "path": "pdf_system/errors.py",
+      "type": "metadata",
+      "sha256": "d544ac79db08c3ffcb3024d8cce66d0b452d82284056ec131f3c515fd23be892",
+      "bytes": 985
+    },
+    {
+      "path": "pdf_system/models.py",
+      "type": "metadata",
+      "sha256": "bc4b25fe0a7264f601d1f2dd94ee1fcc3006264a110b019f805a872395719efd",
+      "bytes": 6581
+    },
+    {
+      "path": "pdf_system/safety.py",
+      "type": "metadata",
+      "sha256": "ffbf43076d196cb68d743d0ce53a5cc62687433783351756c9e8f46b9e7cb7c9",
+      "bytes": 3469
+    },
+    {
+      "path": "pdf_system/service.py",
+      "type": "metadata",
+      "sha256": "1495906f3b958bd1e5f9bc4d1e49927a0a66663d7cfd776c08479c6c7863e990",
+      "bytes": 15262
+    },
+    {
+      "path": "pdf_system/verification.py",
+      "type": "metadata",
+      "sha256": "5a1bb809e37a9a1b584c6501d36564c17124b1935f9c247df3796b31a1b2a77a",
+      "bytes": 1359
+    },
+    {
+      "path": "references/architecture.md",
+      "type": "references",
+      "sha256": "76030ded7d690192c76c8a558eb13bf986efcbc272235141297c9f6d263492cf",
+      "bytes": 1485
+    },
+    {
+      "path": "references/dependencies.md",
+      "type": "references",
+      "sha256": "0bd22985043314370004c83b9bf3e9dd0270028605f25716fcda0f0bbe6d3932",
+      "bytes": 995
+    },
+    {
+      "path": "references/typography.md",
+      "type": "references",
+      "sha256": "87ff83e21b8e8caa199d1a362c043ed3046402d3bae2bfb98781d4d0bba0f610",
+      "bytes": 3682
+    },
+    {
+      "path": "scripts/md_to_pdf.py",
+      "type": "scripts",
+      "sha256": "30b9d43f61e7521b77a1b97d9bc705d736258eca16958a8d0f4a3f2d8008fc99",
+      "bytes": 1215
+    },
+    {
+      "path": "scripts/pdf_tool.py",
+      "type": "scripts",
+      "sha256": "e944c0fcb9d295495f561c972f19c18164b91f62869075cec51e3829f3b0a064",
+      "bytes": 2875
+    },
+    {
+      "path": "scripts/report_pdf.py",
+      "type": "scripts",
+      "sha256": "1867fbb76fbf56635745cf55de34628cf2c072dfdba54201be67a0e8ed4ec13e",
+      "bytes": 1330
+    },
+    {
+      "path": "scripts/validate_pdf.py",
+      "type": "scripts",
+      "sha256": "d071b4dfdc297fbf03908e7a246a6c99105b16a25f54f98267bf6474dfb448de",
+      "bytes": 843
+    },
+    {
+      "path": "tests/test_pdf_system.py",
+      "type": "metadata",
+      "sha256": "1ad8e8a4f5afaf2ebf4b56987bc5af5a1019000b92499c43d6489ad9bd2c3a49",
+      "bytes": 3284
+    }
+  ]
+}

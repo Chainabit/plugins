@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://chainabit.com/spec/capabilities.schema.json",
+  "type": "object",
+  "required": ["declared", "requested"],
+  "properties": {
+    "declared": { "type": "array", "items": { "$ref": "#/$defs/declared" } },
+    "requested": { "type": "array", "items": { "type": "string" }, "uniqueItems": true }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "declared": {
+      "type": "object",
+      "required": ["id", "kind", "verifiedBehaviors"],
+      "properties": {
+        "id": { "type": "string" },
+        "kind": { "enum": ["skill", "plugin", "provider", "validator"] },
+        "verifiedBehaviors": { "type": "array", "items": { "type": "string" }, "minItems": 1 }
+      },
+      "additionalProperties": false
+    }
+  }
+}

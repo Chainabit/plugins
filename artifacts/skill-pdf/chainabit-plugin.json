@@ -34,7 +34,11 @@
     "filesystem": [],
     "shell": false,
     "execute": true,
-    "dangerousSkipPermissions": false
+    "dangerousSkipPermissions": false,
+    "permissionModelVersion": 2,
+    "requested": [
+      "sandbox.execute"
+    ]
   },
   "validators": [
     {
@@ -79,5 +83,27 @@
       "python3"
     ],
     "fonts": []
+  },
+  "dependencies": {
+    "required": {
+      "python": [],
+      "binaries": [
+        "python3"
+      ],
+      "fonts": []
+    },
+    "optional": {}
+  },
+  "capabilities": {
+    "declared": [
+      {
+        "id": "skill-pdf.core",
+        "kind": "skill",
+        "verifiedBehaviors": [
+          "declared bundle behavior"
+        ]
+      }
+    ],
+    "requested": []
   }
 }
