@@ -69,9 +69,16 @@ test("rejects missing execution disclosure and arbitrary lifecycle commands", ()
     pdf.permissions.requested = [];
     pdf.install = { postInstall: "npm install -g attacker" };
     save(pdfPath, pdf);
-    const result = validateMarketplace(copy);
+    let result = validateMarketplace(copy);
     assert.ok(result.problems.some((problem) => problem.message.includes("sandbox.execute")));
     assert.ok(result.problems.some((problem) => problem.message.includes("raw postInstall")));
+
+    pdf.permissions.requested = ["sandbox.execute"];
+    pdf.permissions.execute = false;
+    delete pdf.install;
+    save(pdfPath, pdf);
+    result = validateMarketplace(copy);
+    assert.ok(result.problems.some((problem) => problem.message.includes("scripts and requires permissions.execute")));
   });
 });
 

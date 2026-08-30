@@ -105,7 +105,7 @@ function validateDependenciesAndCapabilities(manifest, folder, problems) {
   }
 }
 
-function validateBundle(pluginRoot, skillPath, folder, problems, writeBundles, written) {
+function validateBundle(pluginRoot, skillPath, folder, manifest, problems, writeBundles, written) {
   const skillRoot = join(pluginRoot, skillPath);
   if (!statSync(skillRoot).isDirectory()) return;
   const document = join(skillRoot, "SKILL.md");
@@ -129,6 +129,7 @@ function validateBundle(pluginRoot, skillPath, folder, problems, writeBundles, w
       if (error) fail(problems, folder, `${skillPath}/${file.path}: ${error}`);
     }
   }
+  if (computed.files.some((file) => file.type === "scripts") && manifest.permissions?.execute !== true) fail(problems, folder, `${skillPath} contains scripts and requires permissions.execute=true`);
   if (total > MAX_BUNDLE_TOTAL_BYTES) fail(problems, folder, `${skillPath} exceeds the aggregate bundle limit`);
   const bundlePath = join(skillRoot, BUNDLE_FILENAME);
   if (writeBundles) { writeFileSync(bundlePath, `${JSON.stringify(computed, null, 2)}\n`, "utf8"); written.push(`${folder}/${skillPath}/${BUNDLE_FILENAME}`); }
@@ -191,7 +192,7 @@ export function validateMarketplace(root, { writeBundles = false } = {}) {
       } else {
         if (manifest.schemaVersion < 2) fail(problems, folder, `skill directory ${skill} requires schemaVersion 2`);
         if (!existsSync(absolute) || !statSync(absolute).isDirectory()) fail(problems, folder, `missing skill directory ${skill}`);
-        else validateBundle(plugin.absolute, skill, folder, problems, writeBundles, written);
+        else validateBundle(plugin.absolute, skill, folder, manifest, problems, writeBundles, written);
       }
     }
     for (const validator of manifest.validators ?? []) if (!validator || !isSafeRelativePath(validator.entrypoint) || !existsSync(join(plugin.absolute, validator.entrypoint))) fail(problems, folder, "validator entrypoint must name an existing safe file");

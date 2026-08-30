@@ -7,6 +7,7 @@ export const BUNDLE_FILENAME = "bundle.json";
 export const MAX_BUNDLE_FILE_BYTES = 512 * 1024;
 export const MAX_BUNDLE_TOTAL_BYTES = 4 * 1024 * 1024;
 export const MAX_BUNDLE_FILES = 64;
+export const MAX_ASSET_DIMENSION = 8192;
 export const SCHEMA_VERSIONS = new Set([1, 2]);
 export const SEMVER_PATTERN =
   /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z-.]+)?(?:\+[0-9A-Za-z-.]+)?$/;
@@ -81,15 +82,19 @@ export function validateAssetBytes(path, bytes) {
   const ext = extension(path);
   if (![...BUNDLE_EXTENSIONS].includes(ext)) return "unsupported asset extension";
   if (bytes.byteLength > MAX_BUNDLE_FILE_BYTES) return "asset exceeds per-file limit";
-  if (ext === ".png" && !bytes.subarray(0, 8).equals(Buffer.from("89504e470d0a1a0a", "hex"))) return "invalid PNG signature";
+  if (ext === ".png") {
+    if (!bytes.subarray(0, 8).equals(Buffer.from("89504e470d0a1a0a", "hex"))) return "invalid PNG signature";
+    if (bytes.length >= 24 && (bytes.readUInt32BE(16) > MAX_ASSET_DIMENSION || bytes.readUInt32BE(20) > MAX_ASSET_DIMENSION)) return "PNG dimensions exceed the asset limit";
+  }
   if ([".jpg", ".jpeg"].includes(ext) && !(bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[bytes.length - 2] === 0xff && bytes[bytes.length - 1] === 0xd9)) return "invalid JPEG signature";
   if (ext === ".webp" && (bytes.toString("ascii", 0, 4) !== "RIFF" || bytes.toString("ascii", 8, 12) !== "WEBP")) return "invalid WebP signature";
   if (ext === ".woff" && bytes.toString("ascii", 0, 4) !== "wOFF") return "invalid WOFF signature";
   if (ext === ".woff2" && bytes.toString("ascii", 0, 4) !== "wOF2") return "invalid WOFF2 signature";
   if (ext === ".svg") {
     const text = bytes.toString("utf8").toLowerCase();
-    if (!text.includes("<svg") || /<\s*script\b|\bon[a-z]+\s*=|javascript:/i.test(text)) return "SVG contains executable content";
+    if (!text.includes("<svg") || /<\s*script\b|\bon[a-z]+\s*=|javascript:|(?:href|src)\s*=\s*["'](?:https?:|\/\/)/i.test(text)) return "SVG contains executable or remote content";
   }
+  if (ext === ".css" && /@import|url\s*\(\s*["']?(?:https?:|\/\/)/i.test(bytes.toString("utf8"))) return "CSS contains remote content";
   return null;
 }
 
