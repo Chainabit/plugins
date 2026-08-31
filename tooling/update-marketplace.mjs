@@ -28,6 +28,7 @@ export function updateMarketplaceRevision(root, revision) {
   const index = JSON.parse(readFileSync(path, "utf8"));
   index.plugins = index.plugins.map((entry) => ({
     ...entry,
+    version: validation.manifests.get(entry.id)?.manifest.version ?? entry.version,
     revision,
     integrity: { algorithm: "sha256", packageSha256: validation.packageDigests.get(entry.id) },
   }));
