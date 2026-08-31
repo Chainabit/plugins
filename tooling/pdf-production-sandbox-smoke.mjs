@@ -96,11 +96,14 @@ try {
     method: 'PUT', headers: { 'content-type': 'application/octet-stream' }, body: '',
   });
 
-  evidence.runtime = await exec(sandboxId, ['python3', '-c', 'import json,locale,pypdf,weasyprint; print(json.dumps({"python":__import__("sys").version.split()[0],"pypdf":pypdf.__version__,"weasyprint":weasyprint.__version__,"locale":locale.getpreferredencoding(False)}))']);
+  evidence.runtime = await exec(sandboxId, ['python3', '-c', 'import glob,json,locale,os,pypdf,subprocess,weasyprint; font_dir=os.environ.get("CHAINABIT_ARTIFACT_FONT_DIR",""); print(json.dumps({"python":__import__("sys").version.split()[0],"pypdf":pypdf.__version__,"weasyprint":weasyprint.__version__,"locale":locale.getpreferredencoding(False),"fontDir":font_dir,"fontFiles":[os.path.basename(p) for p in sorted(glob.glob(font_dir+"/*"))],"fontMatch":subprocess.run(["fc-match","IBM Plex Sans"],capture_output=True,text=True).stdout.strip()}))']);
   assert(evidence.runtime.exitCode === 0, 'runtime profile probe failed', evidence.runtime);
 
   evidence.render = await exec(sandboxId, ['python3', '.skills/skill-pdf-pdf/scripts/md_to_pdf.py', 'report.md', 'report.pdf', '--lang', 'tr']);
-  assert(evidence.render.exitCode === 0, 'official renderer failed', evidence.render);
+  assert(evidence.render.exitCode === 0, 'official renderer failed', {
+    runtime: evidence.runtime,
+    render: evidence.render,
+  });
   const rendered = lastJsonLine(evidence.render.stdout);
   assert(rendered.schema === 'chainabit.pdf.execution/v1', 'renderer protocol mismatch', rendered);
 
