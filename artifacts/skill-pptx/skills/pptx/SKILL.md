@@ -122,7 +122,8 @@ single most common way this skill produces half a deliverable.
 Deck-level fields: `title` (required, also the metadata title) and `slides`
 (required, 1–30). Optional: `subtitle` and `author` for the file metadata,
 `theme` (`"light"` default, or `"dark"`), `aspect` (`"16:9"` default, or
-`"4:3"`), and `font` (default `Arial` — read `references/design.md` first).
+`"4:3"`), and `font`. With no explicit `font`, the runtime-owned Chainabit
+default is `IBM Plex Sans`; an explicit safe family name overrides it.
 
 ### The four layouts
 

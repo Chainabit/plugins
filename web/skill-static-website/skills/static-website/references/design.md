@@ -175,19 +175,18 @@ Two things the stylesheet does that are easy to drop and expensive to lose:
 
 ## Fonts
 
-System stacks only. Nothing is fetched, so nothing can fail to arrive, there is
-no flash of invisible text, and the page paints in the reader's own UI face on
-the first frame.
+Local, runtime-provided webfonts only. Nothing is fetched, so nothing can fail
+to arrive and there is no flash of invisible text.
 
 ```
---font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-             "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+--font-sans: "IBM Plex Sans", "IBM Plex Sans Arabic", sans-serif;
 --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
              "Liberation Mono", monospace;
 ```
 
-Every face in both stacks covers Latin Extended-A — `ç ş ğ ı İ ö ü` — so Turkish
-sets correctly rather than falling back mid-word.
+The generated site carries local IBM Plex Sans and IBM Plex Sans Arabic WOFF2
+assets. Latin Extended-A — `ç ş ğ ı İ ö ü` — therefore renders offline; Arabic
+uses the explicit script-compatible companion family.
 
 A webfont is not an option here, and not only as a matter of taste: the sandbox
 has no network egress, so `@import` from Google Fonts resolves to nothing and the

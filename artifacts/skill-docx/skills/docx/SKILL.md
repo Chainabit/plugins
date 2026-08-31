@@ -86,6 +86,10 @@ programmatically and you want the errors before committing to a build.
 }
 ```
 
+The optional top-level `font` is an explicit safe family override. When it is
+absent, every Word style and run defaults to the runtime-owned Chainabit
+`IBM Plex Sans` family.
+
 ### Block types
 
 | `type`      | Fields                                                     | Notes |

@@ -9,20 +9,26 @@
     {
       "path": "references/design.md",
       "type": "references",
-      "sha256": "9b70200b84bdde86a2d55b91ea3f4a00310c6ace7392067bf882d03cc08597bb",
-      "bytes": 9631
+      "sha256": "1c86cab3c7b6c441243e991c680ad2f99a055a2603063edb954ce0dc6a268540",
+      "bytes": 9600
     },
     {
       "path": "scripts/scaffold_site.py",
       "type": "scripts",
-      "sha256": "88e0270d73f72d72cd3499a430226629e3e89b808b51de625ee6db1dde56f670",
-      "bytes": 53841
+      "sha256": "0d67fac0cb94a75c2d0fad22d9674e3823eaef5672e1498a46a03296e8714202",
+      "bytes": 59293
     },
     {
       "path": "scripts/validate_site.py",
       "type": "scripts",
-      "sha256": "485f97d3fa064d6778f318b1fe2196fb83f8fa8bc1044e3a20fd728350b09278",
-      "bytes": 25143
+      "sha256": "f7ff123b35d63e9aae3a843fa763ff10bbb1984d056fdaee4995f86dec47dee1",
+      "bytes": 30843
+    },
+    {
+      "path": "tests/test_artifact_contract.py",
+      "type": "metadata",
+      "sha256": "4b0218fdf64f08f92276f32a8ad3551174b3fdc30b396b7008503ea4fa25f183",
+      "bytes": 2825
     }
   ]
 }

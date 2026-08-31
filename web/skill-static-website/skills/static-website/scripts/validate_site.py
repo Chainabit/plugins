@@ -30,6 +30,8 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import hashlib
+import json
 import os
 import posixpath
 import re
@@ -94,6 +96,19 @@ PLACEHOLDER_TITLES = {"document", "untitled", "untitled document", "title", "new
 MIN_VISIBLE_CHARACTERS = 40
 
 NON_RENDERED = {"script", "style", "template", "head", "title"}
+VALIDATION_SCHEMA = "chainabit.website.validation/v1"
+CONTRACT_SCHEMA = "chainabit.website.contract/v1"
+CONTRACT_FILE = ".chainabit-site.json"
+DEFAULT_FONT_FAMILY = os.environ.get(
+    "CHAINABIT_ARTIFACT_FONT_FAMILY", "IBM Plex Sans"
+).strip() or "IBM Plex Sans"
+FONT_FILES = (
+    "IBMPlexSans-Regular.woff2",
+    "IBMPlexSans-SemiBold.woff2",
+    "IBMPlexSansArabic-Regular.woff2",
+    "IBMPlexSansArabic-SemiBold.woff2",
+)
+AVAILABLE_WEB_FAMILIES = {"IBM Plex Sans", "IBM Plex Sans Arabic"}
 
 
 class Report:
@@ -237,8 +252,87 @@ def collect_files(root: str) -> set[str]:
     for directory, _, names in os.walk(root):
         for name in names:
             absolute = os.path.join(directory, name)
+            if os.path.islink(absolute):
+                continue
             found.add(os.path.relpath(absolute, root).replace(os.sep, "/"))
     return found
+
+
+def tree_identity(root: str, files: set[str]) -> tuple[str, int]:
+    entries: list[bytes] = []
+    total = 0
+    for relative in sorted(files):
+        absolute = os.path.join(root, *relative.split("/"))
+        if os.path.islink(absolute) or not os.path.isfile(absolute):
+            raise OSError(f"unsupported or unsafe site entry: {relative}")
+        with open(absolute, "rb") as handle:
+            data = handle.read()
+        total += len(data)
+        entries.append(
+            relative.encode("utf-8") + b"\0" + hashlib.sha256(data).hexdigest().encode("ascii")
+            + b"\0" + str(len(data)).encode("ascii") + b"\n"
+        )
+    return hashlib.sha256(b"".join(entries)).hexdigest(), total
+
+
+def read_contract(root: str, files: set[str]) -> tuple[dict | None, str | None]:
+    if CONTRACT_FILE not in files:
+        return None, f"missing {CONTRACT_FILE}; the site has no declared format/runtime contract"
+    try:
+        with open(os.path.join(root, CONTRACT_FILE), encoding="utf-8") as handle:
+            contract = json.load(handle)
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        return None, f"invalid {CONTRACT_FILE}: {exc}"
+    if not isinstance(contract, dict) or contract.get("schema") != CONTRACT_SCHEMA:
+        return None, f"{CONTRACT_FILE} does not declare {CONTRACT_SCHEMA}"
+    if contract.get("format") != "static-website" or contract.get("entryPoint") != "index.html":
+        return None, f"{CONTRACT_FILE} declares an incompatible format or entry point"
+    typography = contract.get("typography")
+    if not isinstance(typography, dict) or not isinstance(typography.get("family"), str):
+        return None, f"{CONTRACT_FILE} has no valid typography declaration"
+    return contract, None
+
+
+def check_contract(root: str, files: set[str], stylesheets: list[str], contract: dict) -> list[str]:
+    errors: list[str] = []
+    typography = contract["typography"]
+    family = typography["family"].strip()
+    source = typography.get("source")
+    css_text = "\n".join(
+        read_text(os.path.join(root, *path.split("/"))) or "" for path in stylesheets
+    )
+    if json.dumps(family, ensure_ascii=False) not in css_text and f"'{family}'" not in css_text:
+        errors.append(f"declared font family {family!r} is not present in generated CSS")
+    if source == "chainabit_default":
+        if family != DEFAULT_FONT_FAMILY:
+            errors.append(
+                f"default typography declares {family!r}; expected canonical {DEFAULT_FONT_FAMILY!r}"
+            )
+    elif source == "user_override":
+        if family not in AVAILABLE_WEB_FAMILIES:
+            errors.append(f"user font {family!r} is not available in the offline runtime")
+    else:
+        errors.append(f"unknown typography source {source!r}")
+    if source in {"chainabit_default", "user_override"}:
+        for filename in FONT_FILES:
+            relative = f"assets/fonts/{filename}"
+            if relative not in files:
+                errors.append(f"canonical offline font asset is missing: {relative}")
+                continue
+            with open(os.path.join(root, *relative.split("/")), "rb") as handle:
+                if handle.read(4) != b"wOF2":
+                    errors.append(f"canonical font asset is not a WOFF2 file: {relative}")
+    runtime = contract.get("runtime")
+    if runtime != {"network": "offline", "javascript": False}:
+        errors.append("site runtime contract must be offline and JavaScript-free")
+    if any(path.lower().endswith((".js", ".mjs", ".cjs")) for path in files):
+        errors.append("canonical static website contains JavaScript despite its no-script contract")
+    if "@media (min-width:" not in css_text or "viewport" not in " ".join(
+        (read_text(os.path.join(root, *page.split("/"))) or "")
+        for page in files if page.lower().endswith(PAGE_SUFFIXES)
+    ):
+        errors.append("site does not prove both responsive CSS and viewport configuration")
+    return errors
 
 
 def resolve(page_path: str, target: str) -> str | None:
@@ -549,6 +643,11 @@ def main(argv: list[str] | None = None) -> int:
         print(f"ERROR: site: {root} is empty", file=sys.stderr)
         return 1
 
+    contract, contract_error = read_contract(root, files)
+    if contract_error:
+        print(f"ERROR: {root}: {contract_error}", file=sys.stderr)
+        return 1
+
     # --- the entry point --------------------------------------------------------
     #
     # Reported before anything else, and separately for the nested case. Telling
@@ -609,6 +708,11 @@ def main(argv: list[str] | None = None) -> int:
             continue
         reports.append(check_stylesheet(stylesheet, text, files))
 
+    contract_report = Report(CONTRACT_FILE)
+    for message in check_contract(root, files, stylesheets, contract):
+        contract_report.error(message)
+    reports.append(contract_report)
+
     # A page nothing links to is published and unreachable. Not an error — a
     # deliberately unlisted page is a real thing — but it is almost always a nav
     # entry somebody forgot to add.
@@ -639,9 +743,11 @@ def main(argv: list[str] | None = None) -> int:
         print(f"\n{len(warnings)} warning(s), failed by --strict.", file=sys.stderr)
         return 1
 
-    total_bytes = sum(
-        os.path.getsize(os.path.join(root, *path.split("/"))) for path in files
-    )
+    try:
+        digest, total_bytes = tree_identity(root, files)
+    except OSError as exc:
+        print(f"ERROR: site_identity: {exc}", file=sys.stderr)
+        return 2
     print(
         f"OK: {root} is a servable site, entry point {entry}, {len(pages)} page(s), "
         f"{len(files)} file(s), {total_bytes} bytes"
@@ -650,6 +756,27 @@ def main(argv: list[str] | None = None) -> int:
         report = next((item for item in reports if item.path == page), None)
         note = f", {len(report.warnings)} warning(s)" if report and report.warnings else ""
         print(f"  {page}: {len(anchors.get(page, set()))} anchor(s){note}")
+    print(json.dumps({
+        "schema": VALIDATION_SCHEMA,
+        "valid": True,
+        "validator": "skill-static-website.validate_site",
+        "classification": "authoritative",
+        "subject": {
+            "path": os.path.realpath(root),
+            "shape": "tree",
+            "mime": "application/vnd.chainabit.static-site",
+            "sha256": digest,
+            "bytes": total_bytes,
+            "files": len(files),
+        },
+        "checks": {
+            "entryPoint": entry,
+            "pages": len(pages),
+            "offlineAssets": True,
+            "responsive": True,
+            "typography": contract["typography"],
+        },
+    }, ensure_ascii=False, sort_keys=True))
     return 0
 
 

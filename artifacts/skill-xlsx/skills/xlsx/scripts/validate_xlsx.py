@@ -20,6 +20,8 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import hashlib
+import json
 import os
 import re
 import sys
@@ -29,6 +31,7 @@ from xml.etree import ElementTree
 MAIN_NS = "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}"
 DOC_REL_NS = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}"
 PKG_REL_NS = "{http://schemas.openxmlformats.org/package/2006/relationships}"
+ARABIC_FALLBACK_FONT = "IBM Plex Sans Arabic"
 
 REQUIRED_PARTS = ("[Content_Types].xml", "xl/workbook.xml")
 
@@ -180,6 +183,41 @@ def inspect_sheet(archive: zipfile.ZipFile, part: str, strings: list[str]):
     return rows, populated, numeric_text
 
 
+def used_font_families(archive: zipfile.ZipFile, parts: list[tuple[str, str | None]]) -> set[str]:
+    styles = read_xml(archive, "xl/styles.xml")
+    if styles is None:
+        return set()
+    fonts_node = styles.find(f"{MAIN_NS}fonts")
+    xfs_node = styles.find(f"{MAIN_NS}cellXfs")
+    if fonts_node is None or xfs_node is None:
+        return set()
+    font_names: list[str] = []
+    for font in fonts_node.findall(f"{MAIN_NS}font"):
+        name = font.find(f"{MAIN_NS}name")
+        font_names.append((name.get("val") if name is not None else "") or "")
+    style_fonts: list[int] = []
+    for xf in xfs_node.findall(f"{MAIN_NS}xf"):
+        try:
+            style_fonts.append(int(xf.get("fontId", "0")))
+        except ValueError:
+            style_fonts.append(-1)
+    used: set[str] = set()
+    for _, part in parts:
+        root = read_xml(archive, part) if part else None
+        if root is None:
+            continue
+        for cell in root.iter(f"{MAIN_NS}c"):
+            try:
+                style = int(cell.get("s", "0"))
+                font_id = style_fonts[style]
+                family = font_names[font_id].strip()
+            except (ValueError, IndexError):
+                continue
+            if family:
+                used.add(family)
+    return used
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="validate_xlsx.py",
@@ -273,6 +311,20 @@ def main(argv: list[str] | None = None) -> int:
             )
             return 1
 
+        fonts = used_font_families(archive, parts)
+        if not fonts:
+            print("ERROR: typography: workbook cells declare no concrete font family", file=sys.stderr)
+            return 1
+        primary_fonts = fonts - {ARABIC_FALLBACK_FONT}
+        if len(primary_fonts) > 1 or (not primary_fonts and fonts != {ARABIC_FALLBACK_FONT}):
+            print(
+                "ERROR: typography: workbook uses inconsistent cell fonts: "
+                + ", ".join(sorted(fonts)),
+                file=sys.stderr,
+            )
+            return 1
+        font_family = next(iter(primary_fonts or fonts))
+
         # The summary is assembled here and printed at the end. An "OK:" line above an
         # ERROR line reads as a pass with a footnote, which is the wrong impression.
         summary = [f"OK: {path} is an .xlsx workbook, {size} bytes, {len(parts)} sheet(s)"]
@@ -325,6 +377,25 @@ def main(argv: list[str] | None = None) -> int:
 
     for line in summary:
         print(line)
+    with open(path, "rb") as handle:
+        digest = hashlib.sha256(handle.read()).hexdigest()
+    print(json.dumps({
+        "schema": "chainabit.xlsx.validation/v1",
+        "valid": True,
+        "validator": "skill-xlsx.validate_xlsx",
+        "classification": "authoritative",
+        "subject": {
+            "path": os.path.realpath(path),
+            "shape": "file",
+            "mime": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "sha256": digest,
+            "bytes": size,
+        },
+        "typography": {
+            "family": font_family,
+            "fallbacks": sorted(fonts - {font_family}),
+        },
+    }, ensure_ascii=False, sort_keys=True))
     return 0
 
 

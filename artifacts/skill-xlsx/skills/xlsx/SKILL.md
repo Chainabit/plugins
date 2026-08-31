@@ -94,6 +94,7 @@ fast run instead of a broken file.
 |--------------|----------|------------------------------------------------------|
 | `sheets`     | yes      | At least one sheet. Order is preserved.              |
 | `properties` | no       | `title`, `creator`, `subject`, `description`.        |
+| `font`       | no       | Explicit safe family override; defaults to Chainabit `IBM Plex Sans`. |
 
 Each sheet:
 

@@ -29,6 +29,8 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import hashlib
+import json
 import os
 import re
 import sys
@@ -36,6 +38,7 @@ import zipfile
 from xml.etree import ElementTree
 
 W_NS = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
+ARABIC_FALLBACK_FONT = "IBM Plex Sans Arabic"
 
 REQUIRED_PARTS = ("[Content_Types].xml", "word/document.xml")
 
@@ -189,6 +192,19 @@ def inspect_document(root):
     return paragraphs, populated, tables, findings, bullet_hits
 
 
+def declared_fonts(*roots) -> set[str]:
+    fonts: set[str] = set()
+    for root in roots:
+        if root is None:
+            continue
+        for element in root.iter(f"{W_NS}rFonts"):
+            for attribute in ("ascii", "hAnsi", "eastAsia", "cs"):
+                value = (element.get(f"{W_NS}{attribute}") or "").strip()
+                if value:
+                    fonts.add(value)
+    return fonts
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Validate that a .docx is a real, non-empty Word document."
@@ -284,6 +300,20 @@ def main() -> int:
             return 1
 
         paragraphs, populated, tables, findings, bullet_hits = inspected
+        styles = read_xml(archive, "word/styles.xml")
+        fonts = declared_fonts(styles, root)
+        if not fonts:
+            print("ERROR: typography: document declares no concrete font family", file=sys.stderr)
+            return 1
+        primary_fonts = fonts - {ARABIC_FALLBACK_FONT}
+        if len(primary_fonts) > 1 or (not primary_fonts and fonts != {ARABIC_FALLBACK_FONT}):
+            print(
+                "ERROR: typography: document has inconsistent defaults: "
+                + ", ".join(sorted(fonts)),
+                file=sys.stderr,
+            )
+            return 1
+        font_family = next(iter(primary_fonts or fonts))
 
         if populated == 0:
             print(
@@ -330,6 +360,25 @@ def main() -> int:
 
     for line in summary:
         print(line)
+    with open(path, "rb") as handle:
+        digest = hashlib.sha256(handle.read()).hexdigest()
+    print(json.dumps({
+        "schema": "chainabit.docx.validation/v1",
+        "valid": True,
+        "validator": "skill-docx.validate_docx",
+        "classification": "authoritative",
+        "subject": {
+            "path": os.path.realpath(path),
+            "shape": "file",
+            "mime": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "sha256": digest,
+            "bytes": size,
+        },
+        "typography": {
+            "family": font_family,
+            "fallbacks": sorted(fonts - {font_family}),
+        },
+    }, ensure_ascii=False, sort_keys=True))
     return 0
 
 

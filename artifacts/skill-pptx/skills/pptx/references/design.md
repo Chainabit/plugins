@@ -139,13 +139,8 @@ the validator can see.
 
 ## Fonts
 
-The font name in a `.pptx` is resolved by the machine that **opens** it, not by
-the sandbox that wrote it. There is no font fallback to reason about at build
-time and no point pinning a face the audience's laptop does not have.
-
-`Arial` is the default because it is present on Windows, on macOS, and in Google
-Slides, and it covers Latin Extended-A — `ç ş ğ ı İ ö ü` — so Turkish renders
-rather than turning into boxes. `Calibri` is a reasonable Windows-first
-alternative and `Helvetica` a macOS-first one; both are set with `"font"` in the
-spec. Anything more exotic will substitute silently on someone else's screen and
-reflow the deck you checked.
+`IBM Plex Sans` is the Chainabit default. The prepared runtime provides its
+metrics deterministically, and the generator declares it in the OOXML theme,
+default text styles and explicit runs. An explicit safe `"font"` in the spec
+takes precedence. The validator rejects inconsistent concrete families so an
+implicit office-suite default cannot silently re-enter the package.

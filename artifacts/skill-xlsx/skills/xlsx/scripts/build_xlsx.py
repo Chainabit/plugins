@@ -41,6 +41,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import hashlib
 import json
 import os
 import re
@@ -61,6 +62,10 @@ INVALID_SHEET_CHARS = re.compile(r"[\\/*?:\[\]]")
 
 MAX_AUTO_WIDTH = 60
 MIN_AUTO_WIDTH = 9
+DEFAULT_FONT = os.environ.get("CHAINABIT_ARTIFACT_FONT_FAMILY", "IBM Plex Sans").strip() or "IBM Plex Sans"
+ARABIC_FALLBACK_FONT = "IBM Plex Sans Arabic"
+ARABIC_TEXT = re.compile(r"[\u0600-\u06ff\u0750-\u077f\u08a0-\u08ff]")
+SAFE_FONT_NAME = re.compile(r"^[^\x00-\x1f\x7f]{1,80}$")
 
 
 # --- validation -------------------------------------------------------------------
@@ -72,6 +77,12 @@ def validate_spec(spec: object) -> list[str]:
 
     if not isinstance(spec, dict):
         return ["spec: top level must be a JSON object"]
+
+    if spec.get("font") is not None and (
+        not isinstance(spec.get("font"), str)
+        or not SAFE_FONT_NAME.fullmatch(spec["font"].strip())
+    ):
+        problems.append("font: must be a safe non-empty family name")
 
     properties = spec.get("properties")
     if properties is not None:
@@ -327,6 +338,8 @@ def build_workbook(spec: dict, output: str) -> None:
     # Workbook() starts with one sheet; the first spec sheet takes it over so the
     # file never ships with a stray empty "Sheet".
     workbook.remove(workbook.active)
+    font_family = spec.get("font") or DEFAULT_FONT
+    workbook._named_styles["Normal"].font = Font(name=font_family)
 
     properties = spec.get("properties") or {}
     if properties.get("title"):
@@ -338,7 +351,14 @@ def build_workbook(spec: dict, output: str) -> None:
     if properties.get("description"):
         workbook.properties.description = properties["description"]
 
-    header_font = Font(bold=True, color="FFFFFF")
+    header_fonts = {
+        False: Font(name=font_family, bold=True, color="FFFFFF"),
+        True: Font(name=ARABIC_FALLBACK_FONT, bold=True, color="FFFFFF"),
+    }
+    body_fonts = {
+        False: Font(name=font_family),
+        True: Font(name=ARABIC_FALLBACK_FONT),
+    }
     header_fill = PatternFill("solid", fgColor="374151")
     header_alignment = Alignment(vertical="center", wrap_text=True)
 
@@ -350,7 +370,7 @@ def build_workbook(spec: dict, output: str) -> None:
 
         for index, column in enumerate(columns, start=1):
             cell = sheet.cell(row=1, column=index, value=column["header"])
-            cell.font = header_font
+            cell.font = header_fonts[bool(ARABIC_TEXT.search(str(column["header"])))]
             cell.fill = header_fill
             cell.alignment = header_alignment
         sheet.row_dimensions[1].height = 20
@@ -361,6 +381,7 @@ def build_workbook(spec: dict, output: str) -> None:
                 kind = column.get("type", "text")
                 cell = sheet.cell(row=row_index, column=column_index,
                                   value=coerce(value, kind))
+                cell.font = body_fonts[bool(ARABIC_TEXT.search(str(value or "")))]
                 number_format = column.get("format") or DEFAULT_FORMATS.get(kind)
                 if number_format:
                     cell.number_format = number_format
@@ -476,20 +497,39 @@ def main(argv: list[str] | None = None) -> int:
             "not try to install it.",
             file=sys.stderr,
         )
-        return 1
+        return 2
 
     try:
         build_workbook(spec, args.output)
     except PermissionError:
         print(f"ERROR: output: no permission to write {args.output}", file=sys.stderr)
-        return 1
+        return 2
     except OSError as exc:
         print(f"ERROR: output: could not write {args.output}: {exc}", file=sys.stderr)
-        return 1
+        return 2
 
     size = os.path.getsize(args.output)
     print(f"OK: wrote {args.output} ({size} bytes)")
     print(f"Next: python3 scripts/validate_xlsx.py {args.output}")
+    with open(args.output, "rb") as handle:
+        digest = hashlib.sha256(handle.read()).hexdigest()
+    font = spec.get("font") or DEFAULT_FONT
+    print(json.dumps({
+        "schema": "chainabit.xlsx.execution/v1",
+        "success": True,
+        "generator": "skill-xlsx.build_xlsx",
+        "output": {
+            "path": os.path.realpath(args.output),
+            "shape": "file",
+            "mime": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "sha256": digest,
+            "bytes": size,
+        },
+        "typography": {
+            "family": font,
+            "source": "user_override" if spec.get("font") else "chainabit_default",
+        },
+    }, ensure_ascii=False, sort_keys=True))
     return 0
 
 

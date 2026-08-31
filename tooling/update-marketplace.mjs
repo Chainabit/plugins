@@ -13,7 +13,17 @@ import { COMMIT_PATTERN } from "./marketplace-contract.mjs";
 export function updateMarketplaceRevision(root, revision) {
   if (!COMMIT_PATTERN.test(revision)) throw new Error("revision must be a 40-character lowercase Git commit SHA");
   const validation = validateMarketplace(root);
-  if (validation.problems.length) throw new Error(validation.problems.map(({ where, message }) => `${where}: ${message}`).join("\n"));
+  // This controller exists to repair index drift after the content commit is
+  // created. Treating the stale revision/version/digest fields it is about to
+  // replace as preconditions made every real release impossible; all other
+  // manifest, bundle, path, permission and composition failures still fail
+  // closed before marketplace.json is touched.
+  const blockingProblems = validation.problems.filter(
+    ({ where, message }) =>
+      where !== "marketplace.json" ||
+      !/(?:revision must equal|version drifts from its manifest|package digest does not match its content)/.test(message),
+  );
+  if (blockingProblems.length) throw new Error(blockingProblems.map(({ where, message }) => `${where}: ${message}`).join("\n"));
   const path = join(root, "marketplace.json");
   const index = JSON.parse(readFileSync(path, "utf8"));
   index.plugins = index.plugins.map((entry) => ({

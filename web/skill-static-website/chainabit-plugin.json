@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "skill-static-website",
   "name": "Static Website",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Static-site implementation variation for producing servable HTML/CSS sites with deterministic scaffolding and validation. Composes web engineering and software foundations; it does not define all websites.",
   "author": {
     "name": "Chainabit"
@@ -47,5 +47,68 @@
     "requested": [
       "sandbox.execute"
     ]
+  },
+  "validators": [
+    {
+      "id": "skill-static-website.validate_site",
+      "entrypoint": "skills/static-website/scripts/validate_site.py",
+      "runtime": "python3",
+      "validationClass": "content_present",
+      "protocol": "chainabit.website.validation/v1",
+      "target": {"kind": "tree", "extensions": []}
+    }
+  ],
+  "diagnostics": [
+    {
+      "entrypoint": "skills/static-website/scripts/scaffold_site.py",
+      "inputErrorExitCodes": [1]
+    },
+    {
+      "entrypoint": "skills/static-website/scripts/validate_site.py",
+      "inputErrorExitCodes": [1]
+    }
+  ],
+  "produces": ["static-website"],
+  "requires": {
+    "python": [],
+    "binaries": ["python3"],
+    "fonts": ["IBM Plex Sans"]
+  },
+  "dependencies": {
+    "required": {
+      "python": [],
+      "binaries": ["python3"],
+      "fonts": ["IBM Plex Sans"]
+    },
+    "optional": {}
+  },
+  "artifactContract": {
+    "formats": [
+      {
+        "format": "static-website",
+        "outputShape": "tree",
+        "mimeType": "application/vnd.chainabit.static-site",
+        "validatorId": "skill-static-website.validate_site",
+        "validatorProtocol": "chainabit.website.validation/v1",
+        "minimumValidationClass": "content_present"
+      }
+    ],
+    "generators": [
+      {
+        "id": "skill-static-website.scaffold",
+        "runtime": "python3",
+        "entrypoint": "skills/static-website/scripts/scaffold_site.py",
+        "outputArgumentIndex": 4,
+        "protocol": "chainabit.website.execution/v1",
+        "formats": ["static-website"]
+      }
+    ]
+  },
+  "typography": {
+    "defaultFamily": "IBM Plex Sans",
+    "userOverride": true,
+    "fallbackFamilies": ["IBM Plex Sans Arabic"],
+    "runtimeFamilyEnv": "CHAINABIT_ARTIFACT_FONT_FAMILY",
+    "runtimeAssetDirEnv": "CHAINABIT_ARTIFACT_FONT_DIR"
   }
 }

@@ -91,6 +91,7 @@ class DocumentRequirements:
         text = str(content)
         required = {"metadata", "pagination"}; reasons: dict[str, str] = {}
         def need(name: str, why: str) -> None: required.add(name); reasons[name] = why
+        need("font_embedding", "Chainabit visual artifacts require deterministic embedded typography")
         if any(ord(c) > 126 for c in text):
             need("unicode", "non-ASCII characters detected")
             if any(c in text for c in "ğĞşŞıİçÇöÖüÜ"): need("turkish", "Turkish characters detected")
