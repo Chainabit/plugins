@@ -3,7 +3,7 @@ name: xlsx
 description: "Builds real .xlsx workbooks inside the sandbox from a JSON spec - typed cells, a styled header row, column widths, number formats, freeze panes and autofilter - and verifies the result. Use when the requested deliverable is an Excel file: the request mentions Excel, xlsx, .xlsx, a spreadsheet, a workbook, \"tablo\", \"çalışma kitabı\", a budget, an inventory or a data export meant to be opened in Excel, Numbers, or Google Sheets. Also use to check whether an existing .xlsx is a valid workbook or has numbers stored as text. Do NOT use when a CSV is what was asked for - write the CSV directly instead; do NOT use for a PDF, a Markdown table, a chart image, or a database."
 license: Apache-2.0
 metadata:
-  version: 1.1.0
+  version: 1.2.0
 ---
 
 # Excel workbook generation

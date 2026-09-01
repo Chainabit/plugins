@@ -3,8 +3,8 @@
     {
       "path": "SKILL.md",
       "type": "instructions",
-      "sha256": "e947da311e5e175aeb02d237dffa2e447fb25c9b88f3ca97b3b2638157a51948",
-      "bytes": 3273
+      "sha256": "30618bf86bd0a837c23b01536bb4292512edb75f8cfc14c0eda4e2eb4b319705",
+      "bytes": 3461
     },
     {
       "path": "pdf_system/__init__.py",

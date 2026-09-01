@@ -3,7 +3,7 @@ name: pdf
 description: Create, validate, and manipulate secure PDF artifacts. Inspect required capabilities first and prefer the highest-quality available backend; never silently downgrade rich content.
 license: Apache-2.0
 metadata:
-  version: 5.1.0
+  version: 5.2.1
 ---
 
 # PDF artifact system
@@ -13,10 +13,14 @@ Use this skill for documents and reports intended to be delivered as PDFs. The p
 ```bash
 python3 scripts/pdf_tool.py capabilities
 python3 scripts/pdf_tool.py diagnose markdown report.md
-python3 scripts/pdf_tool.py generate-markdown report.md report.pdf
-python3 scripts/pdf_tool.py generate-report report.json report.pdf
-python3 scripts/pdf_tool.py validate report.pdf
+python3 scripts/md_to_pdf.py report.md report.pdf
+python3 scripts/report_pdf.py report.json report.pdf
+python3 scripts/validate_pdf.py report.pdf
 ```
+
+The two generation commands above are the registered production entrypoints.
+Use `pdf_tool.py` for capability inspection and diagnosis only; output produced
+through an unregistered wrapper cannot acquire publication proof.
 
 Before rendering, infer the document's requirements: Unicode and fonts, Turkish/RTL/CJK shaping, images, tables, Markdown/HTML/CSS, pagination, headers/footers, mathematics, vector graphics, typography, colors, print quality, metadata, accessibility, or manipulation. Resolve a backend only if it advertises every required capability and has tests for that behavior. Missing dependencies and unsupported features are actionable machine-readable failures; do not print raw math, replace glyphs, omit images, flatten tables, or fall back to the text renderer.
 
