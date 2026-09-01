@@ -16,6 +16,8 @@ const headers = {
     : {}),
 };
 const skillRoot = resolve(process.argv[2] ?? 'artifacts/skill-pdf/skills/pdf');
+const pptxSkillRoot = resolve('artifacts/skill-pptx/skills/pptx');
+const websiteSkillRoot = resolve('web/skill-static-website/skills/static-website');
 
 async function request(path, init = {}) {
   const response = await fetch(`${baseUrl}${path}`, {
@@ -35,6 +37,17 @@ async function filesUnder(root) {
     else result.push(path);
   }
   return result;
+}
+
+async function materializeSkill(sandboxId, localRoot, remoteDirectory) {
+  for (const localPath of await filesUnder(localRoot)) {
+    const rel = relative(localRoot, localPath).split(sep).join('/');
+    await request(`/v1/sandbox/${sandboxId}/file/workspace/.skills/${remoteDirectory}/${rel}`, {
+      method: 'PUT',
+      headers: { 'content-type': 'application/octet-stream' },
+      body: await readFile(localPath),
+    });
+  }
 }
 
 function parseSse(text) {
@@ -80,14 +93,13 @@ const created = await request('/v1/sandbox', { method: 'POST' });
 const { id: sandboxId } = await created.json();
 const evidence = {};
 try {
-  for (const localPath of await filesUnder(skillRoot)) {
-    const rel = relative(skillRoot, localPath).split(sep).join('/');
-    await request(`/v1/sandbox/${sandboxId}/file/workspace/.skills/skill-pdf-pdf/${rel}`, {
-      method: 'PUT',
-      headers: { 'content-type': 'application/octet-stream' },
-      body: await readFile(localPath),
-    });
-  }
+  await materializeSkill(sandboxId, skillRoot, 'skill-pdf-pdf');
+  await materializeSkill(sandboxId, pptxSkillRoot, 'skill-pptx-pptx');
+  await materializeSkill(
+    sandboxId,
+    websiteSkillRoot,
+    'skill-static-website-static-website',
+  );
   const fixture = await readFile(resolve(skillRoot, 'tests/fixtures/turkish.md'));
   await request(`/v1/sandbox/${sandboxId}/file/workspace/report.md`, {
     method: 'PUT', headers: { 'content-type': 'application/octet-stream' }, body: fixture,
@@ -130,6 +142,76 @@ try {
   evidence.timeout = await exec(sandboxId, ['python3', '-c', 'import time; time.sleep(2)'], 50);
   assert(evidence.timeout.error || evidence.timeout.exitCode !== 0, 'timeout was reported as success', evidence.timeout);
 
+  const deckSpec = JSON.stringify({
+    title: 'Chainabit Artifact Contract',
+    slides: [
+      {
+        layout: 'title',
+        title: 'Güvenilir Çıktılar',
+        subtitle: 'ğüşöçıİĞÜŞÖÇ · مرحبا بالعالم',
+      },
+      {
+        layout: 'content',
+        title: 'Doğrulama Zinciri',
+        bullets: ['Üret', 'Aynı byte kimliğini doğrula', 'Yalnızca doğrulanmış çıktıyı yayımla'],
+      },
+    ],
+  });
+  await request(`/v1/sandbox/${sandboxId}/file/workspace/deck.json`, {
+    method: 'PUT',
+    headers: { 'content-type': 'application/octet-stream' },
+    body: deckSpec,
+  });
+  evidence.pptxRender = await exec(sandboxId, [
+    'python3',
+    '.skills/skill-pptx-pptx/scripts/deck_pptx.py',
+    'deck.json',
+    'deck.pptx',
+  ]);
+  assert(evidence.pptxRender.exitCode === 0, 'official PPTX generator failed', evidence.pptxRender);
+  evidence.pptxValidate = await exec(sandboxId, [
+    'python3',
+    '.skills/skill-pptx-pptx/scripts/validate_pptx.py',
+    'deck.pptx',
+  ]);
+  assert(evidence.pptxValidate.exitCode === 0, 'authoritative PPTX validator failed', evidence.pptxValidate);
+  const renderedPptx = lastJsonLine(evidence.pptxRender.stdout);
+  const validatedPptx = lastJsonLine(evidence.pptxValidate.stdout);
+  assert(
+    renderedPptx.output.sha256 === validatedPptx.subject.sha256,
+    'PPTX render/validation hash mismatch',
+    { renderedPptx, validatedPptx },
+  );
+  assert(validatedPptx.typography.family === 'IBM Plex Sans', 'PPTX default font mismatch', validatedPptx);
+
+  evidence.websiteRender = await exec(sandboxId, [
+    'python3',
+    '.skills/skill-static-website-static-website/scripts/scaffold_site.py',
+    '--template',
+    'portfolio',
+    'site',
+  ]);
+  assert(evidence.websiteRender.exitCode === 0, 'official website generator failed', evidence.websiteRender);
+  evidence.websiteValidate = await exec(sandboxId, [
+    'python3',
+    '.skills/skill-static-website-static-website/scripts/validate_site.py',
+    'site',
+    '--strict',
+  ]);
+  assert(evidence.websiteValidate.exitCode === 0, 'authoritative website validator failed', evidence.websiteValidate);
+  const renderedWebsite = lastJsonLine(evidence.websiteRender.stdout);
+  const validatedWebsite = lastJsonLine(evidence.websiteValidate.stdout);
+  assert(
+    renderedWebsite.output.sha256 === validatedWebsite.subject.sha256,
+    'website render/validation tree hash mismatch',
+    { renderedWebsite, validatedWebsite },
+  );
+  assert(
+    validatedWebsite.checks.typography.family === 'IBM Plex Sans',
+    'website default font mismatch',
+    validatedWebsite,
+  );
+
   console.log(JSON.stringify({
     ok: true,
     sandboxRuntime: JSON.parse(evidence.runtime.stdout.trim()),
@@ -139,6 +221,8 @@ try {
     dependencyFailureExit: evidence.missingDependency.exitCode,
     blankRejectionExit: evidence.blankRejection.exitCode,
     timeoutObserved: Boolean(evidence.timeout.error || evidence.timeout.exitCode !== 0),
+    pptx: validatedPptx.subject,
+    website: validatedWebsite.subject,
   }, null, 2));
 } finally {
   await fetch(`${baseUrl}/v1/sandbox/${sandboxId}`, { method: 'DELETE', headers }).catch(() => undefined);
