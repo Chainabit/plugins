@@ -13,6 +13,7 @@ on:
       - "tooling/**"
       - "spec/**"
       - ".github/workflows/marketplace.yml"
+      - ".github/workflows/production-artifact-smoke.yml"
   push:
     branches: [main, development, development-rebased]
     paths:
@@ -26,6 +27,7 @@ on:
       - "tooling/**"
       - "spec/**"
       - ".github/workflows/marketplace.yml"
+      - ".github/workflows/production-artifact-smoke.yml"
 
 permissions:
   contents: read
