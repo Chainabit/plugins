@@ -3,7 +3,7 @@ name: docx
 description: "Builds real .docx documents inside the sandbox from a JSON spec - headings, styled paragraphs, bulleted and numbered lists, tables and page breaks - and verifies the result. Use when the requested deliverable is a Word document: the request mentions Word, docx, .docx, a document, a report, a proposal, a resume or CV, a letter, a contract, \"belge\", \"rapor\", \"özgeçmiş\", or anything meant to be opened in Word, Pages, or Google Docs. Also use to check whether an existing .docx is a valid document or has raw Markdown rendered into its text. Do NOT use when Markdown or plain text is what was asked for - write that file directly instead; do NOT use for a PDF, a spreadsheet, a slide deck, or an HTML page."
 license: Apache-2.0
 metadata:
-  version: 1.1.0
+  version: 1.2.0
 ---
 
 # Word document generation

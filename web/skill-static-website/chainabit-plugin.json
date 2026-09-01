@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "skill-static-website",
   "name": "Static Website",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Static-site implementation variation for producing servable HTML/CSS sites with deterministic scaffolding and validation. Composes web engineering and software foundations; it does not define all websites.",
   "author": {
     "name": "Chainabit"

@@ -197,6 +197,16 @@ export function validateMarketplace(root, { writeBundles = false } = {}) {
     }
     for (const validator of manifest.validators ?? []) if (!validator || !isSafeRelativePath(validator.entrypoint) || !existsSync(join(plugin.absolute, validator.entrypoint))) fail(problems, folder, "validator entrypoint must name an existing safe file");
     for (const diagnostic of manifest.diagnostics ?? []) if (!diagnostic || !isSafeRelativePath(diagnostic.entrypoint) || !existsSync(join(plugin.absolute, diagnostic.entrypoint))) fail(problems, folder, "diagnostic entrypoint must name an existing safe file");
+    for (const generator of manifest.artifactContract?.generators ?? []) {
+      if (
+        !generator ||
+        !isSafeRelativePath(generator.entrypoint) ||
+        !existsSync(join(plugin.absolute, generator.entrypoint)) ||
+        !statSync(join(plugin.absolute, generator.entrypoint)).isFile()
+      ) {
+        fail(problems, folder, "artifact generator entrypoint must name an existing safe file");
+      }
+    }
     const requires = manifest.composition?.requires ?? [];
     if (!Array.isArray(requires)) fail(problems, folder, "composition.requires must be an array");
     if (manifest.composition?.role === "compatibility" && (!manifest.composition.aliasOf || (components.skills ?? []).length || (components.agents ?? []).length)) fail(problems, folder, "compatibility plugins must declare aliasOf and no duplicate payload");

@@ -14,7 +14,7 @@ on:
       - "spec/**"
       - ".github/workflows/marketplace.yml"
   push:
-    branches: [main, development-rebased]
+    branches: [main, development, development-rebased]
     paths:
       - "marketplace.json"
       - "**/chainabit-plugin.json"

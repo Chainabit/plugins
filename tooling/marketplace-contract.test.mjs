@@ -132,3 +132,28 @@ test("package digests are content identities and are deterministic", () => {
   assert.equal(first, second);
   assert.deepEqual(permissionErrors(json(join(root, "artifacts", "skill-pdf", "chainabit-plugin.json"))), []);
 });
+
+test("artifact skill instructions advertise every registered production generator", () => {
+  const { manifests } = validateMarketplace(root);
+  for (const [id, entry] of manifests) {
+    const generators = entry.manifest.artifactContract?.generators ?? [];
+    if (generators.length === 0) continue;
+    const skillRoots = entry.manifest.components?.skills ?? [];
+    assert.equal(skillRoots.length, 1, `${id} must have one authoritative artifact skill`);
+    const skillRoot = skillRoots[0];
+    const instructions = readFileSync(join(entry.absolute, skillRoot, "SKILL.md"), "utf8");
+    assert.match(
+      instructions,
+      new RegExp(`^  version: ${entry.manifest.version.replace(/\\./g, "\\.")}$`, "m"),
+      `${id} skill metadata must match its release version`,
+    );
+    for (const generator of generators) {
+      const relativeEntrypoint = generator.entrypoint.slice(`${skillRoot}/`.length);
+      assert.match(
+        instructions,
+        new RegExp(`python3\\s+${relativeEntrypoint.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`),
+        `${id} instructions must directly advertise registered generator ${relativeEntrypoint}`,
+      );
+    }
+  }
+});
