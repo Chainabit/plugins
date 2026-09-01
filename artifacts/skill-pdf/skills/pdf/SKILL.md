@@ -3,7 +3,7 @@ name: pdf
 description: Create, validate, and manipulate secure PDF artifacts. Inspect required capabilities first and prefer the highest-quality available backend; never silently downgrade rich content.
 license: Apache-2.0
 metadata:
-  version: 5.2.1
+  version: 5.2.2
 ---
 
 # PDF artifact system
@@ -21,6 +21,14 @@ python3 scripts/validate_pdf.py report.pdf
 The two generation commands above are the registered production entrypoints.
 Use `pdf_tool.py` for capability inspection and diagnosis only; output produced
 through an unregistered wrapper cannot acquire publication proof.
+
+Sources passed to those entrypoints must be regular files inside the workspace.
+Write JSON or Markdown inputs first; process substitution and `/dev/fd/*` paths
+are intentionally rejected by the filesystem boundary. Run validation as its
+own command, or join generation and validation with `&&`. Never place a later
+command such as `ls` after validation with `;` or a bare newline, because its
+zero exit status can hide a rejected PDF. Promote only after
+`scripts/validate_pdf.py` itself exits successfully.
 
 Before rendering, infer the document's requirements: Unicode and fonts, Turkish/RTL/CJK shaping, images, tables, Markdown/HTML/CSS, pagination, headers/footers, mathematics, vector graphics, typography, colors, print quality, metadata, accessibility, or manipulation. Resolve a backend only if it advertises every required capability and has tests for that behavior. Missing dependencies and unsupported features are actionable machine-readable failures; do not print raw math, replace glyphs, omit images, flatten tables, or fall back to the text renderer.
 
