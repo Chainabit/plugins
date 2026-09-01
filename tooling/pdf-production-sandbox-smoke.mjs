@@ -17,6 +17,7 @@ const headers = {
       }
     : {}),
 };
+const smokeStartedAt = performance.now();
 const skillRoot = resolve(process.argv[2] ?? 'artifacts/skill-pdf/skills/pdf');
 const pptxSkillRoot = resolve('artifacts/skill-pptx/skills/pptx');
 const docxSkillRoot = resolve('artifacts/skill-docx/skills/docx');
@@ -76,12 +77,16 @@ function parseSse(text) {
 }
 
 async function exec(sandboxId, argv, timeoutMs = 120_000) {
+  const startedAt = performance.now();
   const response = await request(`/v1/sandbox/${sandboxId}/exec`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ argv, cwd: '/workspace', timeout_ms: timeoutMs }),
   });
-  return parseSse(await response.text());
+  return {
+    ...parseSse(await response.text()),
+    durationMs: Math.round(performance.now() - startedAt),
+  };
 }
 
 function assert(condition, message, evidence) {
@@ -98,15 +103,21 @@ function lastJsonLine(text) {
   return JSON.parse(line);
 }
 
+const sandboxStartupStartedAt = performance.now();
 const created = await request('/v1/sandbox', { method: 'POST' });
 const { id: sandboxId } = await created.json();
-const evidence = {};
+const evidence = {
+  sandboxStartupMs: Math.round(performance.now() - sandboxStartupStartedAt),
+};
+let report;
 try {
+  const skillPreparationStartedAt = performance.now();
   await materializeSkill(sandboxId, skillRoot, 'skill-pdf-pdf');
   await materializeSkill(sandboxId, pptxSkillRoot, 'skill-pptx-pptx');
   await materializeSkill(sandboxId, docxSkillRoot, 'skill-docx-docx');
   await materializeSkill(sandboxId, xlsxSkillRoot, 'skill-xlsx-xlsx');
   await materializeSkill(sandboxId, websiteSkillRoot, 'skill-static-website-static-website');
+  evidence.skillPreparationMs = Math.round(performance.now() - skillPreparationStartedAt);
   const fixture = await readFile(resolve(skillRoot, 'tests/fixtures/turkish.md'));
   await request(`/v1/sandbox/${sandboxId}/file/workspace/report.md`, {
     method: 'PUT',
@@ -360,29 +371,45 @@ try {
     validatedWebsite,
   );
 
-  console.log(
-    JSON.stringify(
-      {
-        ok: true,
-        sandboxRuntime: JSON.parse(evidence.runtime.stdout.trim()),
-        artifact: validated.subject,
-        generator: rendered.generator,
-        inputRejectionExit: evidence.inputRejection.exitCode,
-        dependencyFailureExit: evidence.missingDependency.exitCode,
-        blankRejectionExit: evidence.blankRejection.exitCode,
-        timeoutObserved: Boolean(evidence.timeout.error || evidence.timeout.exitCode !== 0),
-        pptx: validatedPptx.subject,
-        docx: validatedDocx.subject,
-        xlsx: validatedXlsx.subject,
-        website: validatedWebsite.subject,
-      },
-      null,
-      2,
-    ),
-  );
+  report = {
+    ok: true,
+    sandboxRuntime: JSON.parse(evidence.runtime.stdout.trim()),
+    artifact: validated.subject,
+    generator: rendered.generator,
+    inputRejectionExit: evidence.inputRejection.exitCode,
+    dependencyFailureExit: evidence.missingDependency.exitCode,
+    blankRejectionExit: evidence.blankRejection.exitCode,
+    timeoutObserved: Boolean(evidence.timeout.error || evidence.timeout.exitCode !== 0),
+    pptx: validatedPptx.subject,
+    docx: validatedDocx.subject,
+    xlsx: validatedXlsx.subject,
+    website: validatedWebsite.subject,
+    timingsMs: {
+      sandboxStartup: evidence.sandboxStartupMs,
+      skillPreparation: evidence.skillPreparationMs,
+      runtimeProbe: evidence.runtime.durationMs,
+      pdfGeneration: evidence.render.durationMs,
+      pdfValidation: evidence.validate.durationMs,
+      pptxGeneration: evidence.pptxRender.durationMs,
+      pptxValidation: evidence.pptxValidate.durationMs,
+      docxGeneration: evidence.docxRender.durationMs,
+      docxValidation: evidence.docxValidate.durationMs,
+      xlsxGeneration: evidence.xlsxRender.durationMs,
+      xlsxValidation: evidence.xlsxValidate.durationMs,
+      websiteGeneration: evidence.websiteRender.durationMs,
+      websiteValidation: evidence.websiteValidate.durationMs,
+    },
+  };
 } finally {
+  const cleanupStartedAt = performance.now();
   await fetch(`${baseUrl}/v1/sandbox/${sandboxId}`, {
     method: 'DELETE',
     headers,
   }).catch(() => undefined);
+  if (report) {
+    report.timingsMs.cleanup = Math.round(performance.now() - cleanupStartedAt);
+    report.timingsMs.total = Math.round(performance.now() - smokeStartedAt);
+  }
 }
+
+console.log(JSON.stringify(report, null, 2));
