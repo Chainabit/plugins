@@ -4,6 +4,9 @@ from __future__ import annotations
 import importlib
 import importlib.util
 import json
+import os
+import subprocess
+from functools import lru_cache
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
@@ -42,14 +45,26 @@ def _version(name: str) -> str | None:
     try: return str(getattr(importlib.import_module(name), "__version__", "unknown"))
     except Exception: return None
 
+@lru_cache(maxsize=None)
+def _dependency(name: str) -> tuple[bool, str | None]:
+    """Import-probe native dependencies; module discovery alone is a false pass."""
+    if importlib.util.find_spec(name) is None: return False, None
+    try:
+        module = importlib.import_module(name)
+        return True, str(getattr(module, "__version__", "unknown"))
+    except Exception:
+        # WeasyPrint can be importable as Python source while Pango/Cairo is
+        # absent. That is a missing runtime dependency, not a renderer crash.
+        return False, None
+
 def capability_registry() -> list[BackendCapabilities]:
-    flags = {n: importlib.util.find_spec(n) is not None for n in ("weasyprint", "reportlab", "pypdf", "PIL")}
+    dependencies = {n: _dependency(n) for n in ("weasyprint", "reportlab", "pypdf", "PIL")}
+    flags = {name: state[0] for name, state in dependencies.items()}
     return [
-        BackendCapabilities("deterministic-text", True, "1", frozenset({"ascii_basic_text", "pagination", "page_breaks", "metadata", "deterministic"}), ("generate-basic",), ("ASCII printable text only", "no semantic tables/images/math/rich layout"), detail="dependency-free minimal fallback"),
-        BackendCapabilities("weasyprint", flags["weasyprint"], _version("weasyprint") if flags["weasyprint"] else None, frozenset({"ascii_basic_text", "unicode", "font_embedding", "turkish", "rtl", "cjk", "images", "tables", "rich_markdown", "html_css", "pagination", "page_breaks", "headers_footers", "math", "complex_typography", "colors_rgb", "print_quality", "metadata"}) if flags["weasyprint"] else frozenset(), ("generate-markdown", "generate-report"), ("network disabled", "active HTML/SVG/remote assets blocked"), "weasyprint", "isolated HTML/CSS professional adapter"),
-        BackendCapabilities("reportlab", flags["reportlab"], _version("reportlab") if flags["reportlab"] else None, frozenset({"ascii_basic_text", "unicode", "font_embedding", "turkish", "images", "tables", "rich_markdown", "pagination", "page_breaks", "headers_footers", "colors_rgb", "print_quality", "metadata"}) if flags["reportlab"] else frozenset(), ("generate-report",), ("RTL/CJK/math require another tested adapter",), "reportlab", "programmatic structured-layout adapter"),
-        BackendCapabilities("pypdf", flags["pypdf"], _version("pypdf") if flags["pypdf"] else None, frozenset({"manipulation", "metadata"}) if flags["pypdf"] else frozenset(), ("merge", "extract", "remove", "reorder", "rotate", "crop"), ("does not render documents",), "pypdf", "PDF manipulation adapter"),
-        BackendCapabilities("pillow", flags["PIL"], _version("PIL") if flags["PIL"] else None, frozenset({"images"}) if flags["PIL"] else frozenset(), ("normalize-image",), ("does not render PDFs",), "Pillow", "bounded image normalization adapter"),
+        BackendCapabilities("weasyprint", flags["weasyprint"], dependencies["weasyprint"][1], frozenset({"ascii_basic_text", "unicode", "font_embedding", "turkish", "rtl", "cjk", "images", "tables", "rich_markdown", "html_css", "pagination", "page_breaks", "headers_footers", "math", "complex_typography", "colors_rgb", "print_quality", "metadata"}) if flags["weasyprint"] else frozenset(), ("generate-markdown", "generate-report"), ("network disabled", "active HTML/SVG/remote assets blocked"), "weasyprint", "isolated HTML/CSS professional adapter"),
+        BackendCapabilities("reportlab", flags["reportlab"], dependencies["reportlab"][1], frozenset({"ascii_basic_text", "unicode", "font_embedding", "turkish", "images", "tables", "rich_markdown", "pagination", "page_breaks", "headers_footers", "colors_rgb", "print_quality", "metadata"}) if flags["reportlab"] else frozenset(), ("generate-report",), ("RTL/CJK/math require another tested adapter",), "reportlab", "programmatic structured-layout adapter"),
+        BackendCapabilities("pypdf", flags["pypdf"], dependencies["pypdf"][1], frozenset({"manipulation", "metadata"}) if flags["pypdf"] else frozenset(), ("merge", "extract", "remove", "reorder", "rotate", "crop"), ("does not render documents",), "pypdf", "PDF manipulation adapter"),
+        BackendCapabilities("pillow", flags["PIL"], dependencies["PIL"][1], frozenset({"images"}) if flags["PIL"] else frozenset(), ("normalize-image",), ("does not render PDFs",), "Pillow", "bounded image normalization adapter"),
     ]
 
 def capabilities() -> list[CapabilityReport]:
@@ -60,37 +75,21 @@ class PdfRenderer(ABC):
     @abstractmethod
     def render(self, document: Any, geometry: PageGeometry, metadata: dict[str, str], destination: Path, policy: Any) -> None: ...
 
-def _pdf_escape(text: str) -> str: return text.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
-
-class DeterministicTextRenderer(PdfRenderer):
-    capabilities = capability_registry()[0]
-    def render(self, pages: list[list[str]], geometry: PageGeometry, metadata: dict[str, str], destination: Path, policy: Any = None) -> None:
-        if any(any(ord(c) < 32 and c not in "\t" or ord(c) > 126 for c in line) for page in pages for line in page):
-            raise PdfError(ErrorCode.FONT_FAILURE, "minimal renderer accepts ASCII printable text only")
-        objects: list[bytes] = []
-        def add(value: str | bytes) -> int: objects.append(value.encode("ascii") if isinstance(value, str) else value); return len(objects)
-        pages_ref = add(""); font_ref = add("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>"); page_refs = []
-        for lines in pages:
-            y = geometry.height - geometry.margin[0]; stream = ["BT", "/F1 10 Tf", "12 TL", f"{geometry.margin[3]:.2f} {y:.2f} Td"]
-            stream.extend(f"({_pdf_escape(line)}) Tj T*" for line in lines); stream.append("ET"); content = "\n".join(stream).encode("ascii")
-            cref = add(b"<< /Length " + str(len(content)).encode() + b" >>\nstream\n" + content + b"\nendstream")
-            page_refs.append(add(f"<< /Type /Page /Parent {pages_ref} 0 R /MediaBox [0 0 {geometry.width:.2f} {geometry.height:.2f}] /Resources << /Font << /F1 {font_ref} 0 R >> >> /Contents {cref} 0 R >>"))
-        objects[pages_ref - 1] = f"<< /Type /Pages /Kids [{' '.join(f'{r} 0 R' for r in page_refs)}] /Count {len(page_refs)} >>".encode("ascii")
-        info = {"Producer": "chainabit-pdf deterministic backend", **metadata}; iref = add("<< " + " ".join(f"/{k} ({_pdf_escape(v)})" for k, v in sorted(info.items())) + " >>"); root = add(f"<< /Type /Catalog /Pages {pages_ref} 0 R >>")
-        result = bytearray(b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n"); offsets = [0]
-        for i, obj in enumerate(objects, 1): offsets.append(len(result)); result.extend(f"{i} 0 obj\n".encode()); result.extend(obj); result.extend(b"\nendobj\n")
-        xref = len(result); result.extend(f"xref\n0 {len(objects)+1}\n0000000000 65535 f \n".encode()); result.extend(b"".join(f"{o:010d} 00000 n \n".encode() for o in offsets[1:])); result.extend(f"trailer\n<< /Size {len(objects)+1} /Root {root} 0 R /Info {iref} 0 R >>\nstartxref\n{xref}\n%%EOF\n".encode()); destination.write_bytes(result)
-
 class WeasyPrintRenderer(PdfRenderer):
     capabilities = next(c for c in capability_registry() if c.name == "weasyprint")
     def render(self, document: str, geometry: PageGeometry, metadata: dict[str, str], destination: Path, policy: Any) -> None:
         if not self.capabilities.available: raise PdfError(ErrorCode.DEPENDENCY_UNAVAILABLE, "professional HTML/CSS rendering requires optional dependency 'weasyprint'")
         try:
             from weasyprint import HTML
-            from weasyprint.urls import default_url_fetcher
+            from weasyprint.urls import URLFetcher
+            restricted_fetcher = URLFetcher(
+                allowed_protocols=("data",),
+                allow_redirects=False,
+                fail_on_errors=True,
+            )
             def fetch(url: str, *args: Any, **kwargs: Any) -> Any:
                 if not url.startswith("data:"): raise PdfError(ErrorCode.UNSAFE_INPUT, "network and file assets are disabled for HTML rendering")
-                return default_url_fetcher(url, *args, **kwargs)
+                return restricted_fetcher.fetch(url, *args, **kwargs)
             HTML(string=document, url_fetcher=fetch).write_pdf(str(destination), presentational_hints=False)
         except PdfError: raise
         except Exception as exc: raise PdfError(ErrorCode.RENDERING_FAILURE, "WeasyPrint failed to render the document") from exc
@@ -108,16 +107,27 @@ class ReportLabRenderer(PdfRenderer):
             from reportlab.platypus import (Image, PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle)
             from reportlab.pdfbase import pdfmetrics
             from reportlab.pdfbase.ttfonts import TTFont
-            import os
-            font = next((p for p in ("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", "/Library/Fonts/Arial Unicode.ttf") if os.path.isfile(p)), None)
-            all_text = json_text(document)
-            if any(ord(c) > 126 for c in all_text):
-                if not font: raise PdfError(ErrorCode.FONT_FAILURE, "no approved Unicode font is available for structured report")
-                pdfmetrics.registerFont(TTFont("ChainabitUnicode", font)); family = "ChainabitUnicode"
-            else: family = "Helvetica"
-            styles = getSampleStyleSheet(); body = ParagraphStyle("body", parent=styles["BodyText"], fontName=family, leading=14); heading = ParagraphStyle("heading", parent=styles["Heading2"], fontName=family)
+            requested = str(document.get("font") or os.environ.get("CHAINABIT_ARTIFACT_FONT_FAMILY", "IBM Plex Sans"))
+            font_root = Path(os.environ.get("CHAINABIT_ARTIFACT_FONT_DIR", "/opt/chainabit/artifact-fonts/ibm-plex-sans"))
+            if requested == "IBM Plex Sans":
+                regular = font_root / "IBMPlexSans-Regular.ttf"
+                semibold = font_root / "IBMPlexSans-SemiBold.ttf"
+            else:
+                def resolve(style: str) -> Path:
+                    result = subprocess.run(["fc-match", "-f", "%{family}\n%{file}\n", f"{requested}:style={style}"], capture_output=True, text=True, timeout=5, check=False)
+                    lines = result.stdout.splitlines()
+                    if result.returncode or len(lines) < 2 or requested.casefold() not in lines[0].casefold():
+                        raise PdfError(ErrorCode.INVALID_INPUT, f"requested font {requested!r} is unavailable")
+                    return Path(lines[1])
+                regular, semibold = resolve("Regular"), resolve("Semibold")
+            if not regular.is_file() or not semibold.is_file():
+                raise PdfError(ErrorCode.FONT_FAILURE, "approved artifact font assets are unavailable")
+            pdfmetrics.registerFont(TTFont("ChainabitArtifact", str(regular)))
+            pdfmetrics.registerFont(TTFont("ChainabitArtifactSemiBold", str(semibold)))
+            styles = getSampleStyleSheet(); body = ParagraphStyle("body", parent=styles["BodyText"], fontName="ChainabitArtifact", leading=14); heading = ParagraphStyle("heading", parent=styles["Heading2"], fontName="ChainabitArtifactSemiBold")
             size = (geometry.width, geometry.height); doc = SimpleDocTemplate(str(destination), pagesize=size, leftMargin=geometry.margin[3], rightMargin=geometry.margin[1], topMargin=geometry.margin[0], bottomMargin=geometry.margin[2], title=metadata.get("Title", ""), author=metadata.get("Author", ""))
-            flow = [Paragraph(escape_report(document["title"]), styles["Title"])]
+            title_style = ParagraphStyle("artifactTitle", parent=styles["Title"], fontName="ChainabitArtifactSemiBold")
+            flow = [Paragraph(escape_report(document["title"]), title_style)]
             for block in document["blocks"]:
                 kind = block["type"]
                 if kind == "heading": flow.append(Paragraph(escape_report(block["text"]), heading))

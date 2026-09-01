@@ -52,12 +52,13 @@
     "validators": {
       "type": "array", "items": {
         "type": "object", "additionalProperties": false,
-        "required": ["id", "entrypoint", "runtime", "validationClass", "target"],
+        "required": ["id", "entrypoint", "runtime", "validationClass", "protocol", "target"],
         "properties": {
           "id": { "type": "string", "minLength": 1 },
           "entrypoint": { "$ref": "#/$defs/relativePath" },
           "runtime": { "type": "string", "minLength": 1 },
           "validationClass": { "type": "string", "minLength": 1 },
+          "protocol": { "type": "string", "pattern": "^chainabit\\.[a-z0-9.-]+\\.validation/v[1-9][0-9]*$" },
           "target": { "type": "object" }
         }
       }
@@ -87,6 +88,54 @@
       "properties": {
         "required": { "type": "object" },
         "optional": { "type": "object" }
+      }
+    },
+    "artifactContract": {
+      "type": "object", "additionalProperties": false,
+      "required": ["formats", "generators"],
+      "properties": {
+        "formats": {
+          "type": "array", "minItems": 1,
+          "items": {
+            "type": "object", "additionalProperties": false,
+            "required": ["format", "outputShape", "mimeType", "validatorId", "minimumValidationClass"],
+            "properties": {
+              "format": { "type": "string", "minLength": 1 },
+              "outputShape": { "enum": ["file", "tree"] },
+              "extension": { "type": "string", "pattern": "^\\.[A-Za-z0-9]+$" },
+              "mimeType": { "type": "string", "minLength": 3 },
+              "validatorId": { "type": "string", "minLength": 1 },
+              "validatorProtocol": { "type": "string", "minLength": 1 },
+              "minimumValidationClass": { "enum": ["container", "content_present", "semantic"] }
+            }
+          }
+        },
+        "generators": {
+          "type": "array", "minItems": 1,
+          "items": {
+            "type": "object", "additionalProperties": false,
+            "required": ["id", "runtime", "entrypoint", "outputArgumentIndex", "protocol", "formats"],
+            "properties": {
+              "id": { "type": "string", "minLength": 1 },
+              "runtime": { "enum": ["python3"] },
+              "entrypoint": { "$ref": "#/$defs/relativePath" },
+              "outputArgumentIndex": { "type": "integer", "minimum": 0 },
+              "protocol": { "type": "string", "minLength": 1 },
+              "formats": { "$ref": "#/$defs/stringArray" }
+            }
+          }
+        }
+      }
+    },
+    "typography": {
+      "type": "object", "additionalProperties": false,
+      "required": ["defaultFamily", "userOverride", "fallbackFamilies", "runtimeFamilyEnv", "runtimeAssetDirEnv"],
+      "properties": {
+        "defaultFamily": { "type": "string", "minLength": 1 },
+        "userOverride": { "type": "boolean" },
+        "fallbackFamilies": { "$ref": "#/$defs/stringArray" },
+        "runtimeFamilyEnv": { "type": "string", "minLength": 1 },
+        "runtimeAssetDirEnv": { "type": "string", "minLength": 1 }
       }
     },
     "capabilities": { "$ref": "capabilities.schema.json" },

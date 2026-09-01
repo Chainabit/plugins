@@ -30,6 +30,8 @@ from __future__ import annotations
 
 import argparse
 import colorsys
+import hashlib
+import json
 import math
 import os
 import posixpath
@@ -42,6 +44,7 @@ A = "{http://schemas.openxmlformats.org/drawingml/2006/main}"
 P = "{http://schemas.openxmlformats.org/presentationml/2006/main}"
 R = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}"
 RELS = "{http://schemas.openxmlformats.org/package/2006/relationships}"
+ARABIC_FALLBACK_FONT = "IBM Plex Sans Arabic"
 
 EMU_PER_POINT = 12700
 EMU_PER_INCH = 914400
@@ -62,11 +65,15 @@ LARGE_TEXT_BOLD_PT = 14.0
 # Text-measurement constants. python-pptx and the OOXML file alike carry no font
 # metrics, and there is no rendering engine in the sandbox, so overflow has to be
 # estimated. 0.5em average advance width and 1.2em line height are close for the
-# humanist sans faces a deck should use (Arial, Calibri, Helvetica); the check
+# humanist sans face the deck declares (Chainabit defaults to IBM Plex Sans); the check
 # allows a tolerance on top so a near-miss is not reported as a failure.
 AVG_CHAR_WIDTH_EM = 0.5
 LINE_HEIGHT_EM = 1.2
 OVERFLOW_TOLERANCE = 1.05
+VALIDATION_SCHEMA = "chainabit.pptx.validation/v1"
+MAX_PACKAGE_ENTRIES = 10_000
+MAX_UNCOMPRESSED_BYTES = 200 * 1024 * 1024
+MAX_COMPRESSION_RATIO = 200
 
 PROMPT_TEXT = re.compile(
     r"^\s*(click to add|klicken sie|haga clic|cliquez pour|başlık eklemek)",
@@ -142,6 +149,77 @@ class Package:
             if target.startswith(f"ppt/{suffix}/"):
                 return target
         return None
+
+
+def validate_package(archive: zipfile.ZipFile) -> list[str]:
+    """Reject malformed, unsafe, incomplete OPC packages before semantic checks."""
+    errors: list[str] = []
+    infos = archive.infolist()
+    names = [info.filename for info in infos]
+    if len(infos) > MAX_PACKAGE_ENTRIES:
+        errors.append(f"package has {len(infos)} entries; limit is {MAX_PACKAGE_ENTRIES}")
+    if len(names) != len(set(names)):
+        errors.append("package contains duplicate ZIP entry names")
+    total = 0
+    for info in infos:
+        name = info.filename
+        total += info.file_size
+        if name.startswith(("/", "\\")) or "\\" in name or ".." in name.split("/"):
+            errors.append(f"unsafe package path: {name!r}")
+        if info.compress_size == 0 and info.file_size:
+            errors.append(f"invalid compressed size for {name!r}")
+        elif info.compress_size and info.file_size / info.compress_size > MAX_COMPRESSION_RATIO:
+            errors.append(f"suspicious compression ratio for {name!r}")
+    if total > MAX_UNCOMPRESSED_BYTES:
+        errors.append(
+            f"package expands to {total} bytes; limit is {MAX_UNCOMPRESSED_BYTES}"
+        )
+    corrupt = archive.testzip()
+    if corrupt:
+        errors.append(f"CRC failure in {corrupt!r}")
+
+    available = set(names)
+    for rels_name in sorted(name for name in available if name.endswith(".rels")):
+        try:
+            root = parse_xml(archive.read(rels_name))
+        except (KeyError, ET.ParseError) as exc:
+            errors.append(f"relationship part {rels_name!r} is invalid XML: {exc}")
+            continue
+        source_directory = posixpath.dirname(posixpath.dirname(rels_name))
+        if source_directory == "_rels":
+            source_directory = ""
+        for relationship in root.findall(RELS + "Relationship"):
+            if relationship.get("TargetMode") == "External":
+                continue
+            target = relationship.get("Target", "")
+            if not target:
+                errors.append(f"{rels_name!r} contains an empty relationship target")
+                continue
+            resolved = target[1:] if target.startswith("/") else posixpath.normpath(
+                posixpath.join(source_directory, target)
+            )
+            if resolved.startswith("../") or resolved not in available:
+                errors.append(
+                    f"{rels_name!r} references missing or unsafe target {target!r}"
+                )
+    return errors
+
+
+def declared_fonts(archive: zipfile.ZipFile) -> set[str]:
+    fonts: set[str] = set()
+    for name in archive.namelist():
+        if not name.endswith(".xml") or not name.startswith(("ppt/", "docProps/")):
+            continue
+        try:
+            root = parse_xml(archive.read(name))
+        except (KeyError, ET.ParseError):
+            continue
+        for tag in (A + "latin", A + "ea", A + "cs", A + "buFont"):
+            for element in root.iter(tag):
+                typeface = (element.get("typeface") or "").strip()
+                if typeface and not typeface.startswith("+"):
+                    fonts.add(typeface)
+    return fonts
 
 
 # --- colour -----------------------------------------------------------------------
@@ -893,6 +971,11 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     with archive:
+        package_errors = validate_package(archive)
+        if package_errors:
+            for message in package_errors:
+                print(f"ERROR: container: {message}", file=sys.stderr)
+            return 1
         names = set(archive.namelist())
         for required in ("[Content_Types].xml", "ppt/presentation.xml"):
             if required not in names:
@@ -920,14 +1003,22 @@ def main(argv: list[str] | None = None) -> int:
         # slide's own edges to measure against.
         args.slide_width_pt = width_emu / EMU_PER_POINT
         args.slide_height_pt = height_emu / EMU_PER_POINT
+        if not width_emu or not height_emu or width_emu / EMU_PER_INCH > 100 or height_emu / EMU_PER_INCH > 100:
+            print("ERROR: dimensions: presentation has missing or unreasonable slide dimensions", file=sys.stderr)
+            return 1
 
         relationships = package.rels("ppt/presentation.xml")
         slide_parts: list[str] = []
         id_list = presentation.find(P + "sldIdLst")
         for entry in id_list if id_list is not None else []:
             target = relationships.get(entry.get(R + "id", ""))
-            if target:
-                slide_parts.append(target)
+            if not target:
+                print(
+                    f"ERROR: relationships: slide id {entry.get('id', '?')} has no valid target",
+                    file=sys.stderr,
+                )
+                return 1
+            slide_parts.append(target)
 
         if not slide_parts:
             print(
@@ -941,6 +1032,19 @@ def main(argv: list[str] | None = None) -> int:
             check_slide(package, part, number, args)
             for number, part in enumerate(slide_parts, 1)
         ]
+        fonts = declared_fonts(archive)
+        if not fonts:
+            print("ERROR: typography: presentation declares no concrete typeface", file=sys.stderr)
+            return 1
+        primary_fonts = fonts - {ARABIC_FALLBACK_FONT}
+        if len(primary_fonts) > 1 or (not primary_fonts and fonts != {ARABIC_FALLBACK_FONT}):
+            print(
+                "ERROR: typography: presentation declares inconsistent typefaces: "
+                + ", ".join(sorted(fonts)),
+                file=sys.stderr,
+            )
+            return 1
+        font_family = next(iter(primary_fonts or fonts))
 
     errors = [message for report in reports for message in report.errors]
     warnings = [message for report in reports for message in report.warnings]
@@ -992,6 +1096,34 @@ def main(argv: list[str] | None = None) -> int:
             else "contrast not computable"
         )
         print(f"  slide {report.number}: {report.text_blocks} text block(s), {font}, {contrast}")
+    with open(path, "rb") as handle:
+        digest = hashlib.sha256(handle.read()).hexdigest()
+    print(json.dumps({
+        "schema": VALIDATION_SCHEMA,
+        "valid": True,
+        "validator": "skill-pptx.validate_pptx",
+        "classification": "authoritative",
+        "checks": [
+            "opc_structure",
+            "relationships",
+            "content_present",
+            "text_fit",
+            "font_floor",
+            "contrast",
+        ],
+        "subject": {
+            "path": os.path.realpath(path),
+            "shape": "file",
+            "sha256": digest,
+            "mime": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            "bytes": size,
+            "slides": len(slide_parts),
+        },
+        "typography": {
+            "family": font_family,
+            "fallbacks": sorted(fonts - {font_family}),
+        },
+    }, sort_keys=True))
     return 0
 
 

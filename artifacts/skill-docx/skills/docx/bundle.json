@@ -3,20 +3,26 @@
     {
       "path": "SKILL.md",
       "type": "instructions",
-      "sha256": "6ec4677e4cd5e660b96afae2df8e0c4991681eab0f848dcb654e468f04cc3d67",
-      "bytes": 7236
+      "sha256": "e71141579f065384e67be14a74dcafb5a498131d5276dd28823bd2add9cb7d5e",
+      "bytes": 7412
     },
     {
       "path": "scripts/build_docx.py",
       "type": "scripts",
-      "sha256": "2ede54d23c3e266310be80791cca499c445bf759caca68d2c59141cd8c4e10a9",
-      "bytes": 11882
+      "sha256": "8e25a0e3f4d76c64f65224ed1299c276e39ddbabbbdfe3afbb1c4a6a2db424f5",
+      "bytes": 13829
     },
     {
       "path": "scripts/validate_docx.py",
       "type": "scripts",
-      "sha256": "cd824db6158a273133ca1b15255c88053d9b16b6a89bb4de8d6364fdab6aae95",
-      "bytes": 11727
+      "sha256": "3f3d2d3e308569240bdc01f1dd0f164be447f08843323d4c9dea94b942ea1955",
+      "bytes": 13574
+    },
+    {
+      "path": "tests/test_artifact_contract.py",
+      "type": "metadata",
+      "sha256": "df253b7516caeedb0348db6d78915ee9bff14908cdcafd15c8d7d4631015bc51",
+      "bytes": 2223
     }
   ]
 }

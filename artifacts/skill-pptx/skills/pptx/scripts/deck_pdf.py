@@ -30,8 +30,10 @@ when the spec is wrong. A spec that builds a .pptx builds a PDF.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
+import subprocess
 import sys
 
 # The layout engine lives in the sibling script. Importing it rather than
@@ -39,6 +41,7 @@ import sys
 from deck_pptx import (
     ASPECTS,
     BULLET_SPACING_PT,
+    DEFAULT_FONT,
     LINE_HEIGHT_EM,
     THEMES,
     build_geometry,
@@ -47,13 +50,14 @@ from deck_pptx import (
     validate_spec,
 )
 
-# DejaVu is what makes Turkish render. ReportLab's built-in Helvetica is
-# WinAnsi-encoded, which has ç and ö but NOT ş, ğ, ı or İ — so a Turkish deck
-# would come out with holes in exactly the words that carry the meaning. The
-# image installs fonts-dejavu-core for this reason (see the Dockerfile), and
-# these are the paths that package lays down.
-DEJAVU_REGULAR = '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'
-DEJAVU_BOLD = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
+# The sandbox image installs the exact IBM release at this deterministic path.
+# A missing asset is an infrastructure failure, never permission to fall back to
+# Helvetica and silently change the user's typography or lose Turkish glyphs.
+FONT_ROOT = os.environ.get(
+    'CHAINABIT_ARTIFACT_FONT_DIR', '/opt/chainabit/artifact-fonts/ibm-plex-sans'
+)
+IBM_PLEX_REGULAR = os.path.join(FONT_ROOT, 'IBMPlexSans-Regular.ttf')
+IBM_PLEX_BOLD = os.path.join(FONT_ROOT, 'IBMPlexSans-SemiBold.ttf')
 
 #: Rough cap-height fraction, used to place the first baseline inside a box so
 #: that the block's visual top lands where the .pptx's does. The exact figure
@@ -69,29 +73,40 @@ INSET_COLUMN_IN = 0.22
 INSET_VERTICAL_IN = 0.05
 
 
-def register_fonts() -> tuple[str, str]:
-    """Returns the (regular, bold) font names to draw with.
+def _fontconfig_file(family: str, style: str = "Regular") -> str:
+    result = subprocess.run(
+        ["fc-match", "-f", "%{family}\n%{file}\n", f"{family}:style={style}"],
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=5,
+    )
+    lines = result.stdout.splitlines()
+    if result.returncode or len(lines) < 2 or family.casefold() not in lines[0].casefold():
+        raise RuntimeError(f"requested font {family!r} is not installed in the sandbox")
+    if not os.path.isfile(lines[1]):
+        raise RuntimeError(f"fontconfig returned a missing file for {family!r}")
+    return lines[1]
 
-    Falls back to Helvetica when DejaVu is absent rather than failing: a deck in
-    a language Helvetica covers is still worth producing, and a hard failure
-    here would make the PDF path less reliable than the .pptx one for no gain.
-    The caller warns so the degradation is visible rather than silent.
-    """
+
+def register_fonts(family: str) -> tuple[str, str]:
+    """Register and return the canonical embedded font pair."""
     from reportlab.pdfbase import pdfmetrics
     from reportlab.pdfbase.ttfonts import TTFont
 
-    if not (os.path.isfile(DEJAVU_REGULAR) and os.path.isfile(DEJAVU_BOLD)):
-        print(
-            'WARNING: fonts: DejaVu not found; falling back to Helvetica. '
-            'Characters outside Latin-1 (Turkish ş ğ ı İ among them) will not '
-            'render.',
-            file=sys.stderr,
-        )
-        return 'Helvetica', 'Helvetica-Bold'
+    if family == DEFAULT_FONT:
+        regular_path, bold_path = IBM_PLEX_REGULAR, IBM_PLEX_BOLD
+        if not (os.path.isfile(regular_path) and os.path.isfile(bold_path)):
+            raise RuntimeError(
+                f'canonical IBM Plex Sans assets are unavailable under {FONT_ROOT}'
+            )
+    else:
+        regular_path = _fontconfig_file(family)
+        bold_path = _fontconfig_file(family, "Semibold")
 
-    pdfmetrics.registerFont(TTFont('DejaVuSans', DEJAVU_REGULAR))
-    pdfmetrics.registerFont(TTFont('DejaVuSans-Bold', DEJAVU_BOLD))
-    return 'DejaVuSans', 'DejaVuSans-Bold'
+    pdfmetrics.registerFont(TTFont('ChainabitDeckRegular', regular_path))
+    pdfmetrics.registerFont(TTFont('ChainabitDeckBold', bold_path))
+    return 'ChainabitDeckRegular', 'ChainabitDeckBold'
 
 
 def wrap(text: str, font: str, size: int, width_pt: float) -> list[str]:
@@ -291,7 +306,7 @@ def build_pdf(spec: dict, geometry: dict, output: str) -> None:
     from reportlab.pdfgen import canvas as pdf_canvas
 
     theme = THEMES[spec.get('theme', 'light')]
-    fonts = register_fonts()
+    fonts = register_fonts(spec.get('font') or DEFAULT_FONT)
     width_pt = geometry['slide'][0] * 72.0
     height_pt = geometry['slide'][1] * 72.0
 
@@ -400,20 +415,41 @@ def main(argv: list[str] | None = None) -> int:
             'if that report says installs are permitted.',
             file=sys.stderr,
         )
-        return 1
+        return 2
 
     try:
         build_pdf(spec, geometry, args.output)
+    except (RuntimeError, subprocess.SubprocessError) as exc:
+        print(f'ERROR: renderer_runtime: {exc}', file=sys.stderr)
+        return 2
     except PermissionError:
         print(f'ERROR: output: no permission to write {args.output}', file=sys.stderr)
-        return 1
+        return 2
     except OSError as exc:
         print(f'ERROR: output: could not write {args.output}: {exc}', file=sys.stderr)
-        return 1
+        return 2
 
     size = os.path.getsize(args.output)
     print(f"OK: wrote {args.output} ({size} bytes, {len(spec['slides'])} page(s))")
     print(f'Next: python3 scripts/validate_pdf.py {args.output} (from the pdf skill)')
+    with open(args.output, "rb") as handle:
+        digest = hashlib.sha256(handle.read()).hexdigest()
+    print(json.dumps({
+        "schema": "chainabit.pdf.execution/v1",
+        "success": True,
+        "generator": "skill-pptx.deck_pdf",
+        "output": {
+            "path": os.path.realpath(args.output),
+            "shape": "file",
+            "sha256": digest,
+            "mime": "application/pdf",
+            "bytes": size,
+        },
+        "typography": {
+            "family": spec.get("font") or DEFAULT_FONT,
+            "source": "user_override" if spec.get("font") else "chainabit_default",
+        },
+    }, ensure_ascii=False, sort_keys=True))
     return 0
 
 

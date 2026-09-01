@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "skill-docx",
   "name": "Word Document Skill",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Builds real .docx documents from a JSON spec — headings, styled paragraphs, bulleted and numbered lists, tables and page breaks — and validates the result. Ships two Python scripts that run in the sandbox against the pre-installed python-docx; no network access at any point.",
   "author": {
     "name": "NEXUS Community"
@@ -46,6 +46,7 @@
       "entrypoint": "skills/docx/scripts/validate_docx.py",
       "runtime": "python3",
       "validationClass": "content_present",
+      "protocol": "chainabit.docx.validation/v1",
       "target": {
         "kind": "file",
         "extensions": [
@@ -78,7 +79,7 @@
     "binaries": [
       "python3"
     ],
-    "fonts": []
+    "fonts": ["IBM Plex Sans"]
   },
   "dependencies": {
     "required": {
@@ -88,9 +89,39 @@
       "binaries": [
         "python3"
       ],
-      "fonts": []
+      "fonts": ["IBM Plex Sans"]
     },
     "optional": {}
+  },
+  "artifactContract": {
+    "formats": [
+      {
+        "format": "docx",
+        "outputShape": "file",
+        "extension": ".docx",
+        "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "validatorId": "skill-docx.validate_docx",
+        "validatorProtocol": "chainabit.docx.validation/v1",
+        "minimumValidationClass": "content_present"
+      }
+    ],
+    "generators": [
+      {
+        "id": "skill-docx.document",
+        "runtime": "python3",
+        "entrypoint": "skills/docx/scripts/build_docx.py",
+        "outputArgumentIndex": 3,
+        "protocol": "chainabit.docx.execution/v1",
+        "formats": ["docx"]
+      }
+    ]
+  },
+  "typography": {
+    "defaultFamily": "IBM Plex Sans",
+    "userOverride": true,
+    "fallbackFamilies": ["IBM Plex Sans Arabic"],
+    "runtimeFamilyEnv": "CHAINABIT_ARTIFACT_FONT_FAMILY",
+    "runtimeAssetDirEnv": "CHAINABIT_ARTIFACT_FONT_DIR"
   },
   "capabilities": {
     "declared": [

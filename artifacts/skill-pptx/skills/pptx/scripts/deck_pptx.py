@@ -27,7 +27,7 @@ Spec shape (see SKILL.md for the annotated version):
       "author": "Operations",               optional
       "theme": "light" | "dark",            optional, default light
       "aspect": "16:9" | "4:3",             optional, default 16:9
-      "font": "Arial",                      optional, default Arial
+      "font": "IBM Plex Sans",              optional, Chainabit default
       "slides": [                           required, at least one
         {"layout": "title",      "title": "...", "subtitle": "...", "meta": "..."},
         {"layout": "content",    "title": "...", "bullets": ["..."], "note": "..."},
@@ -45,12 +45,19 @@ belongs when the bullet has to stay a phrase.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 import os
 import sys
+import tempfile
+import xml.etree.ElementTree as ET
+import zipfile
 
 LAYOUTS = ("title", "content", "comparison", "closing")
+DEFAULT_FONT = os.environ.get("CHAINABIT_ARTIFACT_FONT_FAMILY", "IBM Plex Sans").strip() or "IBM Plex Sans"
+ARABIC_FALLBACK_FONT = "IBM Plex Sans Arabic"
+EXECUTION_SCHEMA = "chainabit.pptx.execution/v1"
 
 # --- design constants. references/design.md states the same numbers with the
 # reasoning; validate_pptx.py enforces them. All three must agree.
@@ -184,6 +191,10 @@ def validate_spec(spec: object) -> list[str]:
     problems = text_field(spec.get("title"), "title", required=True)
     for optional in ("subtitle", "author", "font"):
         problems.extend(text_field(spec.get(optional), optional, required=False))
+    if isinstance(spec.get("font"), str):
+        font = spec["font"].strip()
+        if len(font) > 128 or any(ord(character) < 32 for character in font):
+            problems.append("font: must be a safe typeface name of at most 128 characters")
 
     theme = spec.get("theme", "light")
     if theme not in THEMES:
@@ -567,7 +578,9 @@ def build_deck(spec: dict, geometry: dict, output: str) -> None:
     from pptx.util import Inches
 
     theme = THEMES[spec.get("theme", "light")]
-    font = spec.get("font") or "Arial"
+    # The explicit spec value is the user override. Only its absence selects
+    # Chainabit's canonical runtime-owned default.
+    font = spec.get("font") or DEFAULT_FONT
 
     presentation = Presentation()
     presentation.slide_width = Inches(geometry["slide"][0])
@@ -579,6 +592,9 @@ def build_deck(spec: dict, geometry: dict, output: str) -> None:
         RENDERERS[spec_slide["layout"]](slide, spec_slide, theme, geometry, font, sizes)
         if spec_slide.get("notes"):
             slide.notes_slide.notes_text_frame.text = spec_slide["notes"]
+            for paragraph in slide.notes_slide.notes_text_frame.paragraphs:
+                for run in paragraph.runs:
+                    run.font.name = font
 
     core = presentation.core_properties
     core.title = spec["title"]
@@ -586,6 +602,63 @@ def build_deck(spec: dict, geometry: dict, output: str) -> None:
     core.subject = spec.get("subtitle") or ""
 
     presentation.save(output)
+    apply_theme_font(output, font)
+
+
+def apply_theme_font(path: str, font: str) -> None:
+    """Apply the selected typeface to the OOXML theme and default text styles.
+
+    Explicit text runs alone are insufficient: new text, bullets, notes, charts,
+    and Office-created shapes inherit from the theme. Rewriting only the
+    package's XML font declarations keeps the presentation self-contained and
+    prevents Calibri/Aptos from resurfacing after the deck is opened.
+    """
+    namespace = "{http://schemas.openxmlformats.org/drawingml/2006/main}"
+    directory = os.path.dirname(os.path.abspath(path))
+    descriptor, temporary = tempfile.mkstemp(prefix=".chainabit-pptx-", suffix=".pptx", dir=directory)
+    os.close(descriptor)
+    try:
+        with zipfile.ZipFile(path, "r") as source, zipfile.ZipFile(
+            temporary, "w", compression=zipfile.ZIP_DEFLATED
+        ) as target:
+            for info in source.infolist():
+                data = source.read(info.filename)
+                if info.filename.startswith("ppt/") and info.filename.endswith(".xml"):
+                    root = ET.fromstring(data)
+                    for element in root.iter():
+                        if element.tag == namespace + "cs":
+                            element.set("typeface", ARABIC_FALLBACK_FONT)
+                        elif element.tag in {
+                            namespace + "latin",
+                            namespace + "ea",
+                            namespace + "buFont",
+                        }:
+                            element.set("typeface", font)
+                    data = ET.tostring(root, encoding="utf-8", xml_declaration=True)
+                target.writestr(info, data)
+        os.replace(temporary, path)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
+
+
+def artifact_identity(path: str, slides: int, font: str) -> dict:
+    with open(path, "rb") as handle:
+        data = handle.read()
+    return {
+        "schema": EXECUTION_SCHEMA,
+        "success": True,
+        "generator": "skill-pptx.deck",
+        "output": {
+            "path": path,
+            "shape": "file",
+            "sha256": hashlib.sha256(data).hexdigest(),
+            "mime": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            "bytes": len(data),
+            "slides": slides,
+        },
+        "typography": {"family": font, "source": "user" if font != DEFAULT_FONT else "default"},
+    }
 
 
 # --- CLI --------------------------------------------------------------------------
@@ -679,20 +752,21 @@ def main(argv: list[str] | None = None) -> int:
             "try to install it.",
             file=sys.stderr,
         )
-        return 1
+        return 2
 
     try:
         build_deck(spec, geometry, args.output)
     except PermissionError:
         print(f"ERROR: output: no permission to write {args.output}", file=sys.stderr)
-        return 1
+        return 2
     except OSError as exc:
         print(f"ERROR: output: could not write {args.output}: {exc}", file=sys.stderr)
-        return 1
+        return 2
 
     size = os.path.getsize(args.output)
     print(f"OK: wrote {args.output} ({size} bytes, {len(spec['slides'])} slide(s))")
     print(f"Next: python3 scripts/validate_pptx.py {args.output}")
+    print(json.dumps(artifact_identity(args.output, len(spec["slides"]), spec.get("font") or DEFAULT_FONT), sort_keys=True))
     return 0
 
 

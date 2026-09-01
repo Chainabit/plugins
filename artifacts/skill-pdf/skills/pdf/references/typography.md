@@ -7,22 +7,16 @@ as boxes, and before changing page size or margins.
 
 ## Fonts available in the sandbox
 
-The image installs `fonts-dejavu-core` and nothing else. That gives exactly three
-families, and no others may be assumed to exist:
+The prepared artifact runtime owns a versioned IBM Plex Sans asset directory,
+advertised by `CHAINABIT_ARTIFACT_FONT_DIR`. Regular and semibold TrueType files
+are used by PDF renderers; matching WOFF2 files are available to static-web
+generators. IBM Plex Sans Arabic is the explicit script companion. Rendering is
+offline and fails with typed `font_failure` when declared assets are missing;
+an undocumented operating-system font is never accepted as the default.
 
-| CSS family name     | Weights available | Use for                 |
-|---------------------|-------------------|-------------------------|
-| `DejaVu Sans`       | regular, bold     | body text, headings     |
-| `DejaVu Serif`      | regular, bold     | body text, if preferred |
-| `DejaVu Sans Mono`  | regular, bold     | code, fixed-width data  |
-
-There is no italic face in the core package. Italic markup still renders, but the
-result is a synthesised oblique rather than a designed italic — acceptable for
-emphasis, not for long passages.
-
-There is no network at runtime, so `@font-face` with a remote `url()` silently
-fails and falls back. A webfont can only be used if the font file is already on
-disk in the workspace, referenced by a local path.
+Code remains intentionally monospaced through the approved mono stack. An
+explicit safe user font may override the brand default only when the runtime can
+resolve that requested family deterministically.
 
 ## Why the font is pinned rather than left to defaults
 
@@ -31,11 +25,11 @@ needs and what most default font stacks do not cover in this image. When a glyph
 is missing, the renderer substitutes a notdef box, so the text does not error, it
 just becomes unreadable. Both scripts therefore name a family explicitly:
 
-- The rich HTML adapter sets `font-family: "DejaVu Sans"` explicitly. The
-  deterministic backend does not claim Unicode and must reject Turkish text.
-- A ReportLab adapter may register approved DejaVu TrueType fonts, but must fail
+- The rich HTML adapter embeds the runtime-provided IBM Plex Sans TrueType
+  assets; it does not depend on a host font or network fetch.
+- A ReportLab adapter registers the same approved TrueType fonts and must fail
   with `font_failure` when coverage or embedding cannot be verified; it must never
-  fall back to Helvetica for Turkish content.
+  silently substitute another default for Turkish content.
 
 Verify by generating a document containing `Çağrı Şişli İğne ıspanak öğün ürün`
 and reading the glyphs back out of the PDF, not by trusting exit code 0.

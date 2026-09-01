@@ -3,20 +3,26 @@
     {
       "path": "SKILL.md",
       "type": "instructions",
-      "sha256": "1cf5ef7bc2e8f7b4b1d04c9508b3f8c33713e31a877311d94871774edb25c188",
-      "bytes": 10380
+      "sha256": "a8c48fa33b617683fa10b753ecbce67b73a526de999a6a366d3798e09b0d7604",
+      "bytes": 10480
     },
     {
       "path": "scripts/build_xlsx.py",
       "type": "scripts",
-      "sha256": "0adb9a9a75f0254a038dc5f0d7f3af9ad44155e065739558d263195a07d2f41f",
-      "bytes": 18838
+      "sha256": "47d6c00a09a3105732ac205cc7de7dc8905e28a1d8f7f9b28b3fc58fd9445c79",
+      "bytes": 20580
     },
     {
       "path": "scripts/validate_xlsx.py",
       "type": "scripts",
-      "sha256": "577af3bab7e948c19c5016d6c7a1faa5266ad2121a4b601be62ab8d5a2f63c6b",
-      "bytes": 11523
+      "sha256": "c38b2d2f1d5494c6e8f818c9adbcd79bad35872c0dbdbc7cfa7bcafaa80f66f2",
+      "bytes": 14199
+    },
+    {
+      "path": "tests/test_artifact_contract.py",
+      "type": "metadata",
+      "sha256": "fbbebfc2e03489ca4274e92c14ef915bf6d7a5e8f6b386741bd32033bbebfff0",
+      "bytes": 2203
     }
   ]
 }

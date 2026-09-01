@@ -43,10 +43,15 @@ Spec shape (see SKILL.md for the annotated version):
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
 import sys
+
+DEFAULT_FONT = os.environ.get("CHAINABIT_ARTIFACT_FONT_FAMILY", "IBM Plex Sans").strip() or "IBM Plex Sans"
+ARABIC_FALLBACK_FONT = "IBM Plex Sans Arabic"
+SAFE_FONT_NAME = re.compile(r"^[^\x00-\x1f\x7f]{1,80}$")
 
 BLOCK_TYPES = ("heading", "paragraph", "bullets", "numbered", "table", "pagebreak")
 
@@ -178,6 +183,12 @@ def validate_spec(spec) -> list[str]:
     if not isinstance(spec, dict):
         return ["ERROR: spec: top level must be a JSON object"]
 
+    if spec.get("font") is not None and (
+        not isinstance(spec.get("font"), str)
+        or not SAFE_FONT_NAME.fullmatch(spec["font"].strip())
+    ):
+        errors.append("ERROR: font: must be a safe non-empty family name")
+
     properties = spec.get("properties", {})
     if not isinstance(properties, dict):
         errors.append("ERROR: properties: must be an object")
@@ -208,6 +219,7 @@ def validate_spec(spec) -> list[str]:
 def build(spec, output_path: str) -> None:
     from docx import Document
     from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_BREAK
+    from docx.oxml.ns import qn
 
     alignment_map = {
         "left": WD_ALIGN_PARAGRAPH.LEFT,
@@ -217,6 +229,16 @@ def build(spec, output_path: str) -> None:
     }
 
     document = Document()
+    font_family = spec.get("font") or DEFAULT_FONT
+    for style in document.styles:
+        if not hasattr(style, "font"):
+            continue
+        style.font.name = font_family
+        properties = style.element.get_or_add_rPr()
+        fonts = properties.get_or_add_rFonts()
+        for attribute in ("ascii", "hAnsi", "eastAsia"):
+            fonts.set(qn(f"w:{attribute}"), font_family)
+        fonts.set(qn("w:cs"), ARABIC_FALLBACK_FONT)
 
     properties = spec.get("properties", {})
     core = document.core_properties
@@ -316,7 +338,13 @@ def main() -> int:
             "the Chainabit sandbox image, where it is pre-installed.",
             file=sys.stderr,
         )
-        return 1
+        return 2
+    except PermissionError:
+        print(f"ERROR: output: no permission to write {args.output}", file=sys.stderr)
+        return 2
+    except OSError as exc:
+        print(f"ERROR: output: could not write {args.output}: {exc}", file=sys.stderr)
+        return 2
 
     size = os.path.getsize(args.output)
     print(f"OK: wrote {args.output}, {size} bytes, {len(spec['blocks'])} block(s)")
@@ -324,6 +352,25 @@ def main() -> int:
         f"Next: python3 validate_docx.py {args.output} "
         "-- a build that succeeded is not yet a document that is right."
     )
+    with open(args.output, "rb") as handle:
+        digest = hashlib.sha256(handle.read()).hexdigest()
+    font = spec.get("font") or DEFAULT_FONT
+    print(json.dumps({
+        "schema": "chainabit.docx.execution/v1",
+        "success": True,
+        "generator": "skill-docx.build_docx",
+        "output": {
+            "path": os.path.realpath(args.output),
+            "shape": "file",
+            "mime": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "sha256": digest,
+            "bytes": size,
+        },
+        "typography": {
+            "family": font,
+            "source": "user_override" if spec.get("font") else "chainabit_default",
+        },
+    }, ensure_ascii=False, sort_keys=True))
     return 0
 
 

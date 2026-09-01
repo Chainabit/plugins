@@ -1,12 +1,12 @@
-# Optional dependency profiles
+# Production dependency profile
 
-The core skill intentionally has no third-party PDF runtime dependency. Install a professional environment with the project's Python interpreter using the audited optional set appropriate to deployment:
+The official Markdown PDF contract has explicit third-party runtime dependencies. The production sandbox image pins and probes:
 
 ```text
-weasyprint   HTML/CSS pagination, embedded fonts, tables, images, RGB styling
+weasyprint 69.0   HTML/CSS pagination, embedded fonts, tables, images, RGB styling
 reportlab    programmatic tables and page-flow reports
 Pillow       bounded image decode, validation, orientation and normalization
-pypdf        merge/extract/reorder/rotate/crop manipulation
+pypdf 6.16.2     authoritative parsing, page/content validation, exact hashing
 ```
 
-These packages are detected at runtime and remain absent from the minimal configuration. A package is not considered a rendering capability merely because it imports: the registry descriptor must list the behavior and tests must exercise it. CI should run both the dependency-free suite and a professional environment with WeasyPrint (plus the image boundary) installed. Math and CJK/RTL claims require an adapter-specific integration test before being added to a descriptor.
+IBM Plex Sans is the required offline primary family, with IBM Plex Sans Arabic as the approved script companion. Importability alone is not a capability: image build checks and the skill's production-profile suite must exercise rendering, font embedding and object-stream validation. Dependencies must not be downloaded during a user run, and network access remains disabled. Math and CJK/RTL claims require an adapter-specific integration test before being added to a descriptor.

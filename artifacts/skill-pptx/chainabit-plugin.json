@@ -2,8 +2,8 @@
   "schemaVersion": 2,
   "id": "skill-pptx",
   "name": "Presentation Skill",
-  "version": "1.1.0",
-  "description": "Builds real .pptx presentations from a JSON spec using four brand-safe layouts — title, content, comparison, closing — with a palette and type scale checked against WCAG AA, renders the same spec as a matching PDF so a deck asked for in both formats is delivered in both, and validates the result for empty slides, overflowing text, low contrast and over-dense bullets. Ships three Python scripts that run in the sandbox against the pre-installed python-pptx and reportlab.",
+  "version": "1.2.0",
+  "description": "Builds real .pptx presentations from a JSON spec using four brand-safe layouts — title, content, comparison, closing — with a palette and type scale checked against WCAG AA, and validates OOXML structure, relationships, typography, empty slides, overflowing text, low contrast and over-dense bullets. PDF delivery remains owned by the PDF capability and its validator.",
   "author": {
     "name": "NEXUS Community"
   },
@@ -48,6 +48,7 @@
       "entrypoint": "skills/pptx/scripts/validate_pptx.py",
       "runtime": "python3",
       "validationClass": "content_present",
+      "protocol": "chainabit.pptx.validation/v1",
       "target": {
         "kind": "file",
         "extensions": [
@@ -77,8 +78,7 @@
     }
   ],
   "produces": [
-    ".pptx",
-    ".pdf"
+    ".pptx"
   ],
   "requires": {
     "python": [
@@ -89,7 +89,7 @@
       "python3"
     ],
     "fonts": [
-      "DejaVuSans"
+      "IBM Plex Sans"
     ]
   },
   "dependencies": {
@@ -102,10 +102,40 @@
         "python3"
       ],
       "fonts": [
-        "DejaVuSans"
+        "IBM Plex Sans"
       ]
     },
     "optional": {}
+  },
+  "artifactContract": {
+    "formats": [
+      {
+        "format": "pptx",
+        "outputShape": "file",
+        "extension": ".pptx",
+        "mimeType": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        "validatorId": "skill-pptx.validate_pptx",
+        "validatorProtocol": "chainabit.pptx.validation/v1",
+        "minimumValidationClass": "content_present"
+      }
+    ],
+    "generators": [
+      {
+        "id": "skill-pptx.deck",
+        "runtime": "python3",
+        "entrypoint": "skills/pptx/scripts/deck_pptx.py",
+        "outputArgumentIndex": 3,
+        "protocol": "chainabit.pptx.execution/v1",
+        "formats": ["pptx"]
+      }
+    ]
+  },
+  "typography": {
+    "defaultFamily": "IBM Plex Sans",
+    "userOverride": true,
+    "fallbackFamilies": ["IBM Plex Sans Arabic"],
+    "runtimeFamilyEnv": "CHAINABIT_ARTIFACT_FONT_FAMILY",
+    "runtimeAssetDirEnv": "CHAINABIT_ARTIFACT_FONT_DIR"
   },
   "capabilities": {
     "declared": [
