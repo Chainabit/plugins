@@ -12,6 +12,7 @@ import {
   validateAssetBytes,
 } from "./marketplace-contract.mjs";
 import { validateMarketplace } from "./validate-marketplace.mjs";
+import { assertLocalCommit } from "./update-marketplace.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -31,9 +32,17 @@ test("the checked-in marketplace is valid and every source is immutable", () => 
   assert.equal(index.plugins.length, result.pluginFolders.length);
   for (const entry of index.plugins) {
     assert.match(entry.revision, /^[a-f0-9]{40}$/);
+    assert.doesNotThrow(() => assertLocalCommit(root, entry.revision));
     assert.match(entry.integrity.packageSha256, /^[a-f0-9]{64}$/);
     assert.equal(entry.integrity.packageSha256, result.packageDigests.get(entry.id));
   }
+});
+
+test("release publication rejects a syntactically valid but nonexistent commit", () => {
+  assert.throws(
+    () => assertLocalCommit(root, "0000000000000000000000000000000000000000"),
+    /does not identify a local Git commit/,
+  );
 });
 
 test("skill-website keeps one canonical implementation and an explicit compatibility alias", () => {

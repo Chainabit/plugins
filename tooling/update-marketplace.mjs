@@ -4,6 +4,7 @@
 // manifests and bundle payloads. It intentionally requires the caller to provide the
 // commit identity after committing content, so an index cannot quietly point at a branch.
 
+import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -35,10 +36,23 @@ export function updateMarketplaceRevision(root, revision) {
   writeFileSync(path, `${JSON.stringify(index, null, 2)}\n`, "utf8");
 }
 
+export function assertLocalCommit(root, revision) {
+  if (!COMMIT_PATTERN.test(revision)) throw new Error("revision must be a 40-character lowercase Git commit SHA");
+  try {
+    execFileSync("git", ["cat-file", "-e", `${revision}^{commit}`], {
+      cwd: root,
+      stdio: "ignore",
+    });
+  } catch {
+    throw new Error(`revision does not identify a local Git commit: ${revision}`);
+  }
+}
+
 function main() {
   const root = join(dirname(fileURLToPath(import.meta.url)), "..");
   const revision = process.argv[2];
   if (!revision) throw new Error("usage: node tooling/update-marketplace.mjs <content-commit-sha>");
+  assertLocalCommit(root, revision);
   updateMarketplaceRevision(root, revision);
   console.log(`Updated ${root}/marketplace.json to revision ${revision}.`);
 }
