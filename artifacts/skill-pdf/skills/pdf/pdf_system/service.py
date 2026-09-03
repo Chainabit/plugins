@@ -104,6 +104,21 @@ class PdfService:
     def _wrap(self, text: str) -> list[str]: return [text[i:i+100] for i in range(0, len(text), 100)] or [""]
     def _markdown_lines(self, text: str) -> list[str]: return [line for raw in text.splitlines() for line in self._wrap(re.sub(r"^#{1,6}\s+|^[-*+]\s+|^\d+[.)]\s+", "", raw))]
     def _markdown_html(self, text: str, policy: SecurityPolicy, font: str) -> str:
+        # A form feed is the explicit page break this system already claims to
+        # understand: models.py raises the `page_breaks` requirement when it
+        # sees one, which constrains backend selection. It was then destroyed
+        # here, because str.splitlines() splits on \f AND discards it -- so the
+        # break was inferred, honoured in the choice of renderer, and silently
+        # dropped before any HTML existed. A document written as ten pages came
+        # out as two, and validate_pdf.py cannot detect the loss because it
+        # only bounds the page count rather than checking it.
+        return self._html_document(
+            '<div class="page-break"></div>'.join(
+                self._markdown_blocks(page) for page in text.split("\f")
+            ),
+            font,
+        )
+    def _markdown_blocks(self, text: str) -> str:
         lines=text.splitlines(); out=[]; i=0
         while i<len(lines):
             line=lines[i]
@@ -127,7 +142,7 @@ class PdfService:
                 while i<len(lines) and re.match(r"^[-*+]\s+",lines[i]): items.append("<li>"+self._inline(re.sub(r"^[-*+]\s+","",lines[i]))+"</li>"); i+=1
                 out.append("<ul>"+"".join(items)+"</ul>"); continue
             out.append("<p>"+self._inline(line)+"</p>"); i+=1
-        return self._html_document("".join(out), font)
+        return "".join(out)
     def _inline(self, value: str) -> str:
         if re.search(r"\$[^$]+\$|\\\(|\\\[", value):
             if re.search(r"\\(frac|sqrt|begin|end|newcommand)\b", value):

@@ -15,7 +15,7 @@ from typing import Any
 from .errors import ErrorCode, PdfError
 from .models import PageGeometry
 
-CAPABILITY_NAMES = ("ascii_basic_text", "unicode", "font_embedding", "turkish", "rtl", "cjk", "images", "tables", "rich_markdown", "html_css", "pagination", "page_breaks", "headers_footers", "math", "vector_graphics", "complex_typography", "colors_rgb", "colors_cmyk", "print_quality", "metadata", "deterministic", "manipulation")
+CAPABILITY_NAMES = ("ascii_basic_text", "unicode", "font_embedding", "turkish", "rtl", "cjk", "images", "tables", "rich_markdown", "pagination", "page_breaks", "headers_footers", "math", "vector_graphics", "complex_typography", "colors_rgb", "colors_cmyk", "print_quality", "metadata", "deterministic", "manipulation")
 
 @dataclass(frozen=True)
 class BackendCapabilities:
@@ -57,11 +57,28 @@ def _dependency(name: str) -> tuple[bool, str | None]:
         # absent. That is a missing runtime dependency, not a renderer crash.
         return False, None
 
+# WHY `html_css` IS NOT ADVERTISED, EVEN THOUGH WeasyPrint HAS IT.
+#
+# A capability report is a promise about what a CALLER can ask for, not an
+# inventory of what a library can do. No registered generator on this skill
+# accepts HTML or CSS: `md_to_pdf.py` takes Markdown, `report_pdf.py` takes a
+# fixed JSON block schema, and both funnel through one immutable stylesheet in
+# `service._html_document`. `--css` exists as a flag and always errors.
+#
+# Advertising `html_css` sent agents down a road that does not exist: they
+# would write an HTML document, have `reject_active_markup` refuse it as
+# unsafe input, fall back to invoking `weasyprint` directly, and then be unable
+# to promote the result because an unregistered wrapper cannot acquire
+# production proof. The flag was also unreachable by construction --
+# `DocumentRequirements.infer` never emits it, so nothing could ever select on
+# it. Removing it makes the probe honest; restoring it requires a registered,
+# tested HTML entrypoint, not a change here.
+
 def capability_registry() -> list[BackendCapabilities]:
     dependencies = {n: _dependency(n) for n in ("weasyprint", "reportlab", "pypdf", "PIL")}
     flags = {name: state[0] for name, state in dependencies.items()}
     return [
-        BackendCapabilities("weasyprint", flags["weasyprint"], dependencies["weasyprint"][1], frozenset({"ascii_basic_text", "unicode", "font_embedding", "turkish", "rtl", "cjk", "images", "tables", "rich_markdown", "html_css", "pagination", "page_breaks", "headers_footers", "math", "complex_typography", "colors_rgb", "print_quality", "metadata"}) if flags["weasyprint"] else frozenset(), ("generate-markdown", "generate-report"), ("network disabled", "active HTML/SVG/remote assets blocked"), "weasyprint", "isolated HTML/CSS professional adapter"),
+        BackendCapabilities("weasyprint", flags["weasyprint"], dependencies["weasyprint"][1], frozenset({"ascii_basic_text", "unicode", "font_embedding", "turkish", "rtl", "cjk", "images", "tables", "rich_markdown", "pagination", "page_breaks", "headers_footers", "math", "complex_typography", "colors_rgb", "print_quality", "metadata"}) if flags["weasyprint"] else frozenset(), ("generate-markdown", "generate-report"), ("network disabled", "active HTML/SVG/remote assets blocked"), "weasyprint", "isolated print renderer for this skill's Markdown and report inputs"),
         BackendCapabilities("reportlab", flags["reportlab"], dependencies["reportlab"][1], frozenset({"ascii_basic_text", "unicode", "font_embedding", "turkish", "images", "tables", "rich_markdown", "pagination", "page_breaks", "headers_footers", "colors_rgb", "print_quality", "metadata"}) if flags["reportlab"] else frozenset(), ("generate-report",), ("RTL/CJK/math require another tested adapter",), "reportlab", "programmatic structured-layout adapter"),
         BackendCapabilities("pypdf", flags["pypdf"], dependencies["pypdf"][1], frozenset({"manipulation", "metadata"}) if flags["pypdf"] else frozenset(), ("merge", "extract", "remove", "reorder", "rotate", "crop"), ("does not render documents",), "pypdf", "PDF manipulation adapter"),
         BackendCapabilities("pillow", flags["PIL"], dependencies["PIL"][1], frozenset({"images"}) if flags["PIL"] else frozenset(), ("normalize-image",), ("does not render PDFs",), "Pillow", "bounded image normalization adapter"),
