@@ -3,7 +3,7 @@ name: pdf
 description: Create, validate, and manipulate secure PDF artifacts. Inspect required capabilities first and prefer the highest-quality available backend; never silently downgrade rich content.
 license: Apache-2.0
 metadata:
-  version: 5.2.2
+  version: 5.2.3
 ---
 
 # PDF artifact system
