@@ -91,15 +91,9 @@
       "bytes": 1856
     },
     {
-      "path": "tests/fixtures/turkish.md",
-      "type": "metadata",
-      "sha256": "d9fe31e592d43a120b42634b43ea3ffac66d408b1899e88c8343fc65226b2dde",
-      "bytes": 437
-    },
-    {
       "path": "tests/test_pdf_system.py",
       "type": "metadata",
-      "sha256": "385419c4363de1339e05b60b8a3e9f90bd249b60bf44aaeea40f9fbba764460e",
+      "sha256": "41cee4f835f4d5266311a1755effbcaff0a747550b7d9c1f59679c208a2e21bd",
       "bytes": 9972
     }
   ]

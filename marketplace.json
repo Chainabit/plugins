@@ -23,7 +23,7 @@
       "id": "provider-acmegate",
       "source": "https://github.com/chainabit/plugins.git#providers/provider-acmegate",
       "version": "1.2.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "d5a652e6ee98ace92b42d12786f4efbcbfcf77a4d7dc03649af6a145d3cd7b2c"
@@ -33,7 +33,7 @@
       "id": "persona-reviewer",
       "source": "https://github.com/chainabit/plugins.git#personas/persona-reviewer",
       "version": "0.4.1",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "6bc6eebd9a67da1143ee196d116c4b4638f1603c24bf3a74ff24c5fc8e3ab48a"
@@ -43,17 +43,17 @@
       "id": "skill-pdf",
       "source": "https://github.com/chainabit/plugins.git#artifacts/skill-pdf",
       "version": "5.2.3",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
-        "packageSha256": "625e73bbe90f8ca858109235945f805a50f02fe7e5e9d6f4a49cf4705888b721"
+        "packageSha256": "c6d0ca0bddaf84b4780435d32fd8d980d68d76cffb86aba385c0afd941b84b91"
       }
     },
     {
       "id": "skill-xlsx",
       "source": "https://github.com/chainabit/plugins.git#artifacts/skill-xlsx",
       "version": "1.2.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "1d6cd81da3d480b57d4350fccc20843b6f5d55a64f355376ea7296844c9c7571"
@@ -63,7 +63,7 @@
       "id": "skill-pptx",
       "source": "https://github.com/chainabit/plugins.git#artifacts/skill-pptx",
       "version": "1.2.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "246421db4f876703ddefe52fbe7da824d27e2d65b29b89c797966f2a454ed30f"
@@ -73,7 +73,7 @@
       "id": "skill-website",
       "source": "https://github.com/chainabit/plugins.git#artifacts/skill-website",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "7eb562a2bc8ea83642e2648ed95af7054a09affd2be4a2c737e8faaa9769bcc9"
@@ -83,7 +83,7 @@
       "id": "skill-docx",
       "source": "https://github.com/chainabit/plugins.git#artifacts/skill-docx",
       "version": "1.2.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "8c2412215abc36a6ac4bd316e2b330b6f54ce2d24181c7a0a4fc9ca621b5f81f"
@@ -93,7 +93,7 @@
       "id": "provider-solongate",
       "source": "https://github.com/chainabit/plugins.git#providers/provider-solongate",
       "version": "0.58.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "a080f3f3fdb60855830f674b25d1f651e99f4b6d22ad40baf27ffd0918ea8ce6"
@@ -103,7 +103,7 @@
       "id": "provider-codegraph",
       "source": "https://github.com/chainabit/plugins.git#providers/provider-codegraph",
       "version": "1.5.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "a451c88fe8689f474208ba504003c1ad6850266b866861e33158f24e5faf19d4"
@@ -113,7 +113,7 @@
       "id": "skill-software-engineering",
       "source": "https://github.com/chainabit/plugins.git#foundations/skill-software-engineering",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "9320bc5126d8942c73830a990af530196066d1ce89614f05e4965a1edad0f0fd"
@@ -123,7 +123,7 @@
       "id": "skill-project-bootstrap",
       "source": "https://github.com/chainabit/plugins.git#foundations/skill-project-bootstrap",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "6c41db8346890d9cb8b4c73aef5b99f3be0f20232ef073120b2ce505cc8c1378"
@@ -133,7 +133,7 @@
       "id": "skill-git",
       "source": "https://github.com/chainabit/plugins.git#foundations/skill-git",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "278a43afab6268a62c58616f597fdc82a13640d40de46e85e2f1680e41fcf1bf"
@@ -143,7 +143,7 @@
       "id": "skill-project-documentation",
       "source": "https://github.com/chainabit/plugins.git#foundations/skill-project-documentation",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "9443270a3b9b1828ea81ab719404103c00e2d3e16f4e16710f74a9536ce9b59f"
@@ -153,7 +153,7 @@
       "id": "skill-web-engineering",
       "source": "https://github.com/chainabit/plugins.git#web/skill-web-engineering",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "281a4392e338a990c6f2d4b46e5fc86dae218c9acf8a7af9af9f521944cf6163"
@@ -163,7 +163,7 @@
       "id": "skill-static-website",
       "source": "https://github.com/chainabit/plugins.git#web/skill-static-website",
       "version": "1.1.1",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "d74c94cf3c814f6eabd5bd8fd2015e567427cf208a7f990f4e86b81b345186ad"
@@ -173,7 +173,7 @@
       "id": "skill-angular",
       "source": "https://github.com/chainabit/plugins.git#web/skill-angular",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "de3c034383f3935c5fd0a3b89423206081fed99194398f17f4d19b610dd38ed7"
@@ -183,7 +183,7 @@
       "id": "skill-react",
       "source": "https://github.com/chainabit/plugins.git#web/skill-react",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "7c4c1684b15ceb25ad61a2566b7457b2079e6fcfb783a4e327afadefffbfbc7c"
@@ -193,7 +193,7 @@
       "id": "skill-python",
       "source": "https://github.com/chainabit/plugins.git#languages/skill-python",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "078c45922adfc1fd38f7a04c5a5bea90b310d5a6770a985116c6cdee69a4e736"
@@ -203,7 +203,7 @@
       "id": "skill-java",
       "source": "https://github.com/chainabit/plugins.git#languages/skill-java",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "d355802868a703e7172b86fba7ed7cf710fdc1266c0e96e0adea37d2cff3854d"
@@ -213,7 +213,7 @@
       "id": "skill-django",
       "source": "https://github.com/chainabit/plugins.git#frameworks/skill-django",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "db7cca0b2f388090cdfa618880379b8b0ad7bcf8038c259fe4cf05d1fd157de8"
@@ -223,7 +223,7 @@
       "id": "skill-spring",
       "source": "https://github.com/chainabit/plugins.git#frameworks/skill-spring",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "e0d54c25b48f14eb683eafa75150ca70606cf07318e284d218ea59eda194c053"
@@ -233,7 +233,7 @@
       "id": "skill-rust",
       "source": "https://github.com/chainabit/plugins.git#languages/skill-rust",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "d38ddd4d9db8892395731b2c2d8bd2c851f7a13cfc3116c1fd14b220244d0bcd"
@@ -243,7 +243,7 @@
       "id": "skill-go",
       "source": "https://github.com/chainabit/plugins.git#languages/skill-go",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "5fb3eb96de3a1c459907119fd30095fcaa2004859fa69182c54915ece9cceb5d"
@@ -253,7 +253,7 @@
       "id": "skill-php",
       "source": "https://github.com/chainabit/plugins.git#languages/skill-php",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "2434878cf00545944407368cdffed295d992ad273ee81ae54247b0be8c62593a"
@@ -263,7 +263,7 @@
       "id": "skill-c",
       "source": "https://github.com/chainabit/plugins.git#languages/skill-c",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "9382b7ba126dd036ab27c261d36bbe47d729c1b411d7ad6e7335704b1805ab65"
@@ -273,7 +273,7 @@
       "id": "skill-cpp",
       "source": "https://github.com/chainabit/plugins.git#languages/skill-cpp",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "431131cd209c4e40abdaac74863e0f9e713a3faf1d542ccc142d5cb482e24ec8"
@@ -283,7 +283,7 @@
       "id": "skill-csharp",
       "source": "https://github.com/chainabit/plugins.git#languages/skill-csharp",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "c7a167a2a9a33f2e6faf1784cce6a57397a0de3f5130628f9b75f3c0c02c9891"
@@ -293,7 +293,7 @@
       "id": "skill-javascript",
       "source": "https://github.com/chainabit/plugins.git#languages/skill-javascript",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "bdd9562c40004127d1d1762c38cc9ece15c4942dde150df7e243c704e1fcc528"
@@ -303,7 +303,7 @@
       "id": "skill-typescript",
       "source": "https://github.com/chainabit/plugins.git#languages/skill-typescript",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "94cc3ab2b46e1d260b228e645d562f703302a1caf23a7974ef7715c7c848a6c6"
@@ -313,7 +313,7 @@
       "id": "skill-kotlin",
       "source": "https://github.com/chainabit/plugins.git#languages/skill-kotlin",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "69aec662a30d9183a81a36e7a1214f28cf8630acc80030c13ce205b9032c3929"
@@ -323,7 +323,7 @@
       "id": "skill-swift",
       "source": "https://github.com/chainabit/plugins.git#languages/skill-swift",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "34ea6875529265a971f906a56866b4bcb127b6962880e20360ee09402eda9a09"
@@ -333,7 +333,7 @@
       "id": "skill-ruby",
       "source": "https://github.com/chainabit/plugins.git#languages/skill-ruby",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "a4abe78e169ecbb293ec8c928f96de8dea7dd5bc774233cf622b19bf810d3486"
@@ -343,7 +343,7 @@
       "id": "skill-scala",
       "source": "https://github.com/chainabit/plugins.git#languages/skill-scala",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "23bf0b31ada62e80a2273b464b6f6d77eb5bb80467ba2b066505236cc6ca5782"
@@ -353,7 +353,7 @@
       "id": "skill-dart",
       "source": "https://github.com/chainabit/plugins.git#languages/skill-dart",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "9fd63c185dab92b88c522e7b10aa16284a3beddf415b860bcf6e0e8018b7640a"
@@ -363,7 +363,7 @@
       "id": "skill-shell",
       "source": "https://github.com/chainabit/plugins.git#languages/skill-shell",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "508f07b49584bf24f567a30f89d0c59b83c6431d75c7abf838c3c8a60684def1"
@@ -373,7 +373,7 @@
       "id": "skill-powershell",
       "source": "https://github.com/chainabit/plugins.git#languages/skill-powershell",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "df8cc188617b15ba6ffec6937cc92d53691d322c00c7faacea222fd13ba55d5b"
@@ -383,7 +383,7 @@
       "id": "skill-sql",
       "source": "https://github.com/chainabit/plugins.git#languages/skill-sql",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "6d80e670402e3806da9f70ffbf8203a4c5da0d28ca310b81c7d0864fa5bca5a0"
@@ -393,7 +393,7 @@
       "id": "skill-lua",
       "source": "https://github.com/chainabit/plugins.git#languages/skill-lua",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "929b9b44d9de986cee4f618b03fa815708df4493f04effff353b97fc326800d1"
@@ -403,7 +403,7 @@
       "id": "skill-elixir",
       "source": "https://github.com/chainabit/plugins.git#languages/skill-elixir",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "9ba988432fe8530c13dda1548d45f4fbd17a9dd2bc3eb8dc4e0f95698f73e1a4"
@@ -413,7 +413,7 @@
       "id": "skill-haskell",
       "source": "https://github.com/chainabit/plugins.git#languages/skill-haskell",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "10820e0c697f2ff707407edf1069428d744e9c3d4b1f95db9ef9b10d0677cbc4"
@@ -423,7 +423,7 @@
       "id": "skill-ocaml",
       "source": "https://github.com/chainabit/plugins.git#languages/skill-ocaml",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "068e97a006606c4abf6f316418c29e5fe2ac1a75f6dc7f2f125fafe7a23652b6"
@@ -433,7 +433,7 @@
       "id": "skill-fsharp",
       "source": "https://github.com/chainabit/plugins.git#languages/skill-fsharp",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "3638409ebd50275572d7fd68629443ffb1562e80f05e61ddb80c8278556e3608"
@@ -443,7 +443,7 @@
       "id": "skill-clojure",
       "source": "https://github.com/chainabit/plugins.git#languages/skill-clojure",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "c15eb0b4ab15aa2c5e89b6b0bd220660c75160e06e4fb079245bc2b09926ac72"
@@ -453,7 +453,7 @@
       "id": "skill-laravel",
       "source": "https://github.com/chainabit/plugins.git#frameworks/skill-laravel",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "f6cf4b547f7153fde5c4d0865f242fbedd2e408614cd3bae5349f3f0eb289c85"
@@ -463,7 +463,7 @@
       "id": "skill-symfony",
       "source": "https://github.com/chainabit/plugins.git#frameworks/skill-symfony",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "907a6e05e345dabc1b60f554f22999cb6c1e102bc970ac0ed35a3295d1d04325"
@@ -473,7 +473,7 @@
       "id": "skill-aspnet-core",
       "source": "https://github.com/chainabit/plugins.git#frameworks/skill-aspnet-core",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "1abaa82dee141cd40f88bdfef5d964cc52f29de06d8a205e7d403daf891f8dc0"
@@ -483,7 +483,7 @@
       "id": "skill-dotnet-maui",
       "source": "https://github.com/chainabit/plugins.git#frameworks/skill-dotnet-maui",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "1315d5aa5adf3b4e15cb49dd458a18756ed1b01f883ff1c2e3963d590d72f72d"
@@ -493,7 +493,7 @@
       "id": "skill-flutter",
       "source": "https://github.com/chainabit/plugins.git#frameworks/skill-flutter",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "ea4f24a58715da1e98de4afc5bd2f611609c4aab1d443784c7f1b0da9072ce91"
@@ -503,7 +503,7 @@
       "id": "skill-react-native",
       "source": "https://github.com/chainabit/plugins.git#frameworks/skill-react-native",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "236669f8c8dc945cfd652ebb0dfb9591eefb28cb0cbb88bd15ef0e08fc2eff2f"
@@ -513,7 +513,7 @@
       "id": "skill-nextjs",
       "source": "https://github.com/chainabit/plugins.git#frameworks/skill-nextjs",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "f91f998339dacfa94b5b73b6e8cc5d8880ae48c0394848036f9d03d6991d8cee"
@@ -523,7 +523,7 @@
       "id": "skill-nuxt",
       "source": "https://github.com/chainabit/plugins.git#frameworks/skill-nuxt",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "39056969b7ed423520e1bde5d90f7433371193d5934ecec6b46744536cd2fb97"
@@ -533,7 +533,7 @@
       "id": "skill-vue",
       "source": "https://github.com/chainabit/plugins.git#frameworks/skill-vue",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "3b016f1533870f883752aecab0d9ab688b2c832abe9558d6ff22606eb45304c9"
@@ -543,7 +543,7 @@
       "id": "skill-sveltekit",
       "source": "https://github.com/chainabit/plugins.git#frameworks/skill-sveltekit",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "cfd77ec957aa34e526f09431805098cb92ca8bda8b69e17c7091ae1fb28e015e"
@@ -553,7 +553,7 @@
       "id": "skill-express",
       "source": "https://github.com/chainabit/plugins.git#frameworks/skill-express",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "59e2795857e57bb57bdcdf71b571f60a6204e9f839e5b36f7fe5ddb4d8e203fb"
@@ -563,7 +563,7 @@
       "id": "skill-fastify",
       "source": "https://github.com/chainabit/plugins.git#frameworks/skill-fastify",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "4adb13a84721bf723f698a2bc2d9cbaba9effba4a4d3f083ddfe26f039e93ed4"
@@ -573,7 +573,7 @@
       "id": "skill-nestjs",
       "source": "https://github.com/chainabit/plugins.git#frameworks/skill-nestjs",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "357636f2c68e8775fa0806b12d64157284e2e91e25aa5019e412ff7978e4aff0"
@@ -583,7 +583,7 @@
       "id": "skill-gin",
       "source": "https://github.com/chainabit/plugins.git#frameworks/skill-gin",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "755590e31500f502a9ad154af5a5e604c2fc0902b8264d85338c51ff983e74e4"
@@ -593,7 +593,7 @@
       "id": "skill-actix",
       "source": "https://github.com/chainabit/plugins.git#frameworks/skill-actix",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "c7213da3db0da31787fa5d74900fe0419a86751f20960dea500e744a68338598"
@@ -603,7 +603,7 @@
       "id": "skill-axum",
       "source": "https://github.com/chainabit/plugins.git#frameworks/skill-axum",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "f094ca85ecd16d985d5f3341f5b9f9068304fa564144f25569b0fb72d07fbd5e"
@@ -613,7 +613,7 @@
       "id": "skill-ktor",
       "source": "https://github.com/chainabit/plugins.git#frameworks/skill-ktor",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "9f8b3c7fa6f801bc977fba825ebe4fef50b9b10659ca5fc420f80f5435f35fdf"
@@ -623,7 +623,7 @@
       "id": "skill-micronaut",
       "source": "https://github.com/chainabit/plugins.git#frameworks/skill-micronaut",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "1fc4c5e3f4d171a4bacb0e5375fb7010c59deccb175d04b2eb29b64e1e566d88"
@@ -633,7 +633,7 @@
       "id": "skill-quarkus",
       "source": "https://github.com/chainabit/plugins.git#frameworks/skill-quarkus",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "fc8a449893b3be5337864c8d7c479128d6a6fd8d3560c638e5adf0dfa7e6fa84"
@@ -643,7 +643,7 @@
       "id": "skill-graphql",
       "source": "https://github.com/chainabit/plugins.git#web/skill-graphql",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "5e89c122aa6a8fe10282233e48c9a56e8a452bcc9cd05f1b2b86431967ff0a1b"
@@ -653,7 +653,7 @@
       "id": "skill-grpc",
       "source": "https://github.com/chainabit/plugins.git#web/skill-grpc",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "88bff8716bf5e7e58a3020cf0e6e7f5159beb604d17d4c627d37ee92648439da"
@@ -663,7 +663,7 @@
       "id": "skill-webassembly",
       "source": "https://github.com/chainabit/plugins.git#web/skill-webassembly",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "504ff584ec296fae88f09387421c928cff1ac60f3e9649173a8ab029c26cc6f0"
@@ -673,7 +673,7 @@
       "id": "skill-web-accessibility",
       "source": "https://github.com/chainabit/plugins.git#web/skill-web-accessibility",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "a6bc9f778d8d632839c76b2121ca17ccf1945edc49935f08b0a2f0fda7ea8436"
@@ -683,7 +683,7 @@
       "id": "skill-progressive-web-apps",
       "source": "https://github.com/chainabit/plugins.git#web/skill-progressive-web-apps",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "84aaa65396077ded2a6dd031aa266f55d623fb2c94e340accdf5094488466e0a"
@@ -693,7 +693,7 @@
       "id": "skill-web-performance",
       "source": "https://github.com/chainabit/plugins.git#web/skill-web-performance",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "8ec26bcf1768c050aec773e834041757d40510a0f26151aa67465fece3492924"
@@ -703,7 +703,7 @@
       "id": "skill-web-security",
       "source": "https://github.com/chainabit/plugins.git#web/skill-web-security",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "efcba5d3257f7e1f0f57b243941809c05685acfe15d88fff31f3f3148c039ac2"
@@ -713,7 +713,7 @@
       "id": "skill-browser-automation",
       "source": "https://github.com/chainabit/plugins.git#web/skill-browser-automation",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "81711e7b438e904a83723d220a41784968cf5d623fa4b01c610bb6f16644a875"
@@ -723,7 +723,7 @@
       "id": "skill-backend-architecture",
       "source": "https://github.com/chainabit/plugins.git#foundations/skill-backend-architecture",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "e927b2131f7f369c3f6c679f199a677719c434738da520d2fd81b920c29537cf"
@@ -733,7 +733,7 @@
       "id": "skill-api-design",
       "source": "https://github.com/chainabit/plugins.git#foundations/skill-api-design",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "c396ccd460216c72b92e5c6a92b1314ff9ffade71237415dfbaee31e516ed826"
@@ -743,7 +743,7 @@
       "id": "skill-distributed-systems",
       "source": "https://github.com/chainabit/plugins.git#foundations/skill-distributed-systems",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "e9e03801a285862b0d5d613e4f8dba78370abd9ba50c3b3a8f5228f18e9aa203"
@@ -753,7 +753,7 @@
       "id": "skill-event-driven-design",
       "source": "https://github.com/chainabit/plugins.git#foundations/skill-event-driven-design",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "3018b257a2793e8c91e4b8097a83e1ae0a4e0fb08718a0f0afcbc6099c6a581b"
@@ -763,7 +763,7 @@
       "id": "skill-concurrency",
       "source": "https://github.com/chainabit/plugins.git#foundations/skill-concurrency",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "97c44495bb3c34da46a7c3852eac963d9dfa49f689f2f06344f0e439f6965ba7"
@@ -773,7 +773,7 @@
       "id": "skill-systems-programming",
       "source": "https://github.com/chainabit/plugins.git#foundations/skill-systems-programming",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "3a89dfd23718f808257efb88482c09c40ec5817674bc0a92bd7528f79784a03c"
@@ -783,7 +783,7 @@
       "id": "skill-database-design",
       "source": "https://github.com/chainabit/plugins.git#foundations/skill-database-design",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "242c9d4bc8e994d92cc713797f99d981b6e4fc9486404a91596b8bdd922c513d"
@@ -793,7 +793,7 @@
       "id": "skill-data-modeling",
       "source": "https://github.com/chainabit/plugins.git#foundations/skill-data-modeling",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "2d596e64d9815c41df88a7c11bfc05a988d13ab5146fd9dcf812db8bdef2759e"
@@ -803,7 +803,7 @@
       "id": "skill-debugging",
       "source": "https://github.com/chainabit/plugins.git#foundations/skill-debugging",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "0c05d742f01ecdf9da62391aab3c03034e96c500c70c4cd3a6457d2593ea43da"
@@ -813,7 +813,7 @@
       "id": "skill-refactoring",
       "source": "https://github.com/chainabit/plugins.git#foundations/skill-refactoring",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "6acc5a0d1c9fa529979dde2193c6681a7311a362d33eab693d53b86bf12e0ee3"
@@ -823,7 +823,7 @@
       "id": "skill-code-review",
       "source": "https://github.com/chainabit/plugins.git#foundations/skill-code-review",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "7156569d0cb24f1f33013a6536fe43d5e8cbf3ceab58c10925fa65e3f7fc1a80"
@@ -833,7 +833,7 @@
       "id": "skill-code-quality",
       "source": "https://github.com/chainabit/plugins.git#foundations/skill-code-quality",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "4668f4767dca050d095a776c86b3fd6363766cc733ec3d707fca5c7bd0147a21"
@@ -843,7 +843,7 @@
       "id": "skill-performance-engineering",
       "source": "https://github.com/chainabit/plugins.git#foundations/skill-performance-engineering",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "87ebd732dd714890ff5635d9d42982c559bf4c35a191ee42e4d2b474cf53c3bc"
@@ -853,7 +853,7 @@
       "id": "skill-observability",
       "source": "https://github.com/chainabit/plugins.git#foundations/skill-observability",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "e053df93f4b386a6411894e403095414af5f0971b7d713b8ad70a37067253ef6"
@@ -863,7 +863,7 @@
       "id": "skill-reliability",
       "source": "https://github.com/chainabit/plugins.git#foundations/skill-reliability",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "7fdf706f020e4363f6762259fd255f3277db7a02116609e10e84fe894553882e"
@@ -873,7 +873,7 @@
       "id": "skill-incident-response",
       "source": "https://github.com/chainabit/plugins.git#foundations/skill-incident-response",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "6b67065579ed0d988e497ea610bc61839be8ef76ba58f0bbe7ab210ba947f2dc"
@@ -883,7 +883,7 @@
       "id": "skill-desktop-engineering",
       "source": "https://github.com/chainabit/plugins.git#foundations/skill-desktop-engineering",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "9b61b224c23f787815593c7f28b5d06401dc2248daa10f4cbe7a4a8c900a5d58"
@@ -893,7 +893,7 @@
       "id": "skill-mobile-architecture",
       "source": "https://github.com/chainabit/plugins.git#foundations/skill-mobile-architecture",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "c4d6f38f7bb6990dc4897e8c957ae2d5478349ca61c9fd5732b0391a793964d8"
@@ -903,7 +903,7 @@
       "id": "skill-cli-design",
       "source": "https://github.com/chainabit/plugins.git#tooling/skill-cli-design",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "491b083593f8977a004df1000d352afed7609b15316e20dc4eb03d009e51d645"
@@ -913,7 +913,7 @@
       "id": "skill-developer-tooling",
       "source": "https://github.com/chainabit/plugins.git#tooling/skill-developer-tooling",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "e36c33bb686f5b260cc3412ac342c8f23a2d447781a3fe213589fdc5d8093545"
@@ -923,7 +923,7 @@
       "id": "skill-docker",
       "source": "https://github.com/chainabit/plugins.git#infrastructure/skill-docker",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "81301d63143db92dbc0d35eb30a57e65a1787bb47d4008aa35833ab8d34ec6db"
@@ -933,7 +933,7 @@
       "id": "skill-kubernetes",
       "source": "https://github.com/chainabit/plugins.git#infrastructure/skill-kubernetes",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "c7146db8215d49868ec5e4e8b48699e9780d5625290bdfaaa9ffda08c7369a5e"
@@ -943,7 +943,7 @@
       "id": "skill-terraform",
       "source": "https://github.com/chainabit/plugins.git#infrastructure/skill-terraform",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "e96927690984b31e586fa4562c9a0fea4f3c759cfc724359d7f7e1d4ba479919"
@@ -953,7 +953,7 @@
       "id": "skill-ansible",
       "source": "https://github.com/chainabit/plugins.git#infrastructure/skill-ansible",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "3a01d7aa11f951bb8dbe3832b3d9280ea609f364b04b561932be5eb9203d2458"
@@ -963,7 +963,7 @@
       "id": "skill-helm",
       "source": "https://github.com/chainabit/plugins.git#infrastructure/skill-helm",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "8d2d4d56029ed91860ee90438cf1d9bb0f4749beff11c5f04a3de3fadd608074"
@@ -973,7 +973,7 @@
       "id": "skill-pulumi",
       "source": "https://github.com/chainabit/plugins.git#infrastructure/skill-pulumi",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "2125321eb17ac75fa285d41aa97753d3bebacaaef5fcfb013e198c9e9c0abd86"
@@ -983,7 +983,7 @@
       "id": "skill-postgresql",
       "source": "https://github.com/chainabit/plugins.git#databases/skill-postgresql",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "6f797503ab6e47c9c76593a80b6b17e001d3d6ba4fa829b317b577ec2a1a5d86"
@@ -993,7 +993,7 @@
       "id": "skill-mysql",
       "source": "https://github.com/chainabit/plugins.git#databases/skill-mysql",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "d891aab4960c240f7da260611e8e018504abc6a4f2e28d431e49b28cea6272cf"
@@ -1003,7 +1003,7 @@
       "id": "skill-redis",
       "source": "https://github.com/chainabit/plugins.git#databases/skill-redis",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "ec61820f17af46be4804d3166b3cb62056d097f41aae4d1ee1f996be36921507"
@@ -1013,7 +1013,7 @@
       "id": "skill-mongodb",
       "source": "https://github.com/chainabit/plugins.git#databases/skill-mongodb",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "feac44af8d8797b706f2906158fe3e4c9fa72c16978a8ad16265d4c69c603f05"
@@ -1023,7 +1023,7 @@
       "id": "skill-elasticsearch",
       "source": "https://github.com/chainabit/plugins.git#databases/skill-elasticsearch",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "250af8d1b518de42437806bbd00bc8342fd75eca4542b4e50ba353a0f6b411a2"
@@ -1033,7 +1033,7 @@
       "id": "skill-vector-databases",
       "source": "https://github.com/chainabit/plugins.git#databases/skill-vector-databases",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "013f00252b5faa9d76a014e75eea7df10b51d86ebbca7c27a82ad7fe8836d81e"
@@ -1043,7 +1043,7 @@
       "id": "skill-aws",
       "source": "https://github.com/chainabit/plugins.git#cloud/skill-aws",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "8d63bf9bd083e1032d37a2c4b6b2f3ff3daf98cf2342d33a81de709a1ebb27d8"
@@ -1053,7 +1053,7 @@
       "id": "skill-azure",
       "source": "https://github.com/chainabit/plugins.git#cloud/skill-azure",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "3c7a090708c2ecac3d3616ecb37125a5ab0e90a2976ec60ffcfd4f78861dcfd1"
@@ -1063,7 +1063,7 @@
       "id": "skill-gcp",
       "source": "https://github.com/chainabit/plugins.git#cloud/skill-gcp",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "9f0e97aac0b1cd5eb10761d9d91f7aa8a8416ecc925c413e0efeaadb0eb9e14f"
@@ -1073,7 +1073,7 @@
       "id": "skill-cloudflare",
       "source": "https://github.com/chainabit/plugins.git#cloud/skill-cloudflare",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "2d8872dfabab0e4469e8fe27e944d79962a658bb883894e96d76a2632e6fc8aa"
@@ -1083,7 +1083,7 @@
       "id": "skill-github-actions",
       "source": "https://github.com/chainabit/plugins.git#devops/skill-github-actions",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "0c7cfea8f000270b5c0b9bfe0d8a8d3195e751ee11a63dfd198141abdf8be5a6"
@@ -1093,7 +1093,7 @@
       "id": "skill-gitlab-ci",
       "source": "https://github.com/chainabit/plugins.git#devops/skill-gitlab-ci",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "7b6f7d78e7b42eaacdb366ba7a9bd1adee905e04eade3c21c677e9fb2ccd5b1f"
@@ -1103,7 +1103,7 @@
       "id": "skill-release-engineering",
       "source": "https://github.com/chainabit/plugins.git#devops/skill-release-engineering",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "767627b673e6d64543a7da4f398ccd7b30f82c78a601fd40ded0180ca940d903"
@@ -1113,7 +1113,7 @@
       "id": "skill-test-strategy",
       "source": "https://github.com/chainabit/plugins.git#testing/skill-test-strategy",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "97beea7a085dda18dbd6f77f23d9187257e279530518681d752918e6abe1c3b2"
@@ -1123,7 +1123,7 @@
       "id": "skill-property-testing",
       "source": "https://github.com/chainabit/plugins.git#testing/skill-property-testing",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "6d5ebd624284f2a0067ad4624d4e23e3f295dbf7b633cb1c9d5f3939144c281d"
@@ -1133,7 +1133,7 @@
       "id": "skill-contract-testing",
       "source": "https://github.com/chainabit/plugins.git#testing/skill-contract-testing",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "0904453cda29eb74b6d25f32e97157e5b5a522c3c5a6781f2765a8ee44b568c6"
@@ -1143,7 +1143,7 @@
       "id": "skill-load-testing",
       "source": "https://github.com/chainabit/plugins.git#testing/skill-load-testing",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "6eb3c2e0bbe9e00a0744b9d3346c7286c7bd7730a55b23f2bb5c455f30ae414b"
@@ -1153,7 +1153,7 @@
       "id": "skill-threat-modeling",
       "source": "https://github.com/chainabit/plugins.git#security/skill-threat-modeling",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "c1775649ef3791db16cd33e4205f13f40cad220c7bf8a58aa684d5bf9a1f2519"
@@ -1163,7 +1163,7 @@
       "id": "skill-application-security",
       "source": "https://github.com/chainabit/plugins.git#security/skill-application-security",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "b7ad49cccf2e79118763c00790d6a05900c4f2e8f120c3b1cf24843445886d5d"
@@ -1173,7 +1173,7 @@
       "id": "skill-supply-chain-security",
       "source": "https://github.com/chainabit/plugins.git#security/skill-supply-chain-security",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "7b19aa4728cdedf5bd6e48809fa3fe37d673b3f2012cc672d75d081433b80202"
@@ -1183,7 +1183,7 @@
       "id": "skill-data-engineering",
       "source": "https://github.com/chainabit/plugins.git#data/skill-data-engineering",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "8b16e1b252f431f63affb52467a122bb0757f059186bae78c5baba92e916361a"
@@ -1193,7 +1193,7 @@
       "id": "skill-stream-processing",
       "source": "https://github.com/chainabit/plugins.git#data/skill-stream-processing",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "b388214c835df52d7ae2ec0c713ae36c941988e1f131e31653e90594c26b66f6"
@@ -1203,7 +1203,7 @@
       "id": "skill-ml-engineering",
       "source": "https://github.com/chainabit/plugins.git#ai/skill-ml-engineering",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "cdc7bf9414d6ab22da6a93b38a1b90c3cd219f3d6b19f772be475d35cd005819"
@@ -1213,7 +1213,7 @@
       "id": "skill-llm-applications",
       "source": "https://github.com/chainabit/plugins.git#ai/skill-llm-applications",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "e55a2ce2ca65dfe0afe8ced422805c7093c09100783ce6301097c7e5c294e345"
@@ -1223,7 +1223,7 @@
       "id": "skill-ai-evaluation",
       "source": "https://github.com/chainabit/plugins.git#ai/skill-ai-evaluation",
       "version": "1.0.0",
-      "revision": "fb594dac547d2807f990168ec16373d22d134e66",
+      "revision": "ceaf52435965008169ab7995cb247b1b3e42b90d",
       "integrity": {
         "algorithm": "sha256",
         "packageSha256": "bbe3c53110799041dbd9c6c570795b1fb71f152943914ca321c0e6f36301052d"

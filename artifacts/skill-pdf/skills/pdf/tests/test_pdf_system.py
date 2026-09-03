@@ -7,7 +7,7 @@ from pdf_system.errors import (ErrorCode, PdfError, failure_class,
                                renderer_exit_code)
 from pdf_system.models import PageGeometry
 from pdf_system.verification import verify_pdf
-FIXTURES = Path(__file__).resolve().parent / 'fixtures'
+UNICODE_MARKDOWN = '# Unicode Rendering Coverage\n\nLatin Extended-A: **ğüşöçıİĞÜŞÖÇ**.'
 def production_dependencies_available():
  try:
   import weasyprint, pypdf  # noqa: F401
@@ -40,7 +40,7 @@ class PdfSystemTests(unittest.TestCase):
   self.assertEqual(len(list(self.output.glob('*.pdf'))),4)
  def test_missing_font_assets_are_typed_runtime_failure(self):
   from unittest.mock import patch
-  src=self.source/'unicode.md'; src.write_text('Çağrı Şişli')
+  src=self.source/'unicode.md'; src.write_text('Zoë Faßbinder')
   with patch('pdf_system.service.DEFAULT_FONT_DIR', self.root/'missing'):
    with self.assertRaises(PdfError) as e: PdfService(self.policy).generate_markdown(src,self.output/'unicode.pdf')
   self.assertIn(e.exception.code,{ErrorCode.DEPENDENCY_UNAVAILABLE,ErrorCode.UNSUPPORTED_CAPABILITY,ErrorCode.FONT_FAILURE})
@@ -50,19 +50,19 @@ class PdfSystemTests(unittest.TestCase):
   self.assertTrue(all('missing' in b and 'available' in b for b in report['backends']))
  def test_weasyprint_object_stream_unicode_and_exact_hash(self):
   if not production_dependencies_available():self.skipTest('production PDF dependencies not installed')
-  src=self.source/'tr.md';src.write_text((FIXTURES/'turkish.md').read_text(encoding='utf-8'),encoding='utf-8');out=self.output/'tr.pdf'
+  src=self.source/'unicode.md';src.write_text(UNICODE_MARKDOWN,encoding='utf-8');out=self.output/'unicode.pdf'
   result=PdfService(self.policy).generate_markdown(src,out,lang='tr',deterministic=False,quality_profile='professional')
   self.assertGreater(result.pages,0);self.assertEqual(result.sha256,hashlib.sha256(out.read_bytes()).hexdigest())
   self.assertIn(b'/ObjStm',out.read_bytes());self.assertEqual(verify_pdf(out,self.policy.limits).sha256,result.sha256)
  def test_arabic_companion_font_is_embedded_offline(self):
   if not production_dependencies_available():self.skipTest('production PDF dependencies not installed')
-  src=self.source/'ar.md';src.write_text('# Chainabit\n\nمرحبا بالعالم — Türkçe ğüşöçıİĞÜŞÖÇ',encoding='utf-8');out=self.output/'ar.pdf'
+  src=self.source/'ar.md';src.write_text('# Chainabit\n\nمرحبا بالعالم — Latin Extended-A ğüşöçıİĞÜŞÖÇ',encoding='utf-8');out=self.output/'ar.pdf'
   PdfService(self.policy).generate_markdown(src,out,lang='ar',deterministic=False,quality_profile='professional')
   verification=verify_pdf(out,self.policy.limits)
   self.assertTrue(any('ArtifactArabic' in font.replace(' ','') for font in verification.fonts),verification.fonts)
  def test_long_document_and_page_breaks(self):
   if not production_dependencies_available():self.skipTest('production PDF dependencies not installed')
-  src=self.source/'long.md';src.write_text('# Uzun Rapor\n\n'+('\n\n'.join(f'## Bölüm {i}\n'+('ğüşöçıİĞÜŞÖÇ uzun içerik. '*80) for i in range(40))),encoding='utf-8');out=self.output/'long.pdf'
+  src=self.source/'long.md';src.write_text('# Long Report\n\n'+('\n\n'.join(f'## Section {i}\n'+('ğüşöçıİĞÜŞÖÇ sample content. '*80) for i in range(40))),encoding='utf-8');out=self.output/'long.pdf'
   result=PdfService(self.policy).generate_markdown(src,out,lang='tr',deterministic=False,quality_profile='professional')
   self.assertGreater(result.pages,10);self.assertLessEqual(result.pages,self.policy.limits.max_pages)
  def test_readable_blank_pdf_is_rejected(self):
@@ -83,7 +83,7 @@ class PdfSystemTests(unittest.TestCase):
   self.assertEqual(failure_class(invalid),'invalid_user_input');self.assertEqual(failure_class(dependency),'missing_runtime_dependency')
  def test_cli_success_and_validator_protocols(self):
   if not production_dependencies_available():self.skipTest('production PDF dependencies not installed')
-  src=self.source/'tr.md';src.write_text((FIXTURES/'turkish.md').read_text(encoding='utf-8'),encoding='utf-8');out=self.output/'official.pdf'
+  src=self.source/'unicode.md';src.write_text(UNICODE_MARKDOWN,encoding='utf-8');out=self.output/'official.pdf'
   rendered=subprocess.run([sys.executable,str(ROOT/'scripts/md_to_pdf.py'),str(src),str(out),'--lang','tr'],capture_output=True,text=True,check=False)
   self.assertEqual(rendered.returncode,0,rendered.stderr);render_message=json.loads(rendered.stdout)
   self.assertEqual(render_message['schema'],'chainabit.pdf.execution/v1');self.assertEqual(render_message['output']['sha256'],hashlib.sha256(out.read_bytes()).hexdigest());self.assertEqual(render_message['typography']['family'],'IBM Plex Sans')
