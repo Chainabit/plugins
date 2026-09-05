@@ -27,3 +27,25 @@ dist/
 __pycache__/
 *.py[cod]
 
+
+# Claude Code
+# .claude/settings.json, skills/, agents/ and rules/ ARE committed — they are the
+# team-shared agent configuration. Everything listed here is per-developer or
+# runtime state and must never be committed.
+#
+# Deliberately a denylist, not `.claude/*` plus an allowlist: a stray runtime file
+# turning up in `git status` is loud and fixable, whereas a new legitimate config
+# file being silently skipped is the failure we are fixing here.
+.claude/settings.local.json
+**/.claude/settings.local.json
+**/.claude/worktrees/
+**/.claude/routines/.state/
+**/.claude/checkpoints/
+**/.claude/mailbox/
+**/.claude/.cc-writes/
+**/.claude/scheduled_tasks.lock
+**/.claude/scheduled_tasks.json
+**/.claude/agent-registry.json
+**/.claude/agent-memory-local
+**/.claude/first-run
+**/.claude/assistant-daemon-state.json
