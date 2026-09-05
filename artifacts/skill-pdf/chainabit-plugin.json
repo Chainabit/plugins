@@ -124,7 +124,9 @@
         "entrypoint": "skills/pdf/scripts/md_to_pdf.py",
         "outputArgumentIndex": 3,
         "protocol": "chainabit.pdf.execution/v1",
-        "formats": ["pdf"]
+        "formats": [
+          "pdf"
+        ]
       },
       {
         "id": "skill-pdf.report",
@@ -132,16 +134,33 @@
         "entrypoint": "skills/pdf/scripts/report_pdf.py",
         "outputArgumentIndex": 3,
         "protocol": "chainabit.pdf.execution/v1",
-        "formats": ["pdf"]
+        "formats": [
+          "pdf"
+        ]
       }
     ]
   },
   "typography": {
     "defaultFamily": "IBM Plex Sans",
     "userOverride": true,
-    "fallbackFamilies": ["IBM Plex Sans Arabic"],
+    "fallbackFamilies": [
+      "IBM Plex Sans Arabic"
+    ],
     "runtimeFamilyEnv": "CHAINABIT_ARTIFACT_FONT_FAMILY",
     "runtimeAssetDirEnv": "CHAINABIT_ARTIFACT_FONT_DIR"
+  },
+  "runtime": {
+    "contractVersion": 2,
+    "interpreter": "python3",
+    "cwd": "workspace-root",
+    "assets": [
+      {
+        "id": "fonts.ibm-plex",
+        "envVar": "CHAINABIT_ARTIFACT_FONT_DIR",
+        "defaultPath": "/opt/chainabit/artifact-fonts/ibm-plex-sans",
+        "required": true
+      }
+    ]
   },
   "capabilities": {
     "declared": [

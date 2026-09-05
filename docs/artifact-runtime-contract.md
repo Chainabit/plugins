@@ -27,10 +27,17 @@ artifact registration -> delivery -> durable evidence -> lease cleanup`
 The canonical primary family is **IBM Plex Sans**, derived from Chainabit's
 product design tokens. `IBM Plex Sans Arabic` is the approved companion for
 Arabic-script glyph coverage. Fira Code remains intentionally monospace for
-code. The sandbox image installs pinned, checksum-verified upstream IBM font
-archives and also exposes the same files under
-`/opt/chainabit/artifact-fonts/ibm-plex-sans`; generators never fetch fonts at
-render time.
+code. The host installs pinned, checksum-verified upstream IBM font archives and
+exposes them at a location it chooses; generators never fetch fonts at render
+time.
+
+A generator does not hardcode that location. Each manifest declares the
+dependency as a `runtime.assets` entry — an id, the environment variable the
+host sets, and the path the package falls back to — so the requirement is
+reviewable in the manifest rather than buried in a default argument, and a host
+that puts the bundle somewhere else only has to set the variable. A generator
+whose declared asset is absent exits non-zero and says which one, rather than
+silently substituting a face the typography policy above forbids.
 
 An explicit safe user font takes precedence when the runtime can resolve it.
 With no explicit selection, the generator must use IBM Plex Sans. A font name

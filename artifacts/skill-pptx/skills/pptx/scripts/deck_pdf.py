@@ -431,7 +431,8 @@ def main(argv: list[str] | None = None) -> int:
 
     size = os.path.getsize(args.output)
     print(f"OK: wrote {args.output} ({size} bytes, {len(spec['slides'])} page(s))")
-    print(f'Next: python3 scripts/validate_pdf.py {args.output} (from the pdf skill)')
+    print(f'Next: validate {args.output} with validate_pdf.py from the pdf skill -- \n'
+          'load that skill to get the path it was materialized at; this one does not know it.')
     with open(args.output, "rb") as handle:
         digest = hashlib.sha256(handle.read()).hexdigest()
     print(json.dumps({

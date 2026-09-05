@@ -55,30 +55,47 @@
       "runtime": "python3",
       "validationClass": "content_present",
       "protocol": "chainabit.website.validation/v1",
-      "target": {"kind": "tree", "extensions": []}
+      "target": {
+        "kind": "tree",
+        "extensions": []
+      }
     }
   ],
   "diagnostics": [
     {
       "entrypoint": "skills/static-website/scripts/scaffold_site.py",
-      "inputErrorExitCodes": [1]
+      "inputErrorExitCodes": [
+        1
+      ]
     },
     {
       "entrypoint": "skills/static-website/scripts/validate_site.py",
-      "inputErrorExitCodes": [1]
+      "inputErrorExitCodes": [
+        1
+      ]
     }
   ],
-  "produces": ["static-website"],
+  "produces": [
+    "static-website"
+  ],
   "requires": {
     "python": [],
-    "binaries": ["python3"],
-    "fonts": ["IBM Plex Sans"]
+    "binaries": [
+      "python3"
+    ],
+    "fonts": [
+      "IBM Plex Sans"
+    ]
   },
   "dependencies": {
     "required": {
       "python": [],
-      "binaries": ["python3"],
-      "fonts": ["IBM Plex Sans"]
+      "binaries": [
+        "python3"
+      ],
+      "fonts": [
+        "IBM Plex Sans"
+      ]
     },
     "optional": {}
   },
@@ -100,15 +117,32 @@
         "entrypoint": "skills/static-website/scripts/scaffold_site.py",
         "outputArgumentIndex": 4,
         "protocol": "chainabit.website.execution/v1",
-        "formats": ["static-website"]
+        "formats": [
+          "static-website"
+        ]
       }
     ]
   },
   "typography": {
     "defaultFamily": "IBM Plex Sans",
     "userOverride": true,
-    "fallbackFamilies": ["IBM Plex Sans Arabic"],
+    "fallbackFamilies": [
+      "IBM Plex Sans Arabic"
+    ],
     "runtimeFamilyEnv": "CHAINABIT_ARTIFACT_FONT_FAMILY",
     "runtimeAssetDirEnv": "CHAINABIT_ARTIFACT_FONT_DIR"
+  },
+  "runtime": {
+    "contractVersion": 2,
+    "interpreter": "python3",
+    "cwd": "workspace-root",
+    "assets": [
+      {
+        "id": "fonts.ibm-plex",
+        "envVar": "CHAINABIT_ARTIFACT_FONT_DIR",
+        "defaultPath": "/opt/chainabit/artifact-fonts/ibm-plex-sans",
+        "required": true
+      }
+    ]
   }
 }

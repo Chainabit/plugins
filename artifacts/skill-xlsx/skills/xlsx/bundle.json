@@ -1,28 +1,33 @@
 {
+  "formatVersion": 2,
   "files": [
     {
       "path": "SKILL.md",
       "type": "instructions",
-      "sha256": "ec0fd7fa8b713f56b7469a9de0a0bcfc5576d419c6855b36d8787595b8629894",
-      "bytes": 10480
+      "sha256": "c4a2de22e036fcc09fd39af2163bb854f394e8b4be14a4a90bc9e6f5f2bdceaa",
+      "bytes": 10752,
+      "mode": "0644"
     },
     {
       "path": "scripts/build_xlsx.py",
       "type": "scripts",
-      "sha256": "47d6c00a09a3105732ac205cc7de7dc8905e28a1d8f7f9b28b3fc58fd9445c79",
-      "bytes": 20580
+      "sha256": "edeb32518dd3e7945d233476f8c7aeed39d56809d80ab03981d95e43f82ed703",
+      "bytes": 21188,
+      "mode": "0644"
     },
     {
       "path": "scripts/validate_xlsx.py",
       "type": "scripts",
       "sha256": "c38b2d2f1d5494c6e8f818c9adbcd79bad35872c0dbdbc7cfa7bcafaa80f66f2",
-      "bytes": 14199
+      "bytes": 14199,
+      "mode": "0644"
     },
     {
       "path": "tests/test_artifact_contract.py",
       "type": "metadata",
       "sha256": "fbbebfc2e03489ca4274e92c14ef915bf6d7a5e8f6b386741bd32033bbebfff0",
-      "bytes": 2203
+      "bytes": 2203,
+      "mode": "0644"
     }
   ]
 }
