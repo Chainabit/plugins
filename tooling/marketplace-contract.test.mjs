@@ -10,6 +10,9 @@ import {
   permissionErrors,
   resolveCompositionGraph,
   validateAssetBytes,
+  declaredEntrypoints,
+  instructionPortabilityErrors,
+  scriptPortabilityErrors,
 } from "./marketplace-contract.mjs";
 import { validateMarketplace } from "./validate-marketplace.mjs";
 import { assertLocalCommit } from "./update-marketplace.mjs";
@@ -170,5 +173,74 @@ test("artifact skill instructions advertise every registered production generato
       2,
       `${id} ships a registered generator and must declare runtime.contractVersion 2`,
     );
+  }
+});
+
+test("the portability lint catches the exact prose that produced the incident", () => {
+  // Each input below is a real line that shipped in this repository. The lint
+  // exists because all five of them validated cleanly before it.
+  const shipped = [
+    "If the skill is materialised at `/workspace/.skills/pptx/`, then ...",
+    "python3 scripts/scaffold_site.py --template landing /workspace/site",
+    "cat > /sandbox/spec.json <<'EOF'",
+    "fonts live under /opt/chainabit/artifact-fonts/ibm-plex-sans",
+    "the bundle lands in /home/sandbox/.chainabit/system",
+  ];
+  for (const line of shipped) {
+    assert.ok(
+      instructionPortabilityErrors(line).length > 0,
+      `lint must reject: ${line}`,
+    );
+  }
+
+  // The replacement shape is a reference, so it passes.
+  assert.deepEqual(
+    instructionPortabilityErrors("python3 {{SKILL_DIR}}/scripts/scaffold_site.py --template landing site"),
+    [],
+  );
+  // And prose that merely says the word "workspace" is not a path claim.
+  assert.deepEqual(
+    instructionPortabilityErrors("Output paths are relative to the workspace root."),
+    [],
+  );
+});
+
+test("declared entrypoints are rebased from the manifest's root to the skill's", () => {
+  // The manifest spells an entrypoint plugin-root-relative and SKILL.md spells
+  // it skill-root-relative. Two bases for one file is the same defect one level
+  // down, so the comparison happens in exactly one of them.
+  const manifest = {
+    validators: [{ entrypoint: "skills/pptx/scripts/validate_pptx.py" }],
+    diagnostics: [{ entrypoint: "skills/pptx/scripts/deck_pptx.py" }],
+    artifactContract: { generators: [{ entrypoint: "skills/pptx/scripts/deck_pptx.py" }] },
+  };
+  assert.deepEqual(declaredEntrypoints(manifest, "skills/pptx"), [
+    "scripts/deck_pptx.py",
+    "scripts/validate_pptx.py",
+  ]);
+});
+
+test("a script's hardcoded host path must be a declared runtime asset", () => {
+  const FONTS = "/opt/chainabit/artifact-fonts/ibm-plex-sans";
+  const source = `DIR = os.environ.get("CHAINABIT_ARTIFACT_FONT_DIR", "${FONTS}")`;
+
+  assert.deepEqual(scriptPortabilityErrors(source, [FONTS]), []);
+  assert.equal(scriptPortabilityErrors(source, []).length, 1);
+
+  // A one-segment literal in these scripts is a PDF dictionary key, not a path.
+  assert.deepEqual(scriptPortabilityErrors('key = "/FontDescriptor"', []), []);
+});
+
+test("every shipped executable skill declares how its scripts are addressed", () => {
+  const { manifests } = validateMarketplace(root);
+  for (const [id, entry] of manifests) {
+    const skillRoots = entry.manifest.components?.skills ?? [];
+    const shipsScripts = skillRoots.some((skillRoot) =>
+      existsSync(join(entry.absolute, skillRoot, "scripts")),
+    );
+    if (!shipsScripts) continue;
+    assert.equal(entry.manifest.runtime?.contractVersion, 2, `${id} runtime.contractVersion`);
+    assert.equal(entry.manifest.runtime?.interpreter, "python3", `${id} runtime.interpreter`);
+    assert.equal(entry.manifest.runtime?.cwd, "workspace-root", `${id} runtime.cwd`);
   }
 });
