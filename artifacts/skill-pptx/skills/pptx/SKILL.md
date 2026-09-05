@@ -24,10 +24,12 @@ proves the result can be read from the back of a room.
   exception: empty slides, text spilling out of its box, contrast below the
   readable floor, type under the size floor, over-dense bullet lists.
 
-All script paths below are **relative to this skill's own directory**. If the
-skill is materialised at `/workspace/.skills/pptx/`, then `scripts/deck_pptx.py`
-means `/workspace/.skills/pptx/scripts/deck_pptx.py`. The scripts write only to
-the output path they are given.
+Every script path in this document is written as `{{SKILL_DIR}}/...`. That is a
+reference, not a location: the host substitutes it for wherever it actually put
+this bundle, which is not a place this package gets to decide or predict. Run
+the commands as written. Output paths are relative to your working directory,
+which is the workspace root; the scripts write only to the output path they are
+given.
 
 `python-pptx` and `reportlab` are **already installed** in the sandbox image, so
 both scripts run with no setup step. Do not guess at what else is installed or
@@ -52,7 +54,7 @@ unfinished job, not a judgement call about the medium.
 ## Quick start
 
 ```bash
-cat > /workspace/spec.json <<'EOF'
+cat > spec.json <<'EOF'
 {
   "title": "Q3 Operations Review",
   "author": "Operations",
@@ -72,14 +74,14 @@ cat > /workspace/spec.json <<'EOF'
 }
 EOF
 
-python3 scripts/deck_pptx.py /workspace/spec.json /workspace/q3.pptx
-python3 scripts/validate_pptx.py /workspace/q3.pptx
+python3 {{SKILL_DIR}}/scripts/deck_pptx.py spec.json q3.pptx
+python3 {{SKILL_DIR}}/scripts/validate_pptx.py q3.pptx
 ```
 
 Expected output from the second command:
 
 ```
-OK: /workspace/q3.pptx is a .pptx presentation, 37577 bytes, 4 slide(s), 13.33x7.50 in (16:9)
+OK: <workspace>/q3.pptx is a .pptx presentation, 37577 bytes, 4 slide(s), 13.33x7.50 in (16:9)
   slide 1: 3 text block(s), min font 18pt, min contrast 7.6:1
 ```
 
@@ -89,7 +91,7 @@ and re-run — do not describe a failed build as a finished deck.
 ## Task: build a deck
 
 ```bash
-python3 scripts/deck_pptx.py <spec.json> <output.pptx> [--validate-only]
+python3 {{SKILL_DIR}}/scripts/deck_pptx.py <spec.json> <output.pptx> [--validate-only]
 ```
 
 Run `--validate-only` first when the spec is generated programmatically: it
@@ -99,7 +101,7 @@ anything.
 ### The same deck as a PDF
 
 ```bash
-python3 scripts/deck_pdf.py <spec.json> <output.pdf>
+python3 {{SKILL_DIR}}/scripts/deck_pdf.py <spec.json> <output.pdf>
 ```
 
 One page per slide, same layouts, same palette, same type sizes — because it
@@ -110,9 +112,9 @@ disagree, and a spec that builds a deck builds a PDF.
 Build both whenever both were asked for, and promote both:
 
 ```bash
-python3 scripts/deck_pptx.py spec.json /workspace/out/q3.pptx
-python3 scripts/deck_pdf.py  spec.json /workspace/out/q3.pdf
-python3 scripts/validate_pptx.py /workspace/out/q3.pptx
+python3 {{SKILL_DIR}}/scripts/deck_pptx.py spec.json out/q3.pptx
+python3 {{SKILL_DIR}}/scripts/deck_pdf.py  spec.json out/q3.pdf
+python3 {{SKILL_DIR}}/scripts/validate_pptx.py out/q3.pptx
 ```
 
 The order matters only in that the spec is written once. Do not build the deck,
@@ -160,7 +162,7 @@ make the type smaller.
 ## Task: validate a deck
 
 ```bash
-python3 scripts/validate_pptx.py <file.pptx> [--strict]
+python3 {{SKILL_DIR}}/scripts/validate_pptx.py <file.pptx> [--strict]
 ```
 
 Per slide, it reports empty slides; text overflowing its box or running off the
@@ -205,10 +207,10 @@ colour, a size, or a limit.
 
 | Task                                   | Command |
 |----------------------------------------|---------|
-| Build a deck from a spec                | `python3 scripts/deck_pptx.py spec.json out.pptx` |
-| Render the same spec as a PDF           | `python3 scripts/deck_pdf.py spec.json out.pdf` |
-| Check a spec before building            | `python3 scripts/deck_pptx.py spec.json out.pptx --validate-only` |
-| Confirm a deck is presentable           | `python3 scripts/validate_pptx.py out.pptx` |
+| Build a deck from a spec                | `python3 {{SKILL_DIR}}/scripts/deck_pptx.py spec.json out.pptx` |
+| Render the same spec as a PDF           | `python3 {{SKILL_DIR}}/scripts/deck_pdf.py spec.json out.pdf` |
+| Check a spec before building            | `python3 {{SKILL_DIR}}/scripts/deck_pptx.py spec.json out.pptx --validate-only` |
+| Confirm a deck is presentable           | `python3 {{SKILL_DIR}}/scripts/validate_pptx.py out.pptx` |
 
 All three scripts accept `--help`.
 

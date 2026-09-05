@@ -15,24 +15,38 @@ Choose this variation only after inspecting the requested behavior and available
 
 Build from content and information architecture, then run the generator and validator. Keep source, generated preview, and temporary files distinct. A static implementation is correct only when its actual serving path, links, assets, responsive behavior, and documented commands are verified.
 
+Every script path in this document is written as `{{SKILL_DIR}}/...`. That is a
+reference, not a location: the host substitutes it for wherever it actually put
+this bundle, which is not a place this package gets to decide or predict. Run
+the commands as written. Output paths are relative to your working directory,
+which is the workspace root; the scripts write only to the output path they are
+given.
+
+The generator needs the host's IBM Plex bundle, which the manifest declares as
+the `fonts.ibm-plex` runtime asset; if it is absent the script exits 2 and says
+so rather than silently substituting a face. What else the environment has, and
+whether you may install more, are properties of the container and its policy
+rather than of this skill — call the `workspace.env` tool instead of assuming
+either way.
+
 ## Registered production path
 
 For a minimal deterministic site, invoke the registered generator directly and
 then its authoritative validator:
 
 ```bash
-python3 scripts/scaffold_site.py --template landing /workspace/site
-python3 scripts/validate_site.py /workspace/site
+python3 {{SKILL_DIR}}/scripts/scaffold_site.py --template landing site
+python3 {{SKILL_DIR}}/scripts/validate_site.py site
 ```
 
 For custom content, print a template spec, edit only the bounded content fields,
 validate it, generate the tree, and validate the emitted site:
 
 ```bash
-python3 scripts/scaffold_site.py --template landing --print-spec > /workspace/site.json
-python3 scripts/scaffold_site.py --spec /workspace/site.json --validate-only
-python3 scripts/scaffold_site.py --spec /workspace/site.json /workspace/site
-python3 scripts/validate_site.py /workspace/site
+python3 {{SKILL_DIR}}/scripts/scaffold_site.py --template landing --print-spec > site.json
+python3 {{SKILL_DIR}}/scripts/scaffold_site.py --spec site.json --validate-only
+python3 {{SKILL_DIR}}/scripts/scaffold_site.py --spec site.json site
+python3 {{SKILL_DIR}}/scripts/validate_site.py site
 ```
 
 Do not use `--help` as a generation attempt: it emits no artifact identity proof.

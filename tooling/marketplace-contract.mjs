@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { existsSync, lstatSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, lstatSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 
 export const SOURCE_REPO = "https://github.com/chainabit/plugins.git";
@@ -128,15 +128,28 @@ export function bundleInventory(skillRoot) {
     .filter((path) => path !== BUNDLE_FILENAME)
     .sort()
     .map((path) => {
-      const bytes = readFileSync(join(skillRoot, ...path.split("/")));
+      const absolute = join(skillRoot, ...path.split("/"));
+      const bytes = readFileSync(absolute);
       return {
         path,
         type: classifyBundlePath(path),
         sha256: createHash("sha256").update(bytes).digest("hex"),
         bytes: bytes.length,
+        mode: (statSync(absolute).mode & 0o777) === 0o755 ? "0755" : "0644",
       };
     });
-  return { files };
+
+  // The mode is only recorded where it decides something. A bundle that ships
+  // scripts is invoked, and every script in this repository is published 0644
+  // with a shebang nothing chmods -- so a consumer that trusts the shebang and
+  // runs `./script` fails, while one that reads the mode invokes through the
+  // declared interpreter. A prose-only bundle has no such decision to make, so
+  // it stays on the v1 shape rather than carrying a field for the sake of
+  // uniformity.
+  if (!files.some((file) => file.type === "scripts")) {
+    return { files: files.map(({ mode: _mode, ...rest }) => rest) };
+  }
+  return { formatVersion: 2, files };
 }
 
 export function expectedAuthorities(manifest) {
@@ -232,4 +245,93 @@ export function sourceFragment(source) {
 
 export function assertPackagePath(root) {
   if (!existsSync(root) || !lstatSync(root).isDirectory()) throw new Error(`plugin root is not a directory: ${root}`);
+}
+
+// ── Portability: a package may not describe a filesystem it does not own ────
+//
+// A package's instructions and scripts reach a host that decides where the
+// bundle lands. When either one names a location instead of asking for one, the
+// package becomes a second filesystem API — and the two disagree the moment the
+// host changes anything. That is not hypothetical here: four SKILL.md files
+// claimed materialization at `/workspace/.skills/<skillName>/` while the
+// runtime used `<pluginId>-<skillName>`, so the path the instructions told a
+// reader to run was wrong in the only environment that ever ran it.
+//
+// The replacement is a reference rather than a path. `{{SKILL_DIR}}` is
+// substituted by the host with wherever it actually put the bundle, so an
+// unsubstituted token is visibly symbolic instead of quietly wrong.
+
+export const SKILL_DIR_PLACEHOLDER = "{{SKILL_DIR}}";
+
+/** Host locations a package must not name. Each was found in this repository. */
+const FORBIDDEN_INSTRUCTION_PATTERNS = [
+  [/\/workspace(?![A-Za-z0-9_-])/, "/workspace"],
+  [/\/sandbox(?![A-Za-z0-9_-])/, "/sandbox"],
+  [/(?:^|[^A-Za-z0-9_./-])\.skills(?![A-Za-z0-9_-])/m, ".skills"],
+  [/\/home\/[a-z]/, "/home/<user>"],
+  [/\/opt\/[a-z]/, "/opt/<dir>"],
+];
+
+/**
+ * Every declared entrypoint, rebased from plugin-root-relative (how the
+ * manifest spells it) to skill-root-relative (how SKILL.md must).
+ *
+ * The two bases coexisting in one package is the same defect one level down:
+ * `skills/pptx/scripts/deck_pptx.py` and `scripts/deck_pptx.py` name one file,
+ * and nothing declared which root either was relative to.
+ */
+export function declaredEntrypoints(manifest, skillPath) {
+  const prefix = `${skillPath}/`;
+  const raw = [
+    ...(manifest.validators ?? []).map((entry) => entry?.entrypoint),
+    ...(manifest.diagnostics ?? []).map((entry) => entry?.entrypoint),
+    ...(manifest.artifactContract?.generators ?? []).map((entry) => entry?.entrypoint),
+  ];
+  const rebased = new Set();
+  for (const entry of raw) {
+    if (typeof entry !== "string" || !entry.startsWith(prefix)) continue;
+    rebased.add(entry.slice(prefix.length));
+  }
+  return [...rebased].sort();
+}
+
+/** Host paths a package's prose must not contain. */
+export function instructionPortabilityErrors(text) {
+  const errors = [];
+  for (const [pattern, label] of FORBIDDEN_INSTRUCTION_PATTERNS) {
+    if (pattern.test(text)) {
+      errors.push(
+        `SKILL.md names the host location "${label}"; address bundled files as ${SKILL_DIR_PLACEHOLDER}/<path> and outputs relative to the working directory`,
+      );
+    }
+  }
+  return errors;
+}
+
+/**
+ * Absolute paths a script hardcodes that the manifest never declared.
+ *
+ * Scoped to literals with at least two segments, because a one-segment literal
+ * in this repository is a PDF dictionary key (`/Font`, `/Resources`) and not a
+ * filesystem path at all. The one real finding — the artifact font directory —
+ * is exactly the kind of host dependency `runtime.assets` exists to declare.
+ */
+export function scriptPortabilityErrors(source, declaredAssetPaths) {
+  const declared = new Set(declaredAssetPaths);
+  const errors = new Set();
+  for (const match of source.matchAll(/['"](\/[^'"\s]+\/[^'"\s]+)['"]/g)) {
+    const candidate = match[1];
+    if (declared.has(candidate)) continue;
+    errors.add(
+      `hardcodes the host path "${candidate}"; declare it in the manifest's runtime.assets so it is reviewable, or derive it at run time`,
+    );
+  }
+  return [...errors];
+}
+
+/** The defaultPath of every host asset a manifest declares. */
+export function declaredAssetPaths(manifest) {
+  return (manifest.runtime?.assets ?? [])
+    .map((asset) => asset?.defaultPath)
+    .filter((path) => typeof path === "string");
 }

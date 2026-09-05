@@ -18,9 +18,12 @@ metadata:
   assets that cannot load, `<img>` with no `alt`, a page with no `<title>`.
   Nothing is done until it exits 0.
 
-Script paths below are **relative to this skill's directory**: at
-`/workspace/.skills/website/`, `scripts/scaffold_site.py` means
-`/workspace/.skills/website/scripts/scaffold_site.py`.
+Every script path in this document is written as `{{SKILL_DIR}}/...`. That is a
+reference, not a location: the host substitutes it for wherever it actually put
+this bundle, which is not a place this package gets to decide or predict. Run
+the commands as written. Output paths are relative to your working directory,
+which is the workspace root; the scripts write only to the output path they are
+given.
 
 ## Scope: what "website" means here
 
@@ -58,12 +61,12 @@ report a nested entry point separately from a missing one — the fix differs.
 From a template, or via its spec — dump, edit, rebuild:
 
 ```bash
-python3 scripts/scaffold_site.py --template portfolio /workspace/site
-python3 scripts/validate_site.py /workspace/site        # OK: ... entry point index.html
+python3 {{SKILL_DIR}}/scripts/scaffold_site.py --template portfolio site
+python3 {{SKILL_DIR}}/scripts/validate_site.py site        # OK: ... entry point index.html
 
-python3 scripts/scaffold_site.py --template landing --print-spec > /workspace/spec.json
-python3 scripts/scaffold_site.py --spec /workspace/spec.json --validate-only
-python3 scripts/scaffold_site.py --spec /workspace/spec.json /workspace/site
+python3 {{SKILL_DIR}}/scripts/scaffold_site.py --template landing --print-spec > spec.json
+python3 {{SKILL_DIR}}/scripts/scaffold_site.py --spec spec.json --validate-only
+python3 {{SKILL_DIR}}/scripts/scaffold_site.py --spec spec.json site
 ```
 
 `--validate-only` checks the whole spec and writes nothing, so a malformed spec
@@ -124,7 +127,7 @@ them at once and re-run. Do not fix one and retry.
 ## Task: validate a site
 
 ```bash
-python3 scripts/validate_site.py <directory> [--strict]
+python3 {{SKILL_DIR}}/scripts/validate_site.py <directory> [--strict]
 ```
 
 Per file it reports: a missing entry point, and separately a nested one; broken
@@ -160,7 +163,7 @@ breakpoint.
 
 ## Script quick reference
 
-| Task | Command (prefix `python3 scripts/`) |
+| Task | Command (prefix `python3 {{SKILL_DIR}}/scripts/`) |
 |------|--------------------------------------|
 | Build from a template | `scaffold_site.py --template portfolio ./site` |
 | Dump a spec to edit | `scaffold_site.py --template blog --print-spec > spec.json` |

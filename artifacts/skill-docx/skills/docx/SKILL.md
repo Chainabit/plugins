@@ -19,10 +19,12 @@ a real document that says something.
   document and reports the defects that are invisible from a file listing: a
   document that opens blank, and raw Markdown rendered as literal characters.
 
-All script paths in this document are **relative to this skill's own directory**. If
-the skill is materialised at `/workspace/.skills/docx/`, then `scripts/build_docx.py`
-means `/workspace/.skills/docx/scripts/build_docx.py`. The scripts write only to the
-output path they are given.
+Every script path in this document is written as `{{SKILL_DIR}}/...`. That is a
+reference, not a location: the host substitutes it for wherever it actually put
+this bundle, which is not a place this package gets to decide or predict. Run
+the commands as written. Output paths are relative to your working directory,
+which is the workspace root; the scripts write only to the output path they are
+given.
 
 `python-docx` is **already installed** in the sandbox image, so these scripts
 need no setup step. What else is installed, and whether you may install more,
@@ -44,7 +46,7 @@ Markdown text and name it `.docx`.** Renaming does not convert. A file containin
 ## Quick start
 
 ```bash
-cat > /workspace/spec.json <<'EOF'
+cat > spec.json <<'EOF'
 {
   "properties": { "title": "Saha Raporu", "author": "Platform Ekibi" },
   "blocks": [
@@ -58,14 +60,14 @@ cat > /workspace/spec.json <<'EOF'
 }
 EOF
 
-python3 scripts/build_docx.py /workspace/spec.json /workspace/out/rapor.docx
-python3 scripts/validate_docx.py /workspace/out/rapor.docx
+python3 {{SKILL_DIR}}/scripts/build_docx.py spec.json out/rapor.docx
+python3 {{SKILL_DIR}}/scripts/validate_docx.py out/rapor.docx
 ```
 
 ## Task: build a document
 
 ```bash
-python3 scripts/build_docx.py <spec.json> <output.docx> [--validate-only]
+python3 {{SKILL_DIR}}/scripts/build_docx.py <spec.json> <output.docx> [--validate-only]
 ```
 
 `--validate-only` checks the spec and writes nothing. Use it when assembling a spec
@@ -123,7 +125,7 @@ them together rather than rebuilding once per error.
 ## Task: validate a document
 
 ```bash
-python3 scripts/validate_docx.py <file.docx> [--strict]
+python3 {{SKILL_DIR}}/scripts/validate_docx.py <file.docx> [--strict]
 ```
 
 Exit `0` means the document is real and has readable content. Exit `1` means it is
@@ -157,5 +159,5 @@ Step 3 is not optional. `build_docx.py` reports that it wrote bytes to a path; o
 
 | Script | Purpose | Exit 0 means |
 |--------|---------|--------------|
-| `scripts/build_docx.py` | Spec → `.docx` | The document was written. |
-| `scripts/validate_docx.py` | `.docx` → verdict | The document is real and has content. |
+| `{{SKILL_DIR}}/scripts/build_docx.py` | Spec → `.docx` | The document was written. |
+| `{{SKILL_DIR}}/scripts/validate_docx.py` | `.docx` → verdict | The document is real and has content. |

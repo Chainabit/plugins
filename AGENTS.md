@@ -50,8 +50,41 @@ CI runs exactly these four, plus a credential-pattern scan, on PRs and pushes to
 - An executing component **must** declare matching authority.
 - Every `marketplace.json` entry **must** carry `integrity.packageSha256`.
 - Compatibility plugins **must** declare `aliasOf` and carry no duplicate payload.
+- A skill shipping `scripts/` **must** declare `runtime.contractVersion: 2`, address every
+  declared entrypoint in `SKILL.md` as `{{SKILL_DIR}}/<path>`, name no host location
+  (`/workspace`, `/sandbox`, `.skills`, `/home/…`, `/opt/…`) anywhere in its instructions, and
+  declare any absolute path its scripts read as a `runtime.assets` entry.
 
 `skill-website/` exists solely to preserve a historical plugin id. Do not rename or move it.
+
+## A package describes what it needs, never where it will live
+
+`{{SKILL_DIR}}` is a reference the host substitutes for wherever it actually materialized the
+bundle. It is not decoration and it is not a convention that can be relaxed for one command.
+
+The rule is written against what happened without it. Four `SKILL.md` files stated that the
+skill is materialized at `/workspace/.skills/<skillName>/` — a location this repository does not
+control and got wrong, because the runtime uses `<pluginId>-<skillName>`. A fifth carried no
+anchoring sentence at all and mixed a bare `scripts/scaffold_site.py` with an absolute
+`/workspace/site` output in one command. Production telemetry then shows the predictable result
+fourteen times: `can't open file '/workspace/scripts/deck_pptx.py': [Errno 2]`, because the
+working directory when a host runs a generator is the workspace root, not the bundle.
+
+Two corollaries that are easy to miss:
+
+- **A path a script PRINTS is an instruction too.** `Next: python3 scripts/validate_pptx.py` was
+  emitted on every successful build and was wrong in the only environment that ran it. A script
+  knows where it is; sibling invocations are derived from `__file__`, never spelled by hand. A
+  path in *another* skill's bundle is not knowable from here at all — say which script, and let
+  the host say where.
+- **A host path a script READS must be declared.** The artifact font directory was a default
+  argument in four scripts and a declared requirement in none, so nothing could tell that the
+  packages depended on it. It is now a `runtime.assets` entry, and the validator rejects any
+  other absolute path a script hardcodes.
+
+Bundled scripts are published `0644` with a shebang nothing backs, so they are invoked through
+the interpreter the manifest declares. `bundle.json` records the mode (`formatVersion: 2`) rather
+than leaving a consumer to trust the shebang.
 
 ## Review boundaries
 
