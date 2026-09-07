@@ -1,40 +1,47 @@
 {
+  "formatVersion": 2,
   "files": [
     {
       "path": "SKILL.md",
       "type": "instructions",
-      "sha256": "160dae3d6c856c29c8c8e5913de5bf4afb0639d3c0d585f0fc6dfe313462663c",
-      "bytes": 10774
+      "sha256": "9621bc67a1708d1d8c43652442b985ea3bf0971def09de2038e449d642a94873",
+      "bytes": 10998,
+      "mode": "0644"
     },
     {
       "path": "references/design.md",
       "type": "references",
       "sha256": "4677732fc14c7dd870567e9d62b9683272c3df9f493d8813850188cad7c692fb",
-      "bytes": 6447
+      "bytes": 6447,
+      "mode": "0644"
     },
     {
       "path": "scripts/deck_pdf.py",
       "type": "scripts",
-      "sha256": "c23f2ff89d5ba52ce34b144ec44407c570920026732ee2f8611b8e0ec4a15312",
-      "bytes": 17216
+      "sha256": "d530221be53927c52cccbdec12b57d54df08a9119c1369c2139df2de026d3ed5",
+      "bytes": 17313,
+      "mode": "0644"
     },
     {
       "path": "scripts/deck_pptx.py",
       "type": "scripts",
-      "sha256": "904f7081e1b3e45c7450c6cab057b33e8a80211238dd5559ddd2b755e795cb01",
-      "bytes": 31053
+      "sha256": "cd645f42ac8909dbee33d7343568fdc392eda944d25c0e4a0019a088ab10c621",
+      "bytes": 31661,
+      "mode": "0644"
     },
     {
       "path": "scripts/validate_pptx.py",
       "type": "scripts",
       "sha256": "093d65da52954a59f56238652cd4afab8089916da1b6edf1ebf820b683b08b5c",
-      "bytes": 43786
+      "bytes": 43786,
+      "mode": "0644"
     },
     {
       "path": "tests/test_artifact_contract.py",
       "type": "metadata",
       "sha256": "ad592df4cd872d3e9b823af2441f3883bc41a9c8f492524e2098ad0bddda0eeb",
-      "bytes": 4592
+      "bytes": 4592,
+      "mode": "0644"
     }
   ]
 }

@@ -19,10 +19,12 @@ a real workbook whose numbers are actually numbers.
   reports the two defects that are invisible on screen: empty sheets, and numbers
   stored as text.
 
-All script paths in this document are **relative to this skill's own directory**. If
-the skill is materialised at `/workspace/.skills/xlsx/`, then `scripts/build_xlsx.py`
-means `/workspace/.skills/xlsx/scripts/build_xlsx.py`. The scripts write only to the
-output path they are given.
+Every script path in this document is written as `{{SKILL_DIR}}/...`. That is a
+reference, not a location: the host substitutes it for wherever it actually put
+this bundle, which is not a place this package gets to decide or predict. Run
+the commands as written. Output paths are relative to your working directory,
+which is the workspace root; the scripts write only to the output path they are
+given.
 
 `openpyxl` and `pandas` are **already installed** in the sandbox image, so these
 scripts need no setup step and tabular analysis needs no download. What else is
@@ -41,7 +43,7 @@ Excel.
 ## Quick start
 
 ```bash
-cat > /workspace/spec.json <<'EOF'
+cat > spec.json <<'EOF'
 {
   "properties": { "title": "Bölge Satışları" },
   "sheets": [
@@ -64,14 +66,14 @@ cat > /workspace/spec.json <<'EOF'
 }
 EOF
 
-python3 scripts/build_xlsx.py /workspace/spec.json /workspace/satislar.xlsx
-python3 scripts/validate_xlsx.py /workspace/satislar.xlsx
+python3 {{SKILL_DIR}}/scripts/build_xlsx.py spec.json satislar.xlsx
+python3 {{SKILL_DIR}}/scripts/validate_xlsx.py satislar.xlsx
 ```
 
 Expected output from the second command:
 
 ```
-OK: /workspace/satislar.xlsx is an .xlsx workbook, 5729 bytes, 1 sheet(s)
+OK: <workspace>/satislar.xlsx is an .xlsx workbook, 5729 bytes, 1 sheet(s)
   Satışlar: 4 row(s), 20 populated cell(s)
 ```
 
@@ -81,7 +83,7 @@ re-run — do not describe a failed build as a finished workbook.
 ## Task: build a workbook
 
 ```bash
-python3 scripts/build_xlsx.py <spec.json> <output.xlsx> [--validate-only]
+python3 {{SKILL_DIR}}/scripts/build_xlsx.py <spec.json> <output.xlsx> [--validate-only]
 ```
 
 Run `--validate-only` first when the spec is generated programmatically: it checks
@@ -176,7 +178,7 @@ and summing for every row that was fine.
 ## Task: validate a workbook
 
 ```bash
-python3 scripts/validate_xlsx.py <file.xlsx> [--strict]
+python3 {{SKILL_DIR}}/scripts/validate_xlsx.py <file.xlsx> [--strict]
 ```
 
 Confirms the file is a ZIP container holding the required workbook parts, lists every
@@ -211,10 +213,10 @@ this skill did not produce.
 
 | Task                                   | Script                      | Command |
 |----------------------------------------|-----------------------------|---------|
-| Build a workbook from a spec            | `scripts/build_xlsx.py`     | `python3 scripts/build_xlsx.py spec.json out.xlsx` |
-| Check a spec before building            | `scripts/build_xlsx.py`     | `python3 scripts/build_xlsx.py spec.json out.xlsx --validate-only` |
-| Confirm a workbook is real and populated | `scripts/validate_xlsx.py`  | `python3 scripts/validate_xlsx.py out.xlsx` |
-| Same, failing on any warning            | `scripts/validate_xlsx.py`  | `python3 scripts/validate_xlsx.py out.xlsx --strict` |
-| Inspect a workbook produced elsewhere   | `scripts/validate_xlsx.py`  | `python3 scripts/validate_xlsx.py received.xlsx` |
+| Build a workbook from a spec            | `{{SKILL_DIR}}/scripts/build_xlsx.py`     | `python3 {{SKILL_DIR}}/scripts/build_xlsx.py spec.json out.xlsx` |
+| Check a spec before building            | `{{SKILL_DIR}}/scripts/build_xlsx.py`     | `python3 {{SKILL_DIR}}/scripts/build_xlsx.py spec.json out.xlsx --validate-only` |
+| Confirm a workbook is real and populated | `{{SKILL_DIR}}/scripts/validate_xlsx.py`  | `python3 {{SKILL_DIR}}/scripts/validate_xlsx.py out.xlsx` |
+| Same, failing on any warning            | `{{SKILL_DIR}}/scripts/validate_xlsx.py`  | `python3 {{SKILL_DIR}}/scripts/validate_xlsx.py out.xlsx --strict` |
+| Inspect a workbook produced elsewhere   | `{{SKILL_DIR}}/scripts/validate_xlsx.py`  | `python3 {{SKILL_DIR}}/scripts/validate_xlsx.py received.xlsx` |
 
 Both scripts accept `--help`.

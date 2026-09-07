@@ -47,6 +47,16 @@ import os
 import re
 import sys
 
+
+# A path this script prints is an instruction the reader will run, so it has to
+# be correct from the reader's working directory -- which is the workspace root,
+# not this bundle. `scripts/validate_x.py` was only ever right by accident, and
+# in the environment that actually runs these scripts it was wrong: the bundle
+# lives wherever the host materialized it. `__file__` is the one thing that
+# knows, so sibling invocations are derived from it rather than guessed.
+def _sibling_command(script: str) -> str:
+    return f"python3 {os.path.join(os.path.dirname(os.path.abspath(__file__)), script)}"
+
 COLUMN_TYPES = ("text", "number", "integer", "date", "datetime", "boolean", "formula")
 
 # Default number formats per type, applied when a column declares no "format".
@@ -510,7 +520,7 @@ def main(argv: list[str] | None = None) -> int:
 
     size = os.path.getsize(args.output)
     print(f"OK: wrote {args.output} ({size} bytes)")
-    print(f"Next: python3 scripts/validate_xlsx.py {args.output}")
+    print(f"Next: {_sibling_command('validate_xlsx.py')} {args.output}")
     with open(args.output, "rb") as handle:
         digest = hashlib.sha256(handle.read()).hexdigest()
     font = spec.get("font") or DEFAULT_FONT

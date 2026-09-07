@@ -54,6 +54,16 @@ import tempfile
 import xml.etree.ElementTree as ET
 import zipfile
 
+
+# A path this script prints is an instruction the reader will run, so it has to
+# be correct from the reader's working directory -- which is the workspace root,
+# not this bundle. `scripts/validate_x.py` was only ever right by accident, and
+# in the environment that actually runs these scripts it was wrong: the bundle
+# lives wherever the host materialized it. `__file__` is the one thing that
+# knows, so sibling invocations are derived from it rather than guessed.
+def _sibling_command(script: str) -> str:
+    return f"python3 {os.path.join(os.path.dirname(os.path.abspath(__file__)), script)}"
+
 LAYOUTS = ("title", "content", "comparison", "closing")
 DEFAULT_FONT = os.environ.get("CHAINABIT_ARTIFACT_FONT_FAMILY", "IBM Plex Sans").strip() or "IBM Plex Sans"
 ARABIC_FALLBACK_FONT = "IBM Plex Sans Arabic"
@@ -765,7 +775,7 @@ def main(argv: list[str] | None = None) -> int:
 
     size = os.path.getsize(args.output)
     print(f"OK: wrote {args.output} ({size} bytes, {len(spec['slides'])} slide(s))")
-    print(f"Next: python3 scripts/validate_pptx.py {args.output}")
+    print(f"Next: {_sibling_command('validate_pptx.py')} {args.output}")
     print(json.dumps(artifact_identity(args.output, len(spec["slides"]), spec.get("font") or DEFAULT_FONT), sort_keys=True))
     return 0
 

@@ -11,11 +11,11 @@ metadata:
 Use this skill for documents and reports intended to be delivered as PDFs. The production contract requires the audited WeasyPrint renderer, pypdf verification, and runtime-provided IBM Plex Sans assets. A capability probe must succeed before a render is attempted; a missing dependency or font is a platform failure, never invalid user input.
 
 ```bash
-python3 scripts/pdf_tool.py capabilities
-python3 scripts/pdf_tool.py diagnose markdown report.md
-python3 scripts/md_to_pdf.py report.md report.pdf
-python3 scripts/report_pdf.py report.json report.pdf
-python3 scripts/validate_pdf.py report.pdf
+python3 {{SKILL_DIR}}/scripts/pdf_tool.py capabilities
+python3 {{SKILL_DIR}}/scripts/pdf_tool.py diagnose markdown report.md
+python3 {{SKILL_DIR}}/scripts/md_to_pdf.py report.md report.pdf
+python3 {{SKILL_DIR}}/scripts/report_pdf.py report.json report.pdf
+python3 {{SKILL_DIR}}/scripts/validate_pdf.py report.pdf
 ```
 
 The two generation commands above are the registered production entrypoints.
@@ -28,7 +28,7 @@ are intentionally rejected by the filesystem boundary. Run validation as its
 own command, or join generation and validation with `&&`. Never place a later
 command such as `ls` after validation with `;` or a bare newline, because its
 zero exit status can hide a rejected PDF. Promote only after
-`scripts/validate_pdf.py` itself exits successfully.
+`{{SKILL_DIR}}/scripts/validate_pdf.py` itself exits successfully.
 
 Before rendering, infer the document's requirements: Unicode and fonts, Turkish/RTL/CJK shaping, images, tables, Markdown/HTML/CSS, pagination, headers/footers, mathematics, vector graphics, typography, colors, print quality, metadata, accessibility, or manipulation. Resolve a backend only if it advertises every required capability and has tests for that behavior. Missing dependencies and unsupported features are actionable machine-readable failures; do not print raw math, replace glyphs, omit images, flatten tables, or fall back to the text renderer.
 

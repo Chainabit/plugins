@@ -13,6 +13,8 @@ import {
   dependencyIdAndConstraint, isImmutableRevision, isSafePluginPath,
   isSafeRelativePath, packageDigest, permissionErrors, repoRelative,
   resolveCompositionGraph, sourceFragment, validateAssetBytes,
+  SKILL_DIR_PLACEHOLDER, declaredAssetPaths, declaredEntrypoints,
+  instructionPortabilityErrors, scriptPortabilityErrors,
 } from "./marketplace-contract.mjs";
 
 const MANIFEST = "chainabit-plugin.json";
@@ -140,14 +142,71 @@ function validateBundle(pluginRoot, skillPath, folder, manifest, problems, write
   const actualByPath = new Map(computed.files.map((file) => [file.path, file]));
   const declaredByPath = new Map();
   for (const file of declared.files) {
-    if (!file || typeof file !== "object" || !isSafeRelativePath(file.path) || declaredByPath.has(file.path) || !SHA256_PATTERN.test(file.sha256 ?? "") || !Number.isInteger(file.bytes) || !["instructions", "references", "scripts", "assets", "metadata"].includes(file.type)) { fail(problems, folder, `${skillPath}/${BUNDLE_FILENAME} contains an invalid file entry`); continue; }
+    if (!file || typeof file !== "object" || !isSafeRelativePath(file.path) || declaredByPath.has(file.path) || !SHA256_PATTERN.test(file.sha256 ?? "") || !Number.isInteger(file.bytes) || !["instructions", "references", "scripts", "assets", "metadata"].includes(file.type) || (file.mode !== undefined && !["0644", "0755"].includes(file.mode))) { fail(problems, folder, `${skillPath}/${BUNDLE_FILENAME} contains an invalid file entry`); continue; }
     declaredByPath.set(file.path, file);
   }
   for (const path of declaredByPath.keys()) if (!actualByPath.has(path)) fail(problems, folder, `${skillPath}/${BUNDLE_FILENAME} declares missing file ${path}`);
   for (const [path, actual] of actualByPath) {
     const expected = declaredByPath.get(path);
     if (!expected) { fail(problems, folder, `${skillPath}/${path} is not declared in ${BUNDLE_FILENAME}`); continue; }
-    if (expected.sha256 !== actual.sha256 || expected.bytes !== actual.bytes || expected.type !== classifyBundlePath(path)) fail(problems, folder, `${skillPath}/${BUNDLE_FILENAME} is stale or misclassified for ${path}`);
+    if (expected.sha256 !== actual.sha256 || expected.bytes !== actual.bytes || expected.type !== classifyBundlePath(path) || expected.mode !== actual.mode) fail(problems, folder, `${skillPath}/${BUNDLE_FILENAME} is stale or misclassified for ${path}`);
+  }
+
+  validatePortability(skillRoot, skillPath, folder, manifest, computed, readFileSync(document, "utf8"), problems);
+}
+
+/**
+ * A package may describe what it needs; it may not describe where it will live.
+ *
+ * Every rule here was written against a finding in this repository, not against
+ * a style preference:
+ *
+ *  - four SKILL.md files asserted materialization at `/workspace/.skills/<skillName>/`
+ *    while the runtime used `<pluginId>-<skillName>`, so the path the instructions
+ *    told a reader to run did not exist in the only environment that ran it;
+ *  - one shipped no anchoring sentence at all and mixed a bare `scripts/...`
+ *    invocation with an absolute `/workspace/site` output in a single command;
+ *  - the scripts' one genuine host dependency, the artifact font directory, was a
+ *    default argument in four files and a declared requirement in none.
+ *
+ * A package that ships scripts must therefore say how they are addressed
+ * (`runtime.contractVersion`), address them through the placeholder the host
+ * substitutes, and declare any host path it reads.
+ */
+function validatePortability(skillRoot, skillPath, folder, manifest, computed, instructions, problems) {
+  const shipsScripts = computed.files.some((file) => file.type === "scripts");
+  if (!shipsScripts) return;
+
+  const runtime = manifest.runtime;
+  if (!runtime || runtime.contractVersion !== 2) {
+    fail(problems, folder, `${skillPath} ships scripts and must declare runtime.contractVersion 2, so a host knows its instructions address files through ${SKILL_DIR_PLACEHOLDER} rather than by a path it has to guess`);
+    return;
+  }
+
+  for (const error of instructionPortabilityErrors(instructions)) fail(problems, folder, `${skillPath}: ${error}`);
+
+  for (const entrypoint of declaredEntrypoints(manifest, skillPath)) {
+    if (!instructions.includes(`${SKILL_DIR_PLACEHOLDER}/${entrypoint}`)) {
+      fail(problems, folder, `${skillPath}/SKILL.md must invoke its declared entrypoint as ${SKILL_DIR_PLACEHOLDER}/${entrypoint}`);
+    }
+  }
+
+  const assetPaths = declaredAssetPaths(manifest);
+  for (const file of computed.files) {
+    if (file.type !== "scripts") continue;
+    const source = readFileSync(join(skillRoot, ...file.path.split("/")), "utf8");
+    for (const error of scriptPortabilityErrors(source, assetPaths)) {
+      fail(problems, folder, `${skillPath}/${file.path} ${error}`);
+    }
+  }
+
+  // Published non-executable, every one of them, with a shebang nothing backs.
+  // Recording the mode is what lets a consumer invoke through the declared
+  // interpreter on purpose rather than by discovering that `./script` fails.
+  const bundlePath = join(skillRoot, BUNDLE_FILENAME);
+  const declared = existsSync(bundlePath) ? readJson(bundlePath) : null;
+  if (declared && declared.formatVersion !== 2) {
+    fail(problems, folder, `${skillPath}/${BUNDLE_FILENAME} must declare formatVersion 2 and a mode for every file once the skill ships scripts`);
   }
 }
 

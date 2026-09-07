@@ -138,6 +138,39 @@
         "runtimeAssetDirEnv": { "type": "string", "minLength": 1 }
       }
     },
+    "runtime": {
+      "description": "What this package needs from an execution environment, declared rather than assumed. Without it a package's only way to state a runtime requirement was to hardcode a host path in a script or in prose, which made the package a second, undocumented filesystem API for whoever ran it.",
+      "type": "object", "additionalProperties": false,
+      "required": ["contractVersion", "interpreter", "cwd"],
+      "properties": {
+        "contractVersion": {
+          "description": "1 (assumed when this block is absent) means SKILL.md addresses bundled files by paths that are only valid relative to some root the package does not control. 2 means it addresses them through {{SKILL_DIR}}, which the host substitutes for the location it actually materialized the bundle at. A host that cannot honour a version must refuse the package at registration rather than at first command.",
+          "type": "integer", "enum": [1, 2]
+        },
+        "interpreter": {
+          "description": "How a bundled script is invoked. Bundled scripts are published non-executable, so the shebang is decorative and the interpreter is not inferable from the file.",
+          "type": "string", "enum": ["python3", "node"]
+        },
+        "cwd": {
+          "description": "What the working directory is when the host runs a declared entrypoint. 'workspace-root' means the user's writable tree -- so outputs are named relative to it and never by an absolute host path.",
+          "type": "string", "enum": ["workspace-root"]
+        },
+        "assets": {
+          "description": "Host-provided resources the scripts read. Each names the environment variable the host sets and the path the package falls back to, so the dependency is reviewable instead of buried in a default argument.",
+          "type": "array", "uniqueItems": true,
+          "items": {
+            "type": "object", "additionalProperties": false,
+            "required": ["id", "envVar", "defaultPath", "required"],
+            "properties": {
+              "id": { "type": "string", "pattern": "^[a-z0-9]+(\\.[a-z0-9-]+)*$" },
+              "envVar": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+              "defaultPath": { "type": "string", "pattern": "^/" },
+              "required": { "type": "boolean" }
+            }
+          }
+        }
+      }
+    },
     "capabilities": { "$ref": "capabilities.schema.json" },
     "installation": { "$ref": "installation.schema.json" }
   },

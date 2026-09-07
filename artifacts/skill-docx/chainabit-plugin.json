@@ -79,7 +79,9 @@
     "binaries": [
       "python3"
     ],
-    "fonts": ["IBM Plex Sans"]
+    "fonts": [
+      "IBM Plex Sans"
+    ]
   },
   "dependencies": {
     "required": {
@@ -89,7 +91,9 @@
       "binaries": [
         "python3"
       ],
-      "fonts": ["IBM Plex Sans"]
+      "fonts": [
+        "IBM Plex Sans"
+      ]
     },
     "optional": {}
   },
@@ -112,16 +116,33 @@
         "entrypoint": "skills/docx/scripts/build_docx.py",
         "outputArgumentIndex": 3,
         "protocol": "chainabit.docx.execution/v1",
-        "formats": ["docx"]
+        "formats": [
+          "docx"
+        ]
       }
     ]
   },
   "typography": {
     "defaultFamily": "IBM Plex Sans",
     "userOverride": true,
-    "fallbackFamilies": ["IBM Plex Sans Arabic"],
+    "fallbackFamilies": [
+      "IBM Plex Sans Arabic"
+    ],
     "runtimeFamilyEnv": "CHAINABIT_ARTIFACT_FONT_FAMILY",
     "runtimeAssetDirEnv": "CHAINABIT_ARTIFACT_FONT_DIR"
+  },
+  "runtime": {
+    "contractVersion": 2,
+    "interpreter": "python3",
+    "cwd": "workspace-root",
+    "assets": [
+      {
+        "id": "fonts.ibm-plex",
+        "envVar": "CHAINABIT_ARTIFACT_FONT_DIR",
+        "defaultPath": "/opt/chainabit/artifact-fonts/ibm-plex-sans",
+        "required": true
+      }
+    ]
   },
   "capabilities": {
     "declared": [
