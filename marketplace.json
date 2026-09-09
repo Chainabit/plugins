@@ -40,6 +40,16 @@
       }
     },
     {
+      "id": "skill-archive",
+      "source": "https://github.com/chainabit/plugins.git#artifacts/skill-archive",
+      "version": "1.0.0",
+      "revision": "fea636f71177eb91442b1d9be14a6981aeca193b",
+      "integrity": {
+        "algorithm": "sha256",
+        "packageSha256": "720d860f9fd51193c9896556042c0941d4d0d49c00063471c5ac072aceb01ece"
+      }
+    },
+    {
       "id": "skill-pdf",
       "source": "https://github.com/chainabit/plugins.git#artifacts/skill-pdf",
       "version": "5.2.3",

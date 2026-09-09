@@ -37,11 +37,18 @@ Two traps:
 node tooling/validate-marketplace.mjs                   # the gate — run before every PR
 node --test tooling/marketplace-contract.test.mjs       # semantic fixtures
 node tooling/resolve-skills.mjs skill-pdf               # composition resolution
+node tooling/run-skill-tests.mjs                        # every skill's own executable tests
 node tooling/validate-marketplace.mjs --write-bundles   # regenerate bundle.json inventories
 ```
 
-CI runs exactly these four, plus a credential-pattern scan, on PRs and pushes to `main`,
+CI runs exactly these five, plus a credential-pattern scan, on PRs and pushes to `main`,
 `development`, `development-rebased`.
+
+A skill's `tests/` directory is executed, not just packaged. `run-skill-tests.mjs` discovers
+every `<category>/<plugin>/skills/<skill>/tests/` holding `test_*.py` and runs it with
+`python3 -m unittest discover`; a skill that adds tests is picked up without editing the runner
+or the workflow. Before this existed the directories shipped as inert payload, which reads as
+coverage while verifying nothing.
 
 ## Invariants the validator enforces
 
