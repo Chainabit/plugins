@@ -1,0 +1,133 @@
+{
+  "schemaVersion": 2,
+  "id": "skill-archive",
+  "name": "Archive Packaging Skill",
+  "version": "1.0.0",
+  "description": "Packages a selected file or directory into one deterministic, bounded ZIP archive and verifies the written container reads back before reporting it.",
+  "author": {
+    "name": "NEXUS Community"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/chainabit/plugins/tree/main/artifacts/skill-archive",
+  "categories": [
+    "productivity",
+    "data"
+  ],
+  "keywords": [
+    "skill",
+    "archive",
+    "zip",
+    "package",
+    "bundle",
+    "deliverable"
+  ],
+  "compatibility": {
+    "minVersion": "0.9.0"
+  },
+  "components": {
+    "skills": [
+      "skills/archive"
+    ]
+  },
+  "permissions": {
+    "network": [],
+    "filesystem": [],
+    "shell": false,
+    "execute": true,
+    "dangerousSkipPermissions": false,
+    "permissionModelVersion": 2,
+    "requested": [
+      "sandbox.execute"
+    ]
+  },
+  "validators": [
+    {
+      "id": "skill-archive.validate_archive",
+      "entrypoint": "skills/archive/scripts/validate_archive.py",
+      "runtime": "python3",
+      "validationClass": "content_present",
+      "protocol": "chainabit.archive.validation/v1",
+      "target": {
+        "kind": "file",
+        "extensions": [
+          ".zip"
+        ]
+      }
+    }
+  ],
+  "diagnostics": [
+    {
+      "entrypoint": "skills/archive/scripts/build_archive.py",
+      "inputErrorExitCodes": [
+        1
+      ]
+    },
+    {
+      "entrypoint": "skills/archive/scripts/validate_archive.py",
+      "inputErrorExitCodes": [
+        1
+      ]
+    }
+  ],
+  "produces": [
+    ".zip"
+  ],
+  "requires": {
+    "python": [],
+    "binaries": [
+      "python3"
+    ]
+  },
+  "dependencies": {
+    "required": {
+      "python": [],
+      "binaries": [
+        "python3"
+      ]
+    },
+    "optional": {}
+  },
+  "artifactContract": {
+    "formats": [
+      {
+        "format": "zip",
+        "outputShape": "file",
+        "extension": ".zip",
+        "mimeType": "application/zip",
+        "validatorId": "skill-archive.validate_archive",
+        "validatorProtocol": "chainabit.archive.validation/v1",
+        "minimumValidationClass": "content_present"
+      }
+    ],
+    "generators": [
+      {
+        "id": "skill-archive.zip",
+        "runtime": "python3",
+        "entrypoint": "skills/archive/scripts/build_archive.py",
+        "outputArgumentIndex": 3,
+        "protocol": "chainabit.archive.execution/v1",
+        "formats": [
+          "zip"
+        ]
+      }
+    ]
+  },
+  "runtime": {
+    "contractVersion": 2,
+    "interpreter": "python3",
+    "cwd": "workspace-root",
+    "assets": []
+  },
+  "capabilities": {
+    "declared": [
+      {
+        "id": "skill-archive.core",
+        "kind": "skill",
+        "verifiedBehaviors": [
+          "declared bundle behavior"
+        ]
+      }
+    ],
+    "requested": []
+  }
+}
