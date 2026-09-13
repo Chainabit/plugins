@@ -36,16 +36,10 @@ and reading the glyphs back out of the PDF, not by trusting exit code 0.
 
 ## Page geometry
 
-`md_to_pdf.py` uses an `@page` rule: A4, margins `22mm 18mm 20mm 18mm`, and a
-`counter(page) / counter(pages)` footer. Override any of it with `--css`:
-
-```css
-@page {
-  size: A4 landscape;
-  margin: 15mm;
-  @bottom-center { content: ""; }   /* drop the page numbers */
-}
-```
+`md_to_pdf.py` uses a print-first `@page` rule and supports the documented
+`--page-size`, `--orientation`, and `--font` inputs. It deliberately rejects
+arbitrary `--css`: CSS is not a public styling boundary and accepting it would
+allow a prompt to bypass the audited document system.
 
 `report_pdf.py` uses a 50pt left/right margin, 54pt top, 48pt bottom, and honours
 `"pageSize": "A4" | "letter"` from the spec. Table column widths are given as
@@ -68,8 +62,12 @@ one test document and fail on the next:
 
 ## Colour
 
-Colours are stated as hex values in a restrained grey scale (`#111827` text,
-`#6b7280` secondary, `#e5e7eb` rules, `#f3f4f6` table headers). Print output has no
-dark mode to accommodate, so the palette is fixed rather than theme-aware. Keep
-text near-black: mid-grey body text that reads acceptably on a screen is thin and
-washed out on paper.
+The default print palette is the light projection of the composed
+`skill-brand-defaults` profile: `#FFFFFF` background, `#101828` headings,
+`#364153` body, `#6A7282` muted text, `#E5E7EB` rules, and `#327B61` accent.
+Print output intentionally has no dark-mode variant. A competing user brand
+must use the structured report specification and supply a complete `palette`
+object (including `background`, `surface`, `ink`, `body`, `muted`, `rule`,
+`accent`, and `accentInk`); it replaces every default role rather than mixing
+with Chainabit colours. Keep text near-black: mid-grey body text that reads
+acceptably on a screen is thin and washed out on paper.

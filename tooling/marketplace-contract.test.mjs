@@ -75,14 +75,23 @@ test("visual artifact skills compose one brand-default policy and renderer proje
     );
   }
 
+  const visualRoles = ["background", "surface", "ink", "body", "muted", "rule", "accent"];
   const checks = [
-    [join(root, "web", "skill-static-website", "skills", "static-website", "scripts", "scaffold_site.py"), profile.default.lightPalette.accent, profile.default.darkPalette.accent],
-    [join(root, "artifacts", "skill-pdf", "skills", "pdf", "pdf_system", "service.py"), profile.default.lightPalette.accent, profile.default.lightPalette.ink],
-    [join(root, "artifacts", "skill-pptx", "skills", "pptx", "scripts", "deck_pptx.py"), profile.default.lightPalette.accent, profile.default.darkPalette.accent],
+    [join(root, "web", "skill-static-website", "skills", "static-website", "scripts", "scaffold_site.py"), ["lightPalette", "darkPalette"], [...visualRoles, "accentInk"]],
+    [join(root, "artifacts", "skill-pdf", "skills", "pdf", "pdf_system", "service.py"), ["lightPalette"], [...visualRoles, "accentInk"]],
+    // The deck has no text on an accent surface, so accentInk is not a
+    // renderer input. Its seven displayed roles still anchor to the profile.
+    [join(root, "artifacts", "skill-pptx", "skills", "pptx", "scripts", "deck_pptx.py"), ["lightPalette", "darkPalette"], visualRoles],
   ];
-  for (const [path, ...values] of checks) {
+  for (const [path, modes, roles] of checks) {
     const source = readFileSync(path, "utf8");
-    for (const value of values) assert.match(source, new RegExp(value.slice(1), "i"));
+    assert.match(source, /IBM Plex Sans/);
+    for (const mode of modes) {
+      for (const role of roles) {
+        const value = profile.default[mode][role];
+        assert.match(source, new RegExp(value.slice(1), "i"), `${path} must project ${mode}.${role}`);
+      }
+    }
   }
 });
 

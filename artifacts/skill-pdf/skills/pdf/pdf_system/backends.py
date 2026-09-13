@@ -139,11 +139,13 @@ class ReportLabRenderer(PdfRenderer):
                 regular, semibold = resolve("Regular"), resolve("Semibold")
             if not regular.is_file() or not semibold.is_file():
                 raise PdfError(ErrorCode.FONT_FAILURE, "approved artifact font assets are unavailable")
-            palette = document.get("palette") or {
-                "background": "#FFFFFF", "surface": "#F9FAFB", "ink": "#101828",
-                "body": "#364153", "muted": "#6A7282", "rule": "#E5E7EB",
-                "accent": "#327B61", "accentInk": "#FFFFFF",
-            }
+            # PdfService is the controller and validates/resolves the complete
+            # palette before this isolated renderer is selected.  Do not grow
+            # a second default here: it would be a divergent brand source and
+            # could combine user values with stale renderer defaults.
+            palette = document.get("palette")
+            if not isinstance(palette, dict):
+                raise PdfError(ErrorCode.INVALID_INPUT, "ReportLab requires a resolved document palette")
             pdfmetrics.registerFont(TTFont("ChainabitArtifact", str(regular)))
             pdfmetrics.registerFont(TTFont("ChainabitArtifactSemiBold", str(semibold)))
             styles = getSampleStyleSheet(); body = ParagraphStyle("body", parent=styles["BodyText"], fontName="ChainabitArtifact", leading=14, textColor=colors.HexColor(palette["body"])); heading = ParagraphStyle("heading", parent=styles["Heading2"], fontName="ChainabitArtifactSemiBold", textColor=colors.HexColor(palette["ink"]))
