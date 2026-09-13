@@ -3,7 +3,7 @@ name: pptx
 description: Builds real .pptx presentations inside the sandbox from a JSON spec, using four brand-safe layouts with a checked palette and type scale, renders that same spec as a matching PDF, and verifies the result is presentable before it is handed back. Use when the requested deliverable is a slide deck: the request mentions PowerPoint, pptx, .pptx, slides, a deck, a presentation, a pitch, "sunum", "slayt", a board update or a talk - including when it also asks for a PDF of that deck, or for the deck in several formats at once. Also use to check whether an existing .pptx is valid, or whether its slides are empty, overflowing, unreadably small, or too dense. Do NOT use when the deliverable is a document or report meant to be read rather than shown - use the pdf skill; do NOT use for a spreadsheet (.xlsx), a Markdown outline, or a web page. Renders Turkish and other Latin Extended-A characters correctly.
 license: Apache-2.0
 metadata:
-  version: 1.2.1
+  version: 1.2.2
 ---
 
 # Presentation generation
@@ -44,7 +44,9 @@ creating a deck spec: an explicit user brand, supplied template/reference, font,
 palette, or design language wins. With none of those signals, the renderer uses
 the Chainabit default presentation system. Never add Chainabit styling back into
 an explicitly branded deck. For a competing font, style, brand, or reference,
-write both the font and a complete `palette` into the spec.
+write both the font and a complete `palette` into the spec. A non-Chainabit
+`font` without that complete palette is rejected rather than inheriting
+Chainabit colours.
 
 A deck is for talking over. If the deliverable is meant to be *read* — a report,
 a memo, a one-pager — build a PDF with the `pdf` skill instead. A document

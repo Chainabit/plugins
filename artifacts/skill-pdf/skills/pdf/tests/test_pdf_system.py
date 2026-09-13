@@ -56,6 +56,13 @@ class PdfSystemTests(unittest.TestCase):
   self.assertEqual(resolve_palette(custom)['accent'], '#6D28D9')
   self.assertEqual(resolve_palette(None)['accent'], '#327B61')
   self.assertIn('must include every role', validate_palette({'accent':'#6D28D9'})[0])
+  font_only={'title':'Customer report','font':'Avenir Next','blocks':[{'type':'paragraph','text':'Body'}]}
+  self.assertTrue(any('requires a complete palette' in error for error in PdfService.validate_report(font_only)))
+ def test_noncanonical_markdown_font_requires_complete_palette(self):
+  src=self.source/'custom.md';src.write_text('# Customer\n\nBody')
+  with self.assertRaises(PdfError) as error:
+   PdfService(self.policy).generate_markdown(src,self.output/'custom.pdf',font='Avenir Next')
+  self.assertIn('requires a complete palette',error.exception.message)
  def test_reportlab_receives_the_controller_resolved_palette(self):
   """Renderer adapters consume one resolved palette; they do not own defaults."""
   from types import SimpleNamespace

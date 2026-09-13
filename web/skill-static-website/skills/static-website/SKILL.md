@@ -3,7 +3,7 @@ name: static-website
 description: Static HTML/CSS implementation with servability, deterministic output, and link/asset checks; one website variation, not a universal web rule.
 license: Apache-2.0
 metadata:
-  version: 1.1.3
+  version: 1.1.4
   discovery: "static HTML/CSS implementation and servability checks"
   layer: implementation
   requires: "skill-software-engineering, skill-project-bootstrap, skill-git, skill-project-documentation, skill-web-engineering"
@@ -66,9 +66,10 @@ succeeds.
 `site.font` is a safe named CSS family; omit it for the locally packaged IBM
 Plex Sans default. A competing name such as `Inter` stays first in a
 local/system `sans-serif` stack and is never fetched remotely or followed by a
-Chainabit fallback. The existing `accent` and `accentDark` fields remain a
-narrow accent override. For a different visual identity, use `site.palette`
-instead: it must provide every
+Chainabit fallback. A non-Chainabit `site.font` requires `site.palette`, so an
+explicit typeface cannot accidentally inherit Chainabit colours. The existing
+`accent` and `accentDark` fields remain a narrow accent override. For a
+different visual identity, use `site.palette` instead: it must provide every
 role (`background`, `surface`, `ink`, `body`, `muted`, `rule`, `accent`, and
 `accentInk`) for every active theme (`light`, `dark`, or both for `auto`). A
 complete palette deliberately has no Chainabit fallback roles, so it cannot

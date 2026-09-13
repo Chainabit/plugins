@@ -110,6 +110,8 @@ class PdfService:
         if not text.strip(): raise PdfError(ErrorCode.INVALID_INPUT, "Markdown source is empty")
         palette_errors = validate_palette(palette)
         if palette_errors: raise PdfError(ErrorCode.INVALID_INPUT, "; ".join(palette_errors))
+        if isinstance(font, str) and font.strip() != DEFAULT_FONT_FAMILY and palette is None:
+            raise PdfError(ErrorCode.INVALID_INPUT, "a non-Chainabit font override requires a complete palette")
         reject_active_markup(text); req = DocumentRequirements.infer("markdown", text, "basic" if deterministic else quality_profile)
         backend, self.last_decision = self.resolver.resolve(req)
         document = self._markdown_html(text, self.policy, self._font_family(font), resolve_palette(palette), palette is None and font is None); metadata = {"Title": title or source.stem, "Lang": lang, "Creator": "chainabit-pdf"}
@@ -293,6 +295,8 @@ blockquote{{margin:14pt 0;padding:10pt 14pt;background:{palette["surface"]};bord
         errors=[]
         if not isinstance(spec.get("title"),str) or not spec["title"].strip(): errors.append("title is required")
         if spec.get("font") is not None and (not isinstance(spec.get("font"), str) or not SAFE_FONT_NAME.fullmatch(spec["font"].strip())): errors.append("font must be a safe non-empty family name")
+        if isinstance(spec.get("font"), str) and SAFE_FONT_NAME.fullmatch(spec["font"].strip()) and spec["font"].strip() != DEFAULT_FONT_FAMILY and spec.get("palette") is None:
+            errors.append("a non-Chainabit font override requires a complete palette")
         errors.extend(validate_palette(spec.get("palette")))
         blocks=spec.get("blocks")
         if not isinstance(blocks,list) or not blocks: return errors+["blocks must be a non-empty array"]

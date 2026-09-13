@@ -373,6 +373,15 @@ def validate_spec(spec: object) -> tuple[dict, SpecErrors]:
         font_source = "user_override"
 
     requested_palette = site.get("palette")
+    if (
+        font_source == "user_override"
+        and font not in AVAILABLE_WEB_FAMILIES
+        and requested_palette is None
+    ):
+        errors.add(
+            "site.palette",
+            "is required for a non-Chainabit font override; supply complete active palettes",
+        )
     active_modes = ("light", "dark") if theme == "auto" else (theme,)
     palettes = {mode: dict(DEFAULT_PALETTES[mode]) for mode in THEMES if mode != "auto"} if requested_palette is None else {}
     palette_source = "chainabit_default"

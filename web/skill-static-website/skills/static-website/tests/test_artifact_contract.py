@@ -84,6 +84,14 @@ class StaticWebsiteArtifactContractTests(unittest.TestCase):
             self.assertEqual(rejected.returncode, 1)
             self.assertIn("must include every role", rejected.stderr)
 
+            font_only = json.loads(json.dumps(custom))
+            font_only["site"].pop("palette")
+            font_only_source = root / "font-only.json"
+            font_only_source.write_text(json.dumps(font_only), encoding="utf-8")
+            rejected = subprocess.run([sys.executable, str(ROOT / "scripts/scaffold_site.py"), "--spec", str(font_only_source), "--validate-only"], env=env, capture_output=True, text=True, check=False)
+            self.assertEqual(rejected.returncode, 1)
+            self.assertIn("required for a non-Chainabit font override", rejected.stderr)
+
             site = root / "IBM-Plex-Sans"
             css = site / "assets/site.css"
             css.write_text(css.read_text(encoding="utf-8") + "\n.bad{background:url(https://internal.invalid/secret)}", encoding="utf-8")

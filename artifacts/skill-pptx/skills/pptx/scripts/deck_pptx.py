@@ -219,6 +219,14 @@ def validate_spec(spec: object) -> list[str]:
         problems.append(f'aspect: must be "16:9" or "4:3", found {aspect!r}')
 
     palette = spec.get("palette")
+    if (
+        isinstance(spec.get("font"), str)
+        and spec["font"].strip() != DEFAULT_FONT
+        and palette is None
+    ):
+        problems.append(
+            "palette: required for a non-Chainabit font override; supply every palette role"
+        )
     if palette is not None:
         if not isinstance(palette, dict):
             problems.append("palette: must be an object with every palette role")

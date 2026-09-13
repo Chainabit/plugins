@@ -3,7 +3,7 @@ name: pdf
 description: Create, validate, and manipulate secure PDF artifacts. Inspect required capabilities first and prefer the highest-quality available backend; never silently downgrade rich content.
 license: Apache-2.0
 metadata:
-  version: 5.2.4
+  version: 5.2.5
 ---
 
 # PDF artifact system
@@ -43,7 +43,8 @@ For a structured report, encode an explicit visual override in the JSON spec:
 role — `background`, `surface`, `ink`, `body`, `muted`, `rule`, `accent`, and
 `accentInk`. A complete palette replaces the default rather than inheriting any
 Chainabit role; when a custom palette is used the automatic `CHAINABIT` footer
-is omitted. Use a report spec rather than unsafe custom CSS for a branded PDF.
+is omitted. A non-Chainabit `font` without that complete palette is rejected.
+Use a report spec rather than unsafe custom CSS for a branded PDF.
 
 Before rendering, infer the document's requirements: Unicode and fonts, Turkish/RTL/CJK shaping, images, tables, Markdown/HTML/CSS, pagination, headers/footers, mathematics, vector graphics, typography, colors, print quality, metadata, accessibility, or manipulation. Resolve a backend only if it advertises every required capability and has tests for that behavior. Missing dependencies and unsupported features are actionable machine-readable failures; do not print raw math, replace glyphs, omit images, flatten tables, or fall back to the text renderer.
 

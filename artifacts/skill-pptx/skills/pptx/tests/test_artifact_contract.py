@@ -11,6 +11,11 @@ import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+CUSTOM_PALETTE = {
+    "background": "#FFFFFF", "surface": "#FDFBFF", "ink": "#2D123D",
+    "body": "#4C2C5B", "muted": "#6B4C7A", "rule": "#DEC9EA",
+    "accent": "#6D28D9",
+}
 
 
 def dependency_available() -> bool:
@@ -53,8 +58,8 @@ class PptxArtifactContractTests(unittest.TestCase):
         return output, frame, temporary
 
     def test_default_and_override_typography_validate_exact_bytes(self) -> None:
-        for requested, expected in ((None, "IBM Plex Sans"), ("Avenir Next", "Avenir Next")):
-            output, produced, temporary = self.render(requested)
+        for requested, expected, palette in ((None, "IBM Plex Sans", None), ("Avenir Next", "Avenir Next", CUSTOM_PALETTE)):
+            output, produced, temporary = self.render(requested, palette)
             try:
                 validated = subprocess.run(
                     [sys.executable, str(ROOT / "scripts/validate_pptx.py"), str(output)],
@@ -74,17 +79,12 @@ class PptxArtifactContractTests(unittest.TestCase):
                         for name in package.namelist()
                         if name.startswith("ppt/slides/slide") and name.endswith(".xml")
                     )
-                self.assertIn(b"327B61", slides)
+                self.assertIn((b"6D28D9" if palette else b"327B61"), slides)
             finally:
                 temporary.cleanup()
 
     def test_complete_custom_palette_replaces_the_default(self) -> None:
-        palette = {
-            "background": "#FFFFFF", "surface": "#FDFBFF", "ink": "#2D123D",
-            "body": "#4C2C5B", "muted": "#6B4C7A", "rule": "#DEC9EA",
-            "accent": "#6D28D9",
-        }
-        output, _produced, temporary = self.render("Avenir Next", palette)
+        output, _produced, temporary = self.render("Avenir Next", CUSTOM_PALETTE)
         try:
             with zipfile.ZipFile(output) as package:
                 slides = b"".join(
@@ -144,6 +144,36 @@ class PptxArtifactContractTests(unittest.TestCase):
             self.assertIn("references missing", rejected.stderr.lower())
         finally:
             temporary.cleanup()
+
+
+class PptxSpecValidationTests(unittest.TestCase):
+    """Palette resolution is testable even outside the optional PPTX runtime."""
+
+    def test_noncanonical_font_requires_complete_palette(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "spec.json"
+            output = root / "deck.pptx"
+            spec = {"title": "Customer deck", "font": "Avenir Next", "slides": [{"layout": "closing", "title": "Done"}]}
+            source.write_text(json.dumps(spec), encoding="utf-8")
+            rejected = subprocess.run(
+                [sys.executable, str(ROOT / "scripts/deck_pptx.py"), str(source), str(output), "--validate-only"],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(rejected.returncode, 1)
+            self.assertIn("required for a non-Chainabit font override", rejected.stderr)
+
+            spec["palette"] = CUSTOM_PALETTE
+            source.write_text(json.dumps(spec), encoding="utf-8")
+            accepted = subprocess.run(
+                [sys.executable, str(ROOT / "scripts/deck_pptx.py"), str(source), str(output), "--validate-only"],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(accepted.returncode, 0, accepted.stderr)
 
 
 if __name__ == "__main__":

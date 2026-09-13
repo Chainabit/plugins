@@ -4,8 +4,8 @@
     {
       "path": "SKILL.md",
       "type": "instructions",
-      "sha256": "16f912808db8823b721a61ff594f234f260e314d4070a5200a2b5a8a3db4eaf2",
-      "bytes": 11758,
+      "sha256": "fed6eb73d90b4cbe83223ae515fc40d91efbb4094bae2b8e63752e187abb6dc5",
+      "bytes": 11865,
       "mode": "0644"
     },
     {
@@ -25,8 +25,8 @@
     {
       "path": "scripts/deck_pptx.py",
       "type": "scripts",
-      "sha256": "0087acd4b38d86b00c4a191fcffd3d9dc9a4d5efcd227d6bcecba5908592708c",
-      "bytes": 32753,
+      "sha256": "b2c3e9cffe90673a76bf564d2161ea41369ec5d647e999540af36ca87079ff64",
+      "bytes": 33016,
       "mode": "0644"
     },
     {
@@ -39,8 +39,8 @@
     {
       "path": "tests/test_artifact_contract.py",
       "type": "metadata",
-      "sha256": "9f796ed9c025a1e0ebbd9eb938876b418300afc68335fd384d6092112c76c22f",
-      "bytes": 6549,
+      "sha256": "6de1ab281237537134e733dcf2dec2df3843ef8468aae41e465c0e92040911fb",
+      "bytes": 8002,
       "mode": "0644"
     }
   ]
