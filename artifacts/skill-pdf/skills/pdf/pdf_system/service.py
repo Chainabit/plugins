@@ -141,7 +141,12 @@ class PdfService:
         target = safe_output(destination, self.policy); started = time.monotonic()
         with TemporaryArtifact(self.policy) as temp:
             staged = temp / "result.pdf"
-            document = document.replace("@page{size:A4;", f"@page{{size:{geometry.width:.2f}pt {geometry.height:.2f}pt;")
+            # HTML owns the @page declaration; the ReportLab adapter receives
+            # a structured report dict. Applying an HTML-only replacement at
+            # this shared persistence boundary used to crash every ReportLab
+            # report before its renderer was invoked.
+            if isinstance(document, str):
+                document = document.replace("@page{size:A4;", f"@page{{size:{geometry.width:.2f}pt {geometry.height:.2f}pt;")
             backend.render(document, geometry, {k:v for k,v in metadata.items() if v}, staged, self.policy)
             result = verify_pdf(staged, self.policy.limits); os.replace(staged, target); return Verification(result.bytes, result.pages, result.version, result.sha256, result.mime_type, result.warnings + (f"backend={backend.capabilities.name}", f"duration_ms={(time.monotonic()-started)*1000:.1f}"))
     def _paginate(self, lines: list[str], geometry: PageGeometry) -> list[list[str]]:

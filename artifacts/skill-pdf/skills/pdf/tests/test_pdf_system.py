@@ -74,6 +74,20 @@ class PdfSystemTests(unittest.TestCase):
   service._render=lambda document, *_: observed.setdefault('document',document)
   service.generate_report(source,self.output/'report.pdf')
   self.assertEqual(observed['document']['palette'],custom)
+ def test_structured_report_crosses_the_shared_render_boundary_without_html_mutation(self):
+  """ReportLab gets its dict intact; only WeasyPrint documents are HTML."""
+  from types import SimpleNamespace
+  from unittest.mock import patch
+  captured={}
+  class Backend:
+   capabilities=SimpleNamespace(name='reportlab')
+   def render(self,document,geometry,metadata,destination,policy):
+    captured['document']=document
+    destination.write_bytes(b'%PDF-sample')
+  verified=SimpleNamespace(bytes=11,pages=1,version='1.4',sha256='sample',mime_type='application/pdf',warnings=())
+  with patch('pdf_system.service.verify_pdf',return_value=verified):
+   PdfService(self.policy)._render({'title':'Structured','palette':{}},Backend(),self.output/'report.pdf',{'Title':'Structured'},'A4','portrait')
+  self.assertEqual(captured['document']['title'],'Structured')
  def test_weasyprint_object_stream_unicode_and_exact_hash(self):
   if not production_dependencies_available():self.skipTest('production PDF dependencies not installed')
   src=self.source/'unicode.md';src.write_text(UNICODE_MARKDOWN,encoding='utf-8');out=self.output/'unicode.pdf'
