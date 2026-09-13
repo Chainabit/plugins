@@ -191,9 +191,12 @@ uses the explicit script-compatible companion family.
 A webfont is not an option here, and not only as a matter of taste: the sandbox
 has no network egress, so `@import` from Google Fonts resolves to nothing and the
 page silently renders in the fallback face you did not choose. `validate_site.py`
-treats any remote asset reference as an error for exactly that reason. If a
-specific face is genuinely required, the font file has to be copied into the site
-directory and referenced relatively, or inlined as a `data:` URI.
+treats any remote asset reference as an error for exactly that reason. An
+explicit user family such as `Inter` is emitted as `"Inter", sans-serif`, with
+no Chainabit font appended; it is allowed to resolve locally or fall back to the
+generic family. If a specific face must be guaranteed, its supplied font file has
+to be copied into the site directory and referenced relatively, or inlined as a
+`data:` URI.
 
 ## Accessibility floor
 

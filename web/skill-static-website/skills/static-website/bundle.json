@@ -4,36 +4,36 @@
     {
       "path": "SKILL.md",
       "type": "instructions",
-      "sha256": "cbc857f2a4522a3f4f0b95211ec68188189d04bbaf8d0fbb85686934bb7fc277",
-      "bytes": 3971,
+      "sha256": "03eaf44f7779397fdba545546d2c87f89384454ec3184859f19d1993ac8dd5c4",
+      "bytes": 4251,
       "mode": "0644"
     },
     {
       "path": "references/design.md",
       "type": "references",
-      "sha256": "506c0d5aaa39e110e07e668c9c1c2ba3e15ded441945e55720d01bad986874dc",
-      "bytes": 9599,
+      "sha256": "638f298061b0df9ddbf1ab3be924845a37de21d92cd624685abbf5429ca410fb",
+      "bytes": 9784,
       "mode": "0644"
     },
     {
       "path": "scripts/scaffold_site.py",
       "type": "scripts",
-      "sha256": "0d44f7c23b0f7aea6e75cb8108d11a29bfa199826225fa0f4b8ce862e1593b4d",
-      "bytes": 63999,
+      "sha256": "f8e6c4f204e309c48c8915f0b7f581cdc097cc5ea7617fb836389f593c06b0d4",
+      "bytes": 64752,
       "mode": "0644"
     },
     {
       "path": "scripts/validate_site.py",
       "type": "scripts",
-      "sha256": "f7ff123b35d63e9aae3a843fa763ff10bbb1984d056fdaee4995f86dec47dee1",
-      "bytes": 30843,
+      "sha256": "5c025861fae8316e5ef086b1ba9565eef901844a35076c86b72a20cef85d4b6d",
+      "bytes": 30938,
       "mode": "0644"
     },
     {
       "path": "tests/test_artifact_contract.py",
       "type": "metadata",
-      "sha256": "e2ef815c332a21f36ce55120d6ccfc0c255dd06b22047ccceb7d7f0405802074",
-      "bytes": 5234,
+      "sha256": "159284c8f0292c4d8faf1a4e87f60c9a05de4e0c74dcb2314267767c342077fd",
+      "bytes": 5922,
       "mode": "0644"
     }
   ]

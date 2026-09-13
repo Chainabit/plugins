@@ -308,12 +308,12 @@ def check_contract(root: str, files: set[str], stylesheets: list[str], contract:
             errors.append(
                 f"default typography declares {family!r}; expected canonical {DEFAULT_FONT_FAMILY!r}"
             )
-    elif source == "user_override":
-        if family not in AVAILABLE_WEB_FAMILIES:
-            errors.append(f"user font {family!r} is not available in the offline runtime")
-    else:
+    elif source != "user_override":
         errors.append(f"unknown typography source {source!r}")
-    if source in {"chainabit_default", "user_override"}:
+    # The default and a request for one of the prepared IBM faces both carry
+    # local WOFF2 files. A competing user family intentionally has no remote
+    # fallback: its emitted CSS stack ends at generic sans-serif instead.
+    if source == "chainabit_default" or family in AVAILABLE_WEB_FAMILIES:
         for filename in FONT_FILES:
             relative = f"assets/fonts/{filename}"
             if relative not in files:

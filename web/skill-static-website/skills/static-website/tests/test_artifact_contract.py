@@ -51,6 +51,7 @@ class StaticWebsiteArtifactContractTests(unittest.TestCase):
             spec_result = subprocess.run([sys.executable, str(ROOT / "scripts/scaffold_site.py"), "--template", "landing", "--print-spec"], capture_output=True, text=True, check=True)
             custom = json.loads(spec_result.stdout)
             custom["site"]["theme"] = "light"
+            custom["site"]["font"] = "Inter"
             custom["site"]["palette"] = {
                 "light": {
                     "background": "#FFFFFF", "surface": "#FDFBFF", "ink": "#2D123D",
@@ -65,8 +66,15 @@ class StaticWebsiteArtifactContractTests(unittest.TestCase):
             css = (custom_site / "assets/site.css").read_text(encoding="utf-8")
             self.assertIn("--accent: #6D28D9", css)
             self.assertNotIn("--accent: #327B61", css)
+            self.assertIn('--font-sans: "Inter", sans-serif;', css)
+            self.assertNotIn('"IBM Plex Sans Arabic", sans-serif', css)
+            self.assertFalse((custom_site / "assets" / "fonts").exists())
             contract = json.loads((custom_site / ".chainabit-site.json").read_text(encoding="utf-8"))
             self.assertEqual(contract["branding"]["source"], "user_override")
+            self.assertEqual(contract["branding"]["palettes"], custom["site"]["palette"])
+            self.assertEqual(contract["typography"], {"family": "Inter", "source": "user_override"})
+            checked = subprocess.run([sys.executable, str(ROOT / "scripts/validate_site.py"), str(custom_site), "--strict"], capture_output=True, text=True, check=False)
+            self.assertEqual(checked.returncode, 0, checked.stderr)
 
             partial = json.loads(json.dumps(custom))
             partial["site"]["palette"] = {"light": {"accent": "#6D28D9"}}
