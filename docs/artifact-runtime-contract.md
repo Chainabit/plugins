@@ -45,6 +45,29 @@ in CSS or OOXML is not sufficient evidence: format validators inspect embedded
 PDF fonts, OOXML theme/run declarations, workbook/document styles, or packaged
 website webfonts as appropriate.
 
+## Brand-default policy
+
+`skill-brand-defaults` is the single distributed Information Expert for visual
+default values and precedence. Website, PDF, and PPTX plugins compose it, so the
+instruction context resolves identity once before a format-specific spec is
+created:
+
+`explicit user branding > supplied artifact-specific branding > Chainabit default`
+
+An explicit font, palette, theme, design system, template, logo, or reference
+is branding. A complete custom palette is an all-or-nothing override: renderer
+defaults must not fill omitted customer roles with Chainabit colours. Renderer
+specs are the Controller boundary for that decision; renderers are the Creator
+of their own concrete theme. This keeps request interpretation separate from
+PDF, OOXML, and CSS mechanics.
+
+The profile is composed as instructions, not imported at execution time. Skill
+bundles are independently materialised and must not assume another bundle's
+location. Each renderer therefore keeps a small, tested local projection of the
+default values — a Protected Variation — while contract tests anchor every
+projection to the shared profile. This preserves portable, deterministic
+execution without creating a second policy owner.
+
 ## Applicability matrix
 
 | Plugin / skill | Output | Visible text | Previous default/source | Current default and proof | User override | Fallback |

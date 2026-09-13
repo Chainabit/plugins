@@ -41,6 +41,40 @@ class StaticWebsiteArtifactContractTests(unittest.TestCase):
                 validation = json.loads(checked.stdout.strip().splitlines()[-1])
                 self.assertEqual(validation["subject"]["sha256"], produced["output"]["sha256"])
                 self.assertEqual(validation["checks"]["typography"]["family"], family)
+                if override is None:
+                    css = (site / "assets/site.css").read_text(encoding="utf-8")
+                    self.assertIn("--accent: #327B61", css)
+                    self.assertIn("--accent: #70BD9E", css)
+                    contract = json.loads((site / ".chainabit-site.json").read_text(encoding="utf-8"))
+                    self.assertEqual(contract["branding"]["source"], "chainabit_default")
+
+            spec_result = subprocess.run([sys.executable, str(ROOT / "scripts/scaffold_site.py"), "--template", "landing", "--print-spec"], capture_output=True, text=True, check=True)
+            custom = json.loads(spec_result.stdout)
+            custom["site"]["theme"] = "light"
+            custom["site"]["palette"] = {
+                "light": {
+                    "background": "#FFFFFF", "surface": "#FDFBFF", "ink": "#2D123D",
+                    "body": "#4C2C5B", "muted": "#6B4C7A", "rule": "#DEC9EA",
+                    "accent": "#6D28D9", "accentInk": "#FFFFFF",
+                }
+            }
+            custom_source, custom_site = root / "custom.json", root / "customer-site"
+            custom_source.write_text(json.dumps(custom), encoding="utf-8")
+            built = subprocess.run([sys.executable, str(ROOT / "scripts/scaffold_site.py"), "--spec", str(custom_source), str(custom_site)], env=env, capture_output=True, text=True, check=False)
+            self.assertEqual(built.returncode, 0, built.stderr)
+            css = (custom_site / "assets/site.css").read_text(encoding="utf-8")
+            self.assertIn("--accent: #6D28D9", css)
+            self.assertNotIn("--accent: #327B61", css)
+            contract = json.loads((custom_site / ".chainabit-site.json").read_text(encoding="utf-8"))
+            self.assertEqual(contract["branding"]["source"], "user_override")
+
+            partial = json.loads(json.dumps(custom))
+            partial["site"]["palette"] = {"light": {"accent": "#6D28D9"}}
+            partial_source = root / "partial.json"
+            partial_source.write_text(json.dumps(partial), encoding="utf-8")
+            rejected = subprocess.run([sys.executable, str(ROOT / "scripts/scaffold_site.py"), "--spec", str(partial_source), "--validate-only"], env=env, capture_output=True, text=True, check=False)
+            self.assertEqual(rejected.returncode, 1)
+            self.assertIn("must include every role", rejected.stderr)
 
             site = root / "IBM-Plex-Sans"
             css = site / "assets/site.css"

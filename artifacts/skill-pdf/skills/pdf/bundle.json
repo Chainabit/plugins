@@ -4,8 +4,8 @@
     {
       "path": "SKILL.md",
       "type": "instructions",
-      "sha256": "b70ba88043f3e043a69c45e6da2b00e3e4e7e463c75764ab80a35c9e4e825796",
-      "bytes": 4053,
+      "sha256": "afd9040634d6692208e3266caee712577c25324aeeee40c8737c6a9808829666",
+      "bytes": 5061,
       "mode": "0644"
     },
     {
@@ -18,8 +18,8 @@
     {
       "path": "pdf_system/backends.py",
       "type": "metadata",
-      "sha256": "a92ff731b886fd4c132e4a69d76080f260b997ded0bc6bad83534956cb5ab3ea",
-      "bytes": 13567,
+      "sha256": "7b7ddbe4022678a8630a3d2b2033b3118464453765fea6651539ba10dae35fac",
+      "bytes": 13993,
       "mode": "0644"
     },
     {
@@ -46,8 +46,8 @@
     {
       "path": "pdf_system/service.py",
       "type": "metadata",
-      "sha256": "0e84d4f13d8e96b30b458968a3be7656c30490c367d2e13d09fb1a8e888e6029",
-      "bytes": 20739,
+      "sha256": "003e034f71fbcb7b6ed7b3ba53d1b8e890cdf11d14e44843ab7257d0644bac67",
+      "bytes": 23331,
       "mode": "0644"
     },
     {
@@ -109,8 +109,8 @@
     {
       "path": "tests/test_pdf_system.py",
       "type": "metadata",
-      "sha256": "41cee4f835f4d5266311a1755effbcaff0a747550b7d9c1f59679c208a2e21bd",
-      "bytes": 9972,
+      "sha256": "a2c41a35208924c585f47353e7938a5bcbb510ab7f3ebe3d361b3275abe7d9ef",
+      "bytes": 10603,
       "mode": "0644"
     }
   ]

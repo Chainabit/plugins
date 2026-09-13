@@ -23,7 +23,7 @@ def dependency_available() -> bool:
 
 @unittest.skipUnless(dependency_available(), "python-pptx is not installed")
 class PptxArtifactContractTests(unittest.TestCase):
-    def render(self, font: str | None = None) -> tuple[Path, dict, tempfile.TemporaryDirectory]:
+    def render(self, font: str | None = None, palette: dict | None = None) -> tuple[Path, dict, tempfile.TemporaryDirectory]:
         temporary = tempfile.TemporaryDirectory()
         root = Path(temporary.name)
         spec = {
@@ -35,6 +35,8 @@ class PptxArtifactContractTests(unittest.TestCase):
         }
         if font is not None:
             spec["font"] = font
+        if palette is not None:
+            spec["palette"] = palette
         source = root / "spec.json"
         output = root / "deck.pptx"
         source.write_text(json.dumps(spec, ensure_ascii=False), encoding="utf-8")
@@ -66,8 +68,47 @@ class PptxArtifactContractTests(unittest.TestCase):
                 self.assertEqual(frame["subject"]["sha256"], produced["output"]["sha256"])
                 self.assertEqual(frame["typography"]["family"], expected)
                 self.assertEqual(frame["typography"]["fallbacks"], ["IBM Plex Sans Arabic"])
+                with zipfile.ZipFile(output) as package:
+                    slides = b"".join(
+                        package.read(name)
+                        for name in package.namelist()
+                        if name.startswith("ppt/slides/slide") and name.endswith(".xml")
+                    )
+                self.assertIn(b"327B61", slides)
             finally:
                 temporary.cleanup()
+
+    def test_complete_custom_palette_replaces_the_default(self) -> None:
+        palette = {
+            "background": "#FFFFFF", "surface": "#FDFBFF", "ink": "#2D123D",
+            "body": "#4C2C5B", "muted": "#6B4C7A", "rule": "#DEC9EA",
+            "accent": "#6D28D9",
+        }
+        output, _produced, temporary = self.render("Avenir Next", palette)
+        try:
+            with zipfile.ZipFile(output) as package:
+                slides = b"".join(
+                    package.read(name)
+                    for name in package.namelist()
+                    if name.startswith("ppt/slides/slide") and name.endswith(".xml")
+                )
+            self.assertIn(b"6D28D9", slides)
+            self.assertNotIn(b"327B61", slides)
+        finally:
+            temporary.cleanup()
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "partial.json"
+            source.write_text(json.dumps({"title": "No blend", "palette": {"accent": "#6D28D9"}, "slides": [{"layout": "closing", "title": "Done"}]}), encoding="utf-8")
+            rejected = subprocess.run(
+                [sys.executable, str(ROOT / "scripts/deck_pptx.py"), str(source), str(root / "out.pptx"), "--validate-only"],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(rejected.returncode, 1)
+            self.assertIn("palette: must include every role", rejected.stderr)
 
     def test_corrupt_and_missing_relationship_packages_are_rejected(self) -> None:
         output, _produced, temporary = self.render()

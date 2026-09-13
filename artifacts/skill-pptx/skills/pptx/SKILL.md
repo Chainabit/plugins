@@ -3,7 +3,7 @@ name: pptx
 description: Builds real .pptx presentations inside the sandbox from a JSON spec, using four brand-safe layouts with a checked palette and type scale, renders that same spec as a matching PDF, and verifies the result is presentable before it is handed back. Use when the requested deliverable is a slide deck: the request mentions PowerPoint, pptx, .pptx, slides, a deck, a presentation, a pitch, "sunum", "slayt", a board update or a talk - including when it also asks for a PDF of that deck, or for the deck in several formats at once. Also use to check whether an existing .pptx is valid, or whether its slides are empty, overflowing, unreadably small, or too dense. Do NOT use when the deliverable is a document or report meant to be read rather than shown - use the pdf skill; do NOT use for a spreadsheet (.xlsx), a Markdown outline, or a web page. Renders Turkish and other Latin Extended-A characters correctly.
 license: Apache-2.0
 metadata:
-  version: 1.2.0
+  version: 1.2.1
 ---
 
 # Presentation generation
@@ -38,6 +38,13 @@ property of the container and the lease's policy, and it changes. Call the
 `workspace.env` tool: it reports the interpreters, the installed packages, the
 binaries on `PATH`, and whether installing more is permitted right now. Nothing
 else in this document makes a claim about the environment.
+
+`skill-brand-defaults` is a composed foundation. Resolve visual identity before
+creating a deck spec: an explicit user brand, supplied template/reference, font,
+palette, or design language wins. With none of those signals, the renderer uses
+the Chainabit default presentation system. Never add Chainabit styling back into
+an explicitly branded deck. For a competing font, style, brand, or reference,
+write both the font and a complete `palette` into the spec.
 
 A deck is for talking over. If the deliverable is meant to be *read* — a report,
 a memo, a one-pager — build a PDF with the `pdf` skill instead. A document
@@ -124,8 +131,12 @@ single most common way this skill produces half a deliverable.
 Deck-level fields: `title` (required, also the metadata title) and `slides`
 (required, 1–30). Optional: `subtitle` and `author` for the file metadata,
 `theme` (`"light"` default, or `"dark"`), `aspect` (`"16:9"` default, or
-`"4:3"`), and `font`. With no explicit `font`, the runtime-owned Chainabit
-default is `IBM Plex Sans`; an explicit safe family name overrides it.
+`"4:3"`), `font`, and `palette`. With no explicit `font`, the runtime-owned
+Chainabit default is `IBM Plex Sans`; an explicit safe family name overrides it.
+`palette`, when supplied, is a complete override with `background`, `surface`,
+`ink`, `body`, `muted`, `rule`, and `accent` values as `#RRGGBB`. It replaces the
+selected default palette in full — it does not inherit Chainabit colours — so a
+customer palette remains customer-branded.
 
 ### The four layouts
 

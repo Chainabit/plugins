@@ -48,6 +48,14 @@ class PdfSystemTests(unittest.TestCase):
   report=PdfService(self.policy).diagnose('markdown','| A | B |\n|---|---|\n|1|2|')
   self.assertIn('rich_markdown', report['requirements'])
   self.assertTrue(all('missing' in b and 'available' in b for b in report['backends']))
+ def test_default_and_complete_custom_palette_resolution(self):
+  from pdf_system.service import DEFAULT_PALETTE, resolve_palette, validate_palette
+  self.assertEqual(DEFAULT_PALETTE['accent'], '#327B61')
+  custom={'background':'#FFFFFF','surface':'#FDFBFF','ink':'#2D123D','body':'#4C2C5B','muted':'#6B4C7A','rule':'#DEC9EA','accent':'#6D28D9','accentInk':'#FFFFFF'}
+  self.assertEqual(validate_palette(custom), [])
+  self.assertEqual(resolve_palette(custom)['accent'], '#6D28D9')
+  self.assertEqual(resolve_palette(None)['accent'], '#327B61')
+  self.assertIn('must include every role', validate_palette({'accent':'#6D28D9'})[0])
  def test_weasyprint_object_stream_unicode_and_exact_hash(self):
   if not production_dependencies_available():self.skipTest('production PDF dependencies not installed')
   src=self.source/'unicode.md';src.write_text(UNICODE_MARKDOWN,encoding='utf-8');out=self.output/'unicode.pdf'

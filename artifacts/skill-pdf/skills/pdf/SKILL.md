@@ -3,12 +3,20 @@ name: pdf
 description: Create, validate, and manipulate secure PDF artifacts. Inspect required capabilities first and prefer the highest-quality available backend; never silently downgrade rich content.
 license: Apache-2.0
 metadata:
-  version: 5.2.3
+  version: 5.2.4
 ---
 
 # PDF artifact system
 
 Use this skill for documents and reports intended to be delivered as PDFs. The production contract requires the audited WeasyPrint renderer, pypdf verification, and runtime-provided IBM Plex Sans assets. A capability probe must succeed before a render is attempted; a missing dependency or font is a platform failure, never invalid user input.
+
+`skill-brand-defaults` is a composed foundation. Resolve visual identity before
+choosing an entrypoint. With no visual identity, this skill uses the Chainabit
+document system: IBM Plex Sans, restrained green accents, near-black hierarchy,
+generous A4 margins, readable tables, and sparing callouts. A user brand, guide,
+template, reference, font, or palette wins and must not be mixed with Chainabit
+branding. For a competing font, style, brand, or reference, write both the font
+and a complete custom palette into the report spec.
 
 ```bash
 python3 {{SKILL_DIR}}/scripts/pdf_tool.py capabilities
@@ -29,6 +37,13 @@ own command, or join generation and validation with `&&`. Never place a later
 command such as `ls` after validation with `;` or a bare newline, because its
 zero exit status can hide a rejected PDF. Promote only after
 `{{SKILL_DIR}}/scripts/validate_pdf.py` itself exits successfully.
+
+For a structured report, encode an explicit visual override in the JSON spec:
+`font` selects a safe installed family and `palette` supplies every `#RRGGBB`
+role — `background`, `surface`, `ink`, `body`, `muted`, `rule`, `accent`, and
+`accentInk`. A complete palette replaces the default rather than inheriting any
+Chainabit role; when a custom palette is used the automatic `CHAINABIT` footer
+is omitted. Use a report spec rather than unsafe custom CSS for a branded PDF.
 
 Before rendering, infer the document's requirements: Unicode and fonts, Turkish/RTL/CJK shaping, images, tables, Markdown/HTML/CSS, pagination, headers/footers, mathematics, vector graphics, typography, colors, print quality, metadata, accessibility, or manipulation. Resolve a backend only if it advertises every required capability and has tests for that behavior. Missing dependencies and unsupported features are actionable machine-readable failures; do not print raw math, replace glyphs, omit images, flatten tables, or fall back to the text renderer.
 

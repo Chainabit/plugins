@@ -3,7 +3,7 @@ name: static-website
 description: Static HTML/CSS implementation with servability, deterministic output, and link/asset checks; one website variation, not a universal web rule.
 license: Apache-2.0
 metadata:
-  version: 1.1.1
+  version: 1.1.2
   discovery: "static HTML/CSS implementation and servability checks"
   layer: implementation
   requires: "skill-software-engineering, skill-project-bootstrap, skill-git, skill-project-documentation, skill-web-engineering"
@@ -29,6 +29,12 @@ whether you may install more, are properties of the container and its policy
 rather than of this skill — call the `workspace.env` tool instead of assuming
 either way.
 
+`skill-brand-defaults` is a composed foundation. Resolve the user or supplied
+artifact identity through it before writing this spec. With no visual identity,
+the generated site uses the Chainabit default palette and IBM Plex Sans. For a
+competing font, style, brand, or reference, emit its font and a complete palette
+in the spec; never add Chainabit styling back in.
+
 ## Registered production path
 
 For a minimal deterministic site, invoke the registered generator directly and
@@ -53,3 +59,14 @@ Do not use `--help` as a generation attempt: it emits no artifact identity proof
 The generator writes a top-level `index.html`, local IBM Plex webfonts, and local
 CSS with no remote assets or build-time network access. Promote the generated
 directory itself only after validation succeeds.
+
+## Visual identity fields
+
+`site.font` selects an available local family; omit it for IBM Plex Sans. The
+existing `accent` and `accentDark` fields remain a narrow accent override. For a
+different visual identity, use `site.palette` instead: it must provide every
+role (`background`, `surface`, `ink`, `body`, `muted`, `rule`, `accent`, and
+`accentInk`) for every active theme (`light`, `dark`, or both for `auto`). A
+complete palette deliberately has no Chainabit fallback roles, so it cannot
+silently co-brand a customer site. Do not combine `palette` with
+`accent`/`accentDark`.

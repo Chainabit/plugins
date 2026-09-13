@@ -1,0 +1,16 @@
+{
+  "files": [
+    {
+      "path": "SKILL.md",
+      "type": "instructions",
+      "sha256": "bc15ff66566c58b154c48d5da940ae5027a27fc9e22adc01b06088cd29f57fdc",
+      "bytes": 1580
+    },
+    {
+      "path": "references/brand-profile.json",
+      "type": "references",
+      "sha256": "a302443576ce5ec82acdcf76833bab3a06e8947637f53a68e2ec34d7c863c6ad",
+      "bytes": 2041
+    }
+  ]
+}

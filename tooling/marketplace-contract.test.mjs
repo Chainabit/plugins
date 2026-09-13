@@ -57,6 +57,35 @@ test("skill-website keeps one canonical implementation and an explicit compatibi
   assert.equal(existsSync(join(root, "skill-website", "chainabit-plugin.json")), false);
 });
 
+test("visual artifact skills compose one brand-default policy and renderer projections stay anchored", () => {
+  const profile = json(join(root, "foundations", "skill-brand-defaults", "skills", "brand-defaults", "references", "brand-profile.json"));
+  assert.deepEqual(profile.precedence, [
+    "explicit_user_branding",
+    "artifact_specific_branding",
+    "chainabit_default",
+  ]);
+  assert.equal(profile.default.typography.primaryFamily, "IBM Plex Sans");
+  assert.equal(profile.default.brandAnchor, "#489779");
+
+  const { manifests } = validateMarketplace(root);
+  for (const id of ["skill-static-website", "skill-pdf", "skill-pptx"]) {
+    assert.ok(
+      resolveCompositionGraph(manifests, [id]).includes("skill-brand-defaults"),
+      `${id} must load the shared brand-default instructions`,
+    );
+  }
+
+  const checks = [
+    [join(root, "web", "skill-static-website", "skills", "static-website", "scripts", "scaffold_site.py"), profile.default.lightPalette.accent, profile.default.darkPalette.accent],
+    [join(root, "artifacts", "skill-pdf", "skills", "pdf", "pdf_system", "service.py"), profile.default.lightPalette.accent, profile.default.lightPalette.ink],
+    [join(root, "artifacts", "skill-pptx", "skills", "pptx", "scripts", "deck_pptx.py"), profile.default.lightPalette.accent, profile.default.darkPalette.accent],
+  ];
+  for (const [path, ...values] of checks) {
+    const source = readFileSync(path, "utf8");
+    for (const value of values) assert.match(source, new RegExp(value.slice(1), "i"));
+  }
+});
+
 test("detects listing version drift, duplicate identity, unsafe paths, and forged signatures", () => {
   temporaryRepository((copy) => {
     const indexPath = join(copy, "marketplace.json");

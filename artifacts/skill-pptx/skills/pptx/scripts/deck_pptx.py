@@ -49,6 +49,7 @@ import hashlib
 import json
 import math
 import os
+import re
 import sys
 import tempfile
 import xml.etree.ElementTree as ET
@@ -92,29 +93,32 @@ AVG_CHAR_WIDTH_EM = 0.5
 LINE_HEIGHT_EM = 1.2
 BULLET_SPACING_PT = 12
 
-# Every pair below was checked with the WCAG contrast formula; the weakest is
-# 5.75:1, which clears AA for normal text with room to spare on a washed-out
-# projector. Do not edit one value in isolation — see references/design.md.
+# Renderer-local projection of skill-brand-defaults' profile. Bundles are
+# materialised independently, so importing another skill at runtime would break
+# portability. The artifact contract test anchors these values to the shared
+# profile; the resolved palette remains this renderer's Information Expert.
 THEMES = {
     "light": {
         "background": "FFFFFF",
-        "surface": "F8FAFC",
-        "ink": "0F172A",       # 17.85:1 on white
-        "body": "1E293B",      # 14.63:1 on white
-        "muted": "475569",     # 7.58:1 on white
-        "rule": "CBD5E1",
-        "accent": "1D4ED8",    # 6.41:1 on surface
+        "surface": "F9FAFB",
+        "ink": "101828",
+        "body": "364153",
+        "muted": "6A7282",
+        "rule": "E5E7EB",
+        "accent": "327B61",
     },
     "dark": {
-        "background": "0F172A",
-        "surface": "1E293B",
-        "ink": "F8FAFC",       # 17.06:1 on background
-        "body": "E2E8F0",      # 14.48:1 on background
-        "muted": "CBD5E1",     # 12.02:1 on background
-        "rule": "334155",
-        "accent": "60A5FA",    # 5.75:1 on surface
+        "background": "010102",
+        "surface": "18181B",
+        "ink": "D7D7DA",
+        "body": "A4A4A9",
+        "muted": "85858D",
+        "rule": "1F1F22",
+        "accent": "70BD9E",
     },
 }
+PALETTE_KEYS = tuple(THEMES["light"])
+HEX_COLOUR = re.compile(r"^#?[0-9A-Fa-f]{6}$")
 
 ASPECTS = {"16:9": (13.333, 7.5), "4:3": (10.0, 7.5)}
 
@@ -214,6 +218,22 @@ def validate_spec(spec: object) -> list[str]:
     if aspect not in ASPECTS:
         problems.append(f'aspect: must be "16:9" or "4:3", found {aspect!r}')
 
+    palette = spec.get("palette")
+    if palette is not None:
+        if not isinstance(palette, dict):
+            problems.append("palette: must be an object with every palette role")
+        else:
+            missing = [key for key in PALETTE_KEYS if key not in palette]
+            unknown = sorted(set(palette) - set(PALETTE_KEYS))
+            if missing:
+                problems.append("palette: must include every role: " + ", ".join(missing))
+            if unknown:
+                problems.append("palette: contains unsupported role(s): " + ", ".join(unknown))
+            for key in PALETTE_KEYS:
+                value = palette.get(key)
+                if not isinstance(value, str) or not HEX_COLOUR.fullmatch(value):
+                    problems.append(f"palette.{key}: must be a #RRGGBB colour")
+
     slides = spec.get("slides")
     if not isinstance(slides, list):
         return problems + ["slides: required, must be an array"]
@@ -229,6 +249,14 @@ def validate_spec(spec: object) -> list[str]:
         problems.extend(validate_slide(slide, f"slides[{index}]"))
 
     return problems
+
+
+def resolve_theme(spec: dict) -> dict[str, str]:
+    """Return the complete custom palette or the selected Chainabit default."""
+    palette = spec.get("palette")
+    if isinstance(palette, dict):
+        return {key: str(palette[key]).lstrip("#").upper() for key in PALETTE_KEYS}
+    return THEMES[spec.get("theme", "light")]
 
 
 # --- text fitting -----------------------------------------------------------------
@@ -587,7 +615,7 @@ def build_deck(spec: dict, geometry: dict, output: str) -> None:
     from pptx import Presentation
     from pptx.util import Inches
 
-    theme = THEMES[spec.get("theme", "light")]
+    theme = resolve_theme(spec)
     # The explicit spec value is the user override. Only its absence selects
     # Chainabit's canonical runtime-owned default.
     font = spec.get("font") or DEFAULT_FONT

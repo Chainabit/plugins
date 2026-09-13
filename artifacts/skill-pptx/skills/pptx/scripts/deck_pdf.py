@@ -43,10 +43,10 @@ from deck_pptx import (
     BULLET_SPACING_PT,
     DEFAULT_FONT,
     LINE_HEIGHT_EM,
-    THEMES,
     build_geometry,
     check_fit,
     plan_slide,
+    resolve_theme,
     validate_spec,
 )
 
@@ -305,7 +305,7 @@ RENDERERS = {
 def build_pdf(spec: dict, geometry: dict, output: str) -> None:
     from reportlab.pdfgen import canvas as pdf_canvas
 
-    theme = THEMES[spec.get('theme', 'light')]
+    theme = resolve_theme(spec)
     fonts = register_fonts(spec.get('font') or DEFAULT_FONT)
     width_pt = geometry['slide'][0] * 72.0
     height_pt = geometry['slide'][1] * 72.0

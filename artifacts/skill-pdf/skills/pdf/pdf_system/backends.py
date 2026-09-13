@@ -139,11 +139,16 @@ class ReportLabRenderer(PdfRenderer):
                 regular, semibold = resolve("Regular"), resolve("Semibold")
             if not regular.is_file() or not semibold.is_file():
                 raise PdfError(ErrorCode.FONT_FAILURE, "approved artifact font assets are unavailable")
+            palette = document.get("palette") or {
+                "background": "#FFFFFF", "surface": "#F9FAFB", "ink": "#101828",
+                "body": "#364153", "muted": "#6A7282", "rule": "#E5E7EB",
+                "accent": "#327B61", "accentInk": "#FFFFFF",
+            }
             pdfmetrics.registerFont(TTFont("ChainabitArtifact", str(regular)))
             pdfmetrics.registerFont(TTFont("ChainabitArtifactSemiBold", str(semibold)))
-            styles = getSampleStyleSheet(); body = ParagraphStyle("body", parent=styles["BodyText"], fontName="ChainabitArtifact", leading=14); heading = ParagraphStyle("heading", parent=styles["Heading2"], fontName="ChainabitArtifactSemiBold")
+            styles = getSampleStyleSheet(); body = ParagraphStyle("body", parent=styles["BodyText"], fontName="ChainabitArtifact", leading=14, textColor=colors.HexColor(palette["body"])); heading = ParagraphStyle("heading", parent=styles["Heading2"], fontName="ChainabitArtifactSemiBold", textColor=colors.HexColor(palette["ink"]))
             size = (geometry.width, geometry.height); doc = SimpleDocTemplate(str(destination), pagesize=size, leftMargin=geometry.margin[3], rightMargin=geometry.margin[1], topMargin=geometry.margin[0], bottomMargin=geometry.margin[2], title=metadata.get("Title", ""), author=metadata.get("Author", ""))
-            title_style = ParagraphStyle("artifactTitle", parent=styles["Title"], fontName="ChainabitArtifactSemiBold")
+            title_style = ParagraphStyle("artifactTitle", parent=styles["Title"], fontName="ChainabitArtifactSemiBold", textColor=colors.HexColor(palette["ink"]))
             flow = [Paragraph(escape_report(document["title"]), title_style)]
             for block in document["blocks"]:
                 kind = block["type"]
@@ -152,7 +157,7 @@ class ReportLabRenderer(PdfRenderer):
                 elif kind in {"bullets", "numbered"}: flow.extend(Paragraph(("• " if kind == "bullets" else "1. ") + escape_report(item), body) for item in block["items"])
                 elif kind == "table":
                     rows = [[Paragraph(escape_report(str(x)), body) for x in block["columns"]]] + [[Paragraph(escape_report(str(x)), body) for x in row] for row in block["rows"]]
-                    table = Table(rows, repeatRows=1, hAlign="LEFT"); table.setStyle(TableStyle([("BACKGROUND", (0,0), (-1,0), colors.HexColor("#f3f4f6")), ("GRID", (0,0), (-1,-1), .5, colors.HexColor("#d1d5db")), ("VALIGN", (0,0), (-1,-1), "TOP"), ("LEFTPADDING", (0,0), (-1,-1), 5)])); flow.append(table)
+                    table = Table(rows, repeatRows=1, hAlign="LEFT"); table.setStyle(TableStyle([("BACKGROUND", (0,0), (-1,0), colors.HexColor(palette["surface"])), ("GRID", (0,0), (-1,-1), .5, colors.HexColor(palette["rule"])), ("VALIGN", (0,0), (-1,-1), "TOP"), ("LEFTPADDING", (0,0), (-1,-1), 5)])); flow.append(table)
                 elif kind == "image":
                     from .safety import validate_image
                     image_path = (policy.input_root / str(block["path"])).resolve(); validate_image(image_path, policy)
