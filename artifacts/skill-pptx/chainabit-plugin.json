@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "skill-pptx",
   "name": "Presentation Skill",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "Builds real .pptx presentations from a JSON spec using four brand-safe layouts — title, content, comparison, closing — with a palette and type scale checked against WCAG AA, and validates OOXML structure, relationships, typography, empty slides, overflowing text, low contrast and over-dense bullets. PDF delivery remains owned by the PDF capability and its validator.",
   "author": {
     "name": "NEXUS Community"
@@ -33,7 +33,8 @@
   },
   "composition": {
     "requires": [
-      "skill-brand-defaults"
+      "skill-brand-defaults",
+      "skill-pdf"
     ],
     "role": "capability"
   },

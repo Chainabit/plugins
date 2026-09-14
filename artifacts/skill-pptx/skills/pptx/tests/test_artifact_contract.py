@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import hashlib
+import importlib
 import json
+import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -174,6 +177,94 @@ class PptxSpecValidationTests(unittest.TestCase):
                 check=False,
             )
             self.assertEqual(accepted.returncode, 0, accepted.stderr)
+
+
+#: Host locations an instruction must never name -- the set the repository's
+#: portability lint rejects in SKILL.md. A printed instruction is held to it too.
+HOST_LOCATIONS = ("/workspace", "/sandbox", ".skills", "/home/", "/opt/")
+
+
+def reportlab_fonts() -> Path | None:
+    """reportlab's own bundled TrueType faces, when reportlab is installed."""
+    try:
+        import reportlab
+    except ImportError:
+        return None
+    fonts = Path(reportlab.__file__).resolve().parent / "fonts"
+    return fonts if (fonts / "Vera.ttf").is_file() and (fonts / "VeraBd.ttf").is_file() else None
+
+
+class DeckPdfHandoffTests(unittest.TestCase):
+    """deck_pdf.py's output: a result line, a hand-off line, then the execution frame.
+
+    The hand-off states a fact: the PDF is checked by the pdf capability's
+    validator when it is delivered. That validator ships in another bundle and
+    runs as part of delivery, so the line names no script for the caller to run
+    and no path -- a caller works from the workspace root, where no path spelled
+    here is guaranteed to exist.
+    """
+
+    def assertHandoff(self, line: str, output: str) -> None:
+        self.assertTrue(line.startswith("Next: "), line)
+        self.assertIn("skill-pdf.validate_pdf", line)
+        self.assertIn(output, line)
+        remainder = line.replace(output, "")
+        self.assertNotIn(".py", remainder, "the hand-off must not name a script to run")
+        self.assertNotIn("/", remainder, "the hand-off must spell no path")
+        for location in HOST_LOCATIONS:
+            self.assertNotIn(location, line)
+
+    def test_handoff_states_the_delivery_check_and_names_no_script(self) -> None:
+        scripts = str(ROOT / "scripts")
+        sys.path.insert(0, scripts)
+        self.addCleanup(sys.path.remove, scripts)
+        deck_pdf = importlib.import_module("deck_pdf")
+        self.assertEqual(deck_pdf.PDF_VALIDATOR_ID, "skill-pdf.validate_pdf")
+        line = deck_pdf.validation_handoff("out/q3.pdf")
+        self.assertNotIn("\n", line)
+        self.assertHandoff(line, "out/q3.pdf")
+
+    @unittest.skipUnless(reportlab_fonts(), "reportlab is not installed")
+    def test_render_prints_result_handoff_and_frame(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory)
+            # The host provides the artifact font directory. A stand-in under the
+            # same file names lets this contract run wherever reportlab does;
+            # glyph coverage is not what it asserts.
+            fonts = workspace / "fonts"
+            fonts.mkdir()
+            shutil.copyfile(reportlab_fonts() / "Vera.ttf", fonts / "IBMPlexSans-Regular.ttf")
+            shutil.copyfile(reportlab_fonts() / "VeraBd.ttf", fonts / "IBMPlexSans-SemiBold.ttf")
+            spec = {
+                "title": "Quarterly review",
+                "slides": [
+                    {"layout": "title", "title": "Quarterly review", "subtitle": "Regional summary"},
+                    {"layout": "content", "title": "Findings", "bullets": ["Volume grew", "Costs held flat"]},
+                ],
+            }
+            (workspace / "spec.json").write_text(json.dumps(spec), encoding="utf-8")
+            environment = {**os.environ, "CHAINABIT_ARTIFACT_FONT_DIR": str(fonts)}
+            environment.pop("CHAINABIT_ARTIFACT_FONT_FAMILY", None)
+            # The runtime contract: the working directory is the workspace root,
+            # and the script is addressed wherever its bundle actually is.
+            result = subprocess.run(
+                [sys.executable, str(ROOT / "scripts/deck_pdf.py"), "spec.json", "deck.pdf"],
+                cwd=workspace, env=environment, capture_output=True, text=True, check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            lines = result.stdout.strip().splitlines()
+            self.assertEqual(len(lines), 3, result.stdout)
+            self.assertTrue(lines[0].startswith("OK: wrote deck.pdf ("), lines[0])
+            self.assertHandoff(lines[1], "deck.pdf")
+            frame = json.loads(lines[2])
+            produced = (workspace / "deck.pdf").read_bytes()
+            self.assertTrue(produced.startswith(b"%PDF-"))
+            self.assertEqual(frame["schema"], "chainabit.pdf.execution/v1")
+            self.assertEqual(frame["generator"], "skill-pptx.deck_pdf")
+            self.assertEqual(frame["output"]["mime"], "application/pdf")
+            self.assertEqual(frame["output"]["bytes"], len(produced))
+            self.assertEqual(frame["output"]["sha256"], hashlib.sha256(produced).hexdigest())
+            self.assertEqual(frame["typography"], {"family": "IBM Plex Sans", "source": "chainabit_default"})
 
 
 if __name__ == "__main__":

@@ -3,7 +3,7 @@ name: pptx
 description: Builds real .pptx presentations inside the sandbox from a JSON spec, using four brand-safe layouts with a checked palette and type scale, renders that same spec as a matching PDF, and verifies the result is presentable before it is handed back. Use when the requested deliverable is a slide deck: the request mentions PowerPoint, pptx, .pptx, slides, a deck, a presentation, a pitch, "sunum", "slayt", a board update or a talk - including when it also asks for a PDF of that deck, or for the deck in several formats at once. Also use to check whether an existing .pptx is valid, or whether its slides are empty, overflowing, unreadably small, or too dense. Do NOT use when the deliverable is a document or report meant to be read rather than shown - use the pdf skill; do NOT use for a spreadsheet (.xlsx), a Markdown outline, or a web page. Renders Turkish and other Latin Extended-A characters correctly.
 license: Apache-2.0
 metadata:
-  version: 1.2.2
+  version: 1.2.3
 ---
 
 # Presentation generation
@@ -126,9 +126,19 @@ python3 {{SKILL_DIR}}/scripts/deck_pdf.py  spec.json out/q3.pdf
 python3 {{SKILL_DIR}}/scripts/validate_pptx.py out/q3.pptx
 ```
 
-The order matters only in that the spec is written once. Do not build the deck,
-report it as done, and leave the PDF for a turn that never comes — that is the
-single most common way this skill produces half a deliverable.
+The last command validates the deck; the PDF is checked when it is delivered
+(see *How the deck's PDF is checked* below). The order matters only in that the
+spec is written once. Do not build the deck, report it as done, and leave the
+PDF for a turn that never comes — that is the single most common way this skill
+produces half a deliverable.
+
+### How the deck's PDF is checked
+
+A deck's PDF is checked by the PDF capability's validator,
+`skill-pdf.validate_pdf`, which this plugin composes, when the PDF is
+delivered. You do not need to load the `pdf` skill or run its validator
+yourself. If delivery reports that the PDF failed validation, fix the spec and
+render it again. `deck_pdf.py` states the same after every render.
 
 Deck-level fields: `title` (required, also the metadata title) and `slides`
 (required, 1–30). Optional: `subtitle` and `author` for the file metadata,
@@ -204,8 +214,9 @@ this skill did not produce — PowerPoint, Keynote, or Google Slides alike.
    format the request asked for — a deck, a PDF of it, a data file beside it.
 2. **Validate.** Write the spec, run `--validate-only`, fix every `ERROR:` line.
 3. **Execute.** Build **every** format noted in step 1, not just the first.
-4. **Verify.** Run `validate_pptx.py`. Only after it exits 0 is there a deck to
-   talk about.
+4. **Verify.** Run `validate_pptx.py` on the deck. Only after it exits 0 is
+   there a deck to talk about. The PDF is rendered from the same validated spec
+   and is checked by `skill-pdf.validate_pdf` when it is delivered.
 5. **Deliver.** Promote every file built in step 3. A file sitting in the
    workspace has not been handed to anyone.
 
