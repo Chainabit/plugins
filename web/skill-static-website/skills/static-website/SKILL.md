@@ -3,7 +3,7 @@ name: static-website
 description: Static HTML/CSS implementation with servability, deterministic output, and link/asset checks; one website variation, not a universal web rule.
 license: Apache-2.0
 metadata:
-  version: 1.1.1
+  version: 1.1.4
   discovery: "static HTML/CSS implementation and servability checks"
   layer: implementation
   requires: "skill-software-engineering, skill-project-bootstrap, skill-git, skill-project-documentation, skill-web-engineering"
@@ -22,12 +22,18 @@ the commands as written. Output paths are relative to your working directory,
 which is the workspace root; the scripts write only to the output path they are
 given.
 
-The generator needs the host's IBM Plex bundle, which the manifest declares as
-the `fonts.ibm-plex` runtime asset; if it is absent the script exits 2 and says
-so rather than silently substituting a face. What else the environment has, and
-whether you may install more, are properties of the container and its policy
-rather than of this skill — call the `workspace.env` tool instead of assuming
-either way.
+The default generator needs the host's IBM Plex bundle, which the manifest
+declares as the `fonts.ibm-plex` runtime asset; if it is absent the script exits
+2 rather than silently substituting a face. A competing user family does not
+fetch a font or require that bundle. What else the environment has, and whether
+you may install more, are properties of the container and its policy rather than
+of this skill — call the `workspace.env` tool instead of assuming either way.
+
+`skill-brand-defaults` is a composed foundation. Resolve the user or supplied
+artifact identity through it before writing this spec. With no visual identity,
+the generated site uses the Chainabit default palette and IBM Plex Sans. For a
+competing font, style, brand, or reference, emit its font and a complete palette
+in the spec; never add Chainabit styling back in.
 
 ## Registered production path
 
@@ -50,6 +56,22 @@ python3 {{SKILL_DIR}}/scripts/validate_site.py site
 ```
 
 Do not use `--help` as a generation attempt: it emits no artifact identity proof.
-The generator writes a top-level `index.html`, local IBM Plex webfonts, and local
-CSS with no remote assets or build-time network access. Promote the generated
-directory itself only after validation succeeds.
+The generator writes a top-level `index.html` and local CSS with no remote assets
+or build-time network access; the Chainabit default additionally packages local
+IBM Plex webfonts. Promote the generated directory itself only after validation
+succeeds.
+
+## Visual identity fields
+
+`site.font` is a safe named CSS family; omit it for the locally packaged IBM
+Plex Sans default. A competing name such as `Inter` stays first in a
+local/system `sans-serif` stack and is never fetched remotely or followed by a
+Chainabit fallback. A non-Chainabit `site.font` requires `site.palette`, so an
+explicit typeface cannot accidentally inherit Chainabit colours. The existing
+`accent` and `accentDark` fields remain a narrow accent override. For a
+different visual identity, use `site.palette` instead: it must provide every
+role (`background`, `surface`, `ink`, `body`, `muted`, `rule`, `accent`, and
+`accentInk`) for every active theme (`light`, `dark`, or both for `auto`). A
+complete palette deliberately has no Chainabit fallback roles, so it cannot
+silently co-brand a customer site. Do not combine `palette` with
+`accent`/`accentDark`.

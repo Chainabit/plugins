@@ -43,10 +43,10 @@ from deck_pptx import (
     BULLET_SPACING_PT,
     DEFAULT_FONT,
     LINE_HEIGHT_EM,
-    THEMES,
     build_geometry,
     check_fit,
     plan_slide,
+    resolve_theme,
     validate_spec,
 )
 
@@ -305,7 +305,7 @@ RENDERERS = {
 def build_pdf(spec: dict, geometry: dict, output: str) -> None:
     from reportlab.pdfgen import canvas as pdf_canvas
 
-    theme = THEMES[spec.get('theme', 'light')]
+    theme = resolve_theme(spec)
     fonts = register_fonts(spec.get('font') or DEFAULT_FONT)
     width_pt = geometry['slide'][0] * 72.0
     height_pt = geometry['slide'][1] * 72.0
@@ -326,6 +326,23 @@ def build_pdf(spec: dict, geometry: dict, output: str) -> None:
 
 
 # --- CLI --------------------------------------------------------------------------
+
+#: The validator that checks a deck's PDF when it is delivered. PDF validation
+#: belongs to the pdf skill, which this plugin composes; this is the identity
+#: that skill declares.
+PDF_VALIDATOR_ID = 'skill-pdf.validate_pdf'
+
+
+def validation_handoff(output: str) -> str:
+    """The `Next:` line printed after a successful render.
+
+    A printed line is read as an instruction, so this one states a fact
+    instead: the PDF is checked by the pdf capability's validator when it is
+    delivered. That validator ships in another bundle and runs as part of
+    delivery, so the line names no script for the reader to run and spells no
+    path.
+    """
+    return f'Next: deliver {output}; it is checked by {PDF_VALIDATOR_ID} on delivery.'
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -431,8 +448,7 @@ def main(argv: list[str] | None = None) -> int:
 
     size = os.path.getsize(args.output)
     print(f"OK: wrote {args.output} ({size} bytes, {len(spec['slides'])} page(s))")
-    print(f'Next: validate {args.output} with validate_pdf.py from the pdf skill -- \n'
-          'load that skill to get the path it was materialized at; this one does not know it.')
+    print(validation_handoff(args.output))
     with open(args.output, "rb") as handle:
         digest = hashlib.sha256(handle.read()).hexdigest()
     print(json.dumps({

@@ -26,6 +26,47 @@ DEFAULT_FONT_DIR = Path(os.environ.get(
     "CHAINABIT_ARTIFACT_FONT_DIR", "/opt/chainabit/artifact-fonts/ibm-plex-sans"
 ))
 SAFE_FONT_NAME = re.compile(r"^[^\x00-\x1f\x7f]{1,80}$")
+HEX_COLOUR = re.compile(r"^#[0-9A-Fa-f]{6}$")
+
+# Renderer-local projection of skill-brand-defaults' profile. A PDF bundle must
+# run without assuming another composed bundle's path; this complete dictionary
+# is therefore a Protected Variation, checked against the shared profile in the
+# artifact contract tests rather than imported at runtime.
+DEFAULT_PALETTE = {
+    "background": "#FFFFFF",
+    "surface": "#F9FAFB",
+    "ink": "#101828",
+    "body": "#364153",
+    "muted": "#6A7282",
+    "rule": "#E5E7EB",
+    "accent": "#327B61",
+    "accentInk": "#FFFFFF",
+}
+PALETTE_KEYS = tuple(DEFAULT_PALETTE)
+
+
+def validate_palette(value: object) -> list[str]:
+    if value is None:
+        return []
+    if not isinstance(value, dict):
+        return ["palette must be an object with every palette role"]
+    missing = [key for key in PALETTE_KEYS if key not in value]
+    unknown = sorted(set(value) - set(PALETTE_KEYS))
+    errors = []
+    if missing:
+        errors.append("palette must include every role: " + ", ".join(missing))
+    if unknown:
+        errors.append("palette contains unsupported role(s): " + ", ".join(unknown))
+    for key in PALETTE_KEYS:
+        if not isinstance(value.get(key), str) or not HEX_COLOUR.fullmatch(value[key]):
+            errors.append(f"palette.{key} must be a #RRGGBB colour")
+    return errors
+
+
+def resolve_palette(value: object) -> dict[str, str]:
+    if value is None:
+        return dict(DEFAULT_PALETTE)
+    return {key: str(value[key]).upper() for key in PALETTE_KEYS}
 
 class TemporaryArtifact:
     def __init__(self, policy: SecurityPolicy): self.policy = policy; self._dir = None
@@ -62,14 +103,18 @@ class PdfService:
         req = DocumentRequirements.infer(kind, content, intent); reports = []
         for c in capability_registry(): reports.append({"backend": c.name, "available": c.available, "version": c.version, "required": sorted(req.required), "missing": sorted(c.missing(req.required)), "reason": c.detail or ("available" if c.available else "dependency unavailable")})
         return {"requirements": sorted(req.required), "reasons": req.reasons, "intent": intent, "backends": reports}
-    def generate_markdown(self, source: Path, destination: Path, title: str | None = None, lang: str = "und", page_size: object = "A4", orientation: str = "portrait", deterministic: bool = False, quality_profile: str = "quality", font: str | None = None) -> Verification:
+    def generate_markdown(self, source: Path, destination: Path, title: str | None = None, lang: str = "und", page_size: object = "A4", orientation: str = "portrait", deterministic: bool = False, quality_profile: str = "quality", font: str | None = None, palette: object = None) -> Verification:
         raw = bounded_read(source, self.policy)
         try: text = raw.decode("utf-8")
         except UnicodeDecodeError as exc: raise PdfError(ErrorCode.INVALID_INPUT, "Markdown must be UTF-8") from exc
         if not text.strip(): raise PdfError(ErrorCode.INVALID_INPUT, "Markdown source is empty")
+        palette_errors = validate_palette(palette)
+        if palette_errors: raise PdfError(ErrorCode.INVALID_INPUT, "; ".join(palette_errors))
+        if isinstance(font, str) and font.strip() != DEFAULT_FONT_FAMILY and palette is None:
+            raise PdfError(ErrorCode.INVALID_INPUT, "a non-Chainabit font override requires a complete palette")
         reject_active_markup(text); req = DocumentRequirements.infer("markdown", text, "basic" if deterministic else quality_profile)
         backend, self.last_decision = self.resolver.resolve(req)
-        document = self._markdown_html(text, self.policy, self._font_family(font)); metadata = {"Title": title or source.stem, "Lang": lang, "Creator": "chainabit-pdf"}
+        document = self._markdown_html(text, self.policy, self._font_family(font), resolve_palette(palette), palette is None and font is None); metadata = {"Title": title or source.stem, "Lang": lang, "Creator": "chainabit-pdf"}
         return self._render(document, backend, destination, metadata, page_size, orientation)
     def generate_report(self, source: Path, destination: Path, quality_profile: str = "quality") -> Verification:
         raw = bounded_read(source, self.policy)
@@ -78,7 +123,12 @@ class PdfService:
         problems = self.validate_report(spec)
         if problems: raise PdfError(ErrorCode.INVALID_INPUT, "; ".join(problems))
         req = DocumentRequirements.infer("report", spec, quality_profile); backend, self.last_decision = self.resolver.resolve(req)
-        document = spec if backend.capabilities.name == "reportlab" else self._report_html(spec, self.policy, self._font_family(spec.get("font"))); metadata = {"Title": spec["title"], "Author": spec.get("author", ""), "Subject": spec.get("subject", ""), "Lang": spec.get("language", "und"), "Creator": "chainabit-pdf"}
+        palette = resolve_palette(spec.get("palette"))
+        # The controller resolves the complete palette once.  Both adapters
+        # receive that same immutable result: ReportLab is a structured
+        # renderer, while WeasyPrint receives its HTML projection.  This keeps
+        # a user palette from silently mixing with renderer-local defaults.
+        document = {**spec, "palette": palette} if backend.capabilities.name == "reportlab" else self._report_html(spec, self.policy, self._font_family(spec.get("font")), palette, spec.get("palette") is None and spec.get("font") is None); metadata = {"Title": spec["title"], "Author": spec.get("author", ""), "Subject": spec.get("subject", ""), "Lang": spec.get("language", "und"), "Creator": "chainabit-pdf"}
         return self._render(document, backend, destination, metadata, spec.get("pageSize", "A4"), spec.get("orientation", "portrait"), spec.get("margin"))
     def manipulate(self, operation: str, sources: list[Path], destination: Path, options: dict) -> Verification:
         target = safe_output(destination, self.policy)
@@ -91,7 +141,12 @@ class PdfService:
         target = safe_output(destination, self.policy); started = time.monotonic()
         with TemporaryArtifact(self.policy) as temp:
             staged = temp / "result.pdf"
-            document = document.replace("@page{size:A4;", f"@page{{size:{geometry.width:.2f}pt {geometry.height:.2f}pt;")
+            # HTML owns the @page declaration; the ReportLab adapter receives
+            # a structured report dict. Applying an HTML-only replacement at
+            # this shared persistence boundary used to crash every ReportLab
+            # report before its renderer was invoked.
+            if isinstance(document, str):
+                document = document.replace("@page{size:A4;", f"@page{{size:{geometry.width:.2f}pt {geometry.height:.2f}pt;")
             backend.render(document, geometry, {k:v for k,v in metadata.items() if v}, staged, self.policy)
             result = verify_pdf(staged, self.policy.limits); os.replace(staged, target); return Verification(result.bytes, result.pages, result.version, result.sha256, result.mime_type, result.warnings + (f"backend={backend.capabilities.name}", f"duration_ms={(time.monotonic()-started)*1000:.1f}"))
     def _paginate(self, lines: list[str], geometry: PageGeometry) -> list[list[str]]:
@@ -103,7 +158,7 @@ class PdfService:
         return pages or [[""]]
     def _wrap(self, text: str) -> list[str]: return [text[i:i+100] for i in range(0, len(text), 100)] or [""]
     def _markdown_lines(self, text: str) -> list[str]: return [line for raw in text.splitlines() for line in self._wrap(re.sub(r"^#{1,6}\s+|^[-*+]\s+|^\d+[.)]\s+", "", raw))]
-    def _markdown_html(self, text: str, policy: SecurityPolicy, font: str) -> str:
+    def _markdown_html(self, text: str, policy: SecurityPolicy, font: str, palette: dict[str, str], show_chainabit_footer: bool) -> str:
         # A form feed is the explicit page break this system already claims to
         # understand: models.py raises the `page_breaks` requirement when it
         # sees one, which constrains backend selection. It was then destroyed
@@ -116,7 +171,7 @@ class PdfService:
             '<div class="page-break"></div>'.join(
                 self._markdown_blocks(page) for page in text.split("\f")
             ),
-            font,
+            font, palette, show_chainabit_footer,
         )
     def _markdown_blocks(self, text: str) -> str:
         lines=text.splitlines(); out=[]; i=0
@@ -157,7 +212,7 @@ class PdfService:
     def _image_tag(self, alt: str, uri: str) -> str:
         path=(self.policy.input_root / uri).resolve(); mime,_,_=validate_image(path,self.policy); import base64
         encoded=base64.b64encode(path.read_bytes()).decode("ascii"); return f'<img alt="{html.escape(alt,quote=True)}" src="data:{mime};base64,{encoded}">' 
-    def _report_html(self, spec: dict, policy: SecurityPolicy, font: str) -> str:
+    def _report_html(self, spec: dict, policy: SecurityPolicy, font: str, palette: dict[str, str], show_chainabit_footer: bool) -> str:
         chunks=[f"<h1>{html.escape(spec['title'])}</h1>"]
         for b in spec["blocks"]:
             kind=b["type"]
@@ -170,7 +225,7 @@ class PdfService:
             elif kind=="spacer": chunks.append(f'<div style="height:{int(b.get("height",12))}pt"></div>')
         header = html.escape(str(spec.get("header", ""))); footer = html.escape(str(spec.get("footer", "")))
         prefix = (f'<div class="running-header">{header}</div>' if header else "") + (f'<div class="running-footer">{footer}</div>' if footer else "")
-        return self._html_document(prefix + "".join(chunks), font).replace("</style>", ".running-header{position:running(header)}.running-footer{position:running(footer)}@page{@top-center{content:element(header)}@bottom-center{content:element(footer)}};</style>")
+        return self._html_document(prefix + "".join(chunks), font, palette, show_chainabit_footer).replace("</style>", ".running-header{position:running(header)}.running-footer{position:running(footer)}@page{@top-center{content:element(header)}@bottom-center{content:element(footer)}};</style>")
     def _font_family(self, requested: object) -> str:
         if requested is None:
             return DEFAULT_FONT_FAMILY
@@ -213,29 +268,30 @@ class PdfService:
             encoded=base64.b64encode(path.read_bytes()).decode("ascii")
             faces.append(f'@font-face{{font-family:"ChainabitArtifactArabic";font-style:normal;font-weight:{weight};src:url(data:font/ttf;base64,{encoded}) format("truetype")}}')
         return "".join(faces)
-    def _html_document(self, body: str, font: str) -> str:
+    def _html_document(self, body: str, font: str, palette: dict[str, str], show_chainabit_footer: bool) -> str:
         # One audited, print-first design system.  Callers choose content and
         # page geometry, not arbitrary CSS; that keeps professional output
         # deterministic and prevents a prompt from becoming a styling/security
         # boundary.
-        style = self._font_css(font) + '''
-@page{size:A4;margin:58pt 54pt 54pt;background:#fff;
- @bottom-left{content:"CHAINABIT";font:600 7pt "ChainabitArtifact";letter-spacing:1.5pt;color:#64748b}
- @bottom-right{content:counter(page) " / " counter(pages);font:8pt "ChainabitArtifact";color:#64748b}}
-*{box-sizing:border-box}body{font-family:"ChainabitArtifact","ChainabitArtifactArabic",sans-serif;color:#172033;font-size:10.5pt;line-height:1.58;margin:0}
-h1,h2,h3,h4,h5,h6{page-break-after:avoid;line-height:1.16;color:#0b1739;margin:22pt 0 9pt}
-h1{font-size:28pt;letter-spacing:-.7pt;margin-top:0;padding:0 0 13pt;border-bottom:4pt solid #ffde59}
-h2{font-size:18pt;letter-spacing:-.25pt;padding-left:11pt;border-left:4pt solid #ffde59}
-h3{font-size:13.5pt;color:#1d4ed8}p{margin:0 0 10pt;orphans:3;widows:3}
-strong{color:#0b1739}a{color:#1d4ed8;text-decoration:none;border-bottom:.5pt solid #93c5fd}
-ul,ol{margin:6pt 0 14pt;padding-left:20pt}li{margin:0 0 5pt}li::marker{color:#d4a900}
-table{width:100%;border-collapse:separate;border-spacing:0;margin:14pt 0 18pt;font-size:9pt;border:1pt solid #dbe3f0;border-radius:5pt}
-th{background:#0b1739;color:#fff;font-weight:700}th,td{padding:7pt 8pt;text-align:left;vertical-align:top;border-right:.5pt solid #dbe3f0;border-bottom:.5pt solid #dbe3f0}
-th:last-child,td:last-child{border-right:0}tr:last-child td{border-bottom:0}tbody tr:nth-child(even){background:#f7f9fc}thead{display:table-header-group}tr{page-break-inside:avoid}
-pre{white-space:pre-wrap;background:#0b1739;color:#e2e8f0;border-left:4pt solid #ffde59;border-radius:5pt;padding:11pt 13pt;font-size:8.5pt;line-height:1.45;page-break-inside:avoid}
-code{font-family:"Fira Code","Noto Sans Mono",monospace;background:#eef2f7;border-radius:2pt;padding:1pt 3pt}pre code{background:transparent;padding:0}
-blockquote{margin:14pt 0;padding:10pt 14pt;background:#f7f9fc;border-left:4pt solid #ffde59;color:#334155}
-.page-break{break-before:page}img{display:block;max-width:100%;height:auto;margin:14pt auto;border-radius:5pt}
+        brand_footer = 'content:"CHAINABIT";font:600 7pt "ChainabitArtifact";letter-spacing:1.5pt;' if show_chainabit_footer else 'content:"";'
+        style = self._font_css(font) + f'''
+@page{{size:A4;margin:58pt 54pt 54pt;background:{palette["background"]};
+ @bottom-left{{{brand_footer}color:{palette["muted"]}}}
+ @bottom-right{{content:counter(page) " / " counter(pages);font:8pt "ChainabitArtifact";color:{palette["muted"]}}}}}
+*{{box-sizing:border-box}}body{{font-family:"ChainabitArtifact","ChainabitArtifactArabic",sans-serif;color:{palette["body"]};font-size:10.5pt;line-height:1.58;margin:0}}
+h1,h2,h3,h4,h5,h6{{page-break-after:avoid;line-height:1.16;color:{palette["ink"]};margin:22pt 0 9pt}}
+h1{{font-size:28pt;letter-spacing:-.7pt;margin-top:0;padding:0 0 13pt;border-bottom:4pt solid {palette["accent"]}}}
+h2{{font-size:18pt;letter-spacing:-.25pt;padding-left:11pt;border-left:4pt solid {palette["accent"]}}}
+h3{{font-size:13.5pt;color:{palette["accent"]}}}p{{margin:0 0 10pt;orphans:3;widows:3}}
+strong{{color:{palette["ink"]}}}a{{color:{palette["accent"]};text-decoration:none;border-bottom:.5pt solid {palette["rule"]}}}
+ul,ol{{margin:6pt 0 14pt;padding-left:20pt}}li{{margin:0 0 5pt}}li::marker{{color:{palette["accent"]}}}
+table{{width:100%;border-collapse:separate;border-spacing:0;margin:14pt 0 18pt;font-size:9pt;border:1pt solid {palette["rule"]};border-radius:5pt}}
+th{{background:{palette["ink"]};color:{palette["accentInk"]};font-weight:700}}th,td{{padding:7pt 8pt;text-align:left;vertical-align:top;border-right:.5pt solid {palette["rule"]};border-bottom:.5pt solid {palette["rule"]}}}
+th:last-child,td:last-child{{border-right:0}}tr:last-child td{{border-bottom:0}}tbody tr:nth-child(even){{background:{palette["surface"]}}}thead{{display:table-header-group}}tr{{page-break-inside:avoid}}
+pre{{white-space:pre-wrap;background:{palette["ink"]};color:{palette["accentInk"]};border-left:4pt solid {palette["accent"]};border-radius:5pt;padding:11pt 13pt;font-size:8.5pt;line-height:1.45;page-break-inside:avoid}}
+code{{font-family:"Fira Code","Noto Sans Mono",monospace;background:{palette["surface"]};border-radius:2pt;padding:1pt 3pt}}pre code{{background:transparent;padding:0}}
+blockquote{{margin:14pt 0;padding:10pt 14pt;background:{palette["surface"]};border-left:4pt solid {palette["accent"]};color:{palette["body"]}}}
+.page-break{{break-before:page}}img{{display:block;max-width:100%;height:auto;margin:14pt auto;border-radius:5pt}}
 '''
         return '<!doctype html><html><head><meta charset="utf-8"><style>'+style+'</style></head><body>'+body+'</body></html>'
     @staticmethod
@@ -244,6 +300,9 @@ blockquote{margin:14pt 0;padding:10pt 14pt;background:#f7f9fc;border-left:4pt so
         errors=[]
         if not isinstance(spec.get("title"),str) or not spec["title"].strip(): errors.append("title is required")
         if spec.get("font") is not None and (not isinstance(spec.get("font"), str) or not SAFE_FONT_NAME.fullmatch(spec["font"].strip())): errors.append("font must be a safe non-empty family name")
+        if isinstance(spec.get("font"), str) and SAFE_FONT_NAME.fullmatch(spec["font"].strip()) and spec["font"].strip() != DEFAULT_FONT_FAMILY and spec.get("palette") is None:
+            errors.append("a non-Chainabit font override requires a complete palette")
+        errors.extend(validate_palette(spec.get("palette")))
         blocks=spec.get("blocks")
         if not isinstance(blocks,list) or not blocks: return errors+["blocks must be a non-empty array"]
         allowed={"heading","paragraph","bullets","numbered","table","image","spacer","pagebreak"}

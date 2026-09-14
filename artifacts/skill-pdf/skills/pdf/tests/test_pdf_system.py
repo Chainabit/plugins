@@ -48,6 +48,46 @@ class PdfSystemTests(unittest.TestCase):
   report=PdfService(self.policy).diagnose('markdown','| A | B |\n|---|---|\n|1|2|')
   self.assertIn('rich_markdown', report['requirements'])
   self.assertTrue(all('missing' in b and 'available' in b for b in report['backends']))
+ def test_default_and_complete_custom_palette_resolution(self):
+  from pdf_system.service import DEFAULT_PALETTE, resolve_palette, validate_palette
+  self.assertEqual(DEFAULT_PALETTE['accent'], '#327B61')
+  custom={'background':'#FFFFFF','surface':'#FDFBFF','ink':'#2D123D','body':'#4C2C5B','muted':'#6B4C7A','rule':'#DEC9EA','accent':'#6D28D9','accentInk':'#FFFFFF'}
+  self.assertEqual(validate_palette(custom), [])
+  self.assertEqual(resolve_palette(custom)['accent'], '#6D28D9')
+  self.assertEqual(resolve_palette(None)['accent'], '#327B61')
+  self.assertIn('must include every role', validate_palette({'accent':'#6D28D9'})[0])
+  font_only={'title':'Customer report','font':'Avenir Next','blocks':[{'type':'paragraph','text':'Body'}]}
+  self.assertTrue(any('requires a complete palette' in error for error in PdfService.validate_report(font_only)))
+ def test_noncanonical_markdown_font_requires_complete_palette(self):
+  src=self.source/'custom.md';src.write_text('# Customer\n\nBody')
+  with self.assertRaises(PdfError) as error:
+   PdfService(self.policy).generate_markdown(src,self.output/'custom.pdf',font='Avenir Next')
+  self.assertIn('requires a complete palette',error.exception.message)
+ def test_reportlab_receives_the_controller_resolved_palette(self):
+  """Renderer adapters consume one resolved palette; they do not own defaults."""
+  from types import SimpleNamespace
+  custom={'background':'#FFFFFF','surface':'#FDFBFF','ink':'#2D123D','body':'#4C2C5B','muted':'#6B4C7A','rule':'#DEC9EA','accent':'#6D28D9','accentInk':'#FFFFFF'}
+  source=self.source/'report.json'; source.write_text(json.dumps({'title':'Palette','blocks':[{'type':'paragraph','text':'Body'}],'palette':custom}))
+  backend=SimpleNamespace(capabilities=SimpleNamespace(name='reportlab'))
+  service=PdfService(self.policy, resolver=SimpleNamespace(resolve=lambda *_: (backend, None)))
+  observed={}
+  service._render=lambda document, *_: observed.setdefault('document',document)
+  service.generate_report(source,self.output/'report.pdf')
+  self.assertEqual(observed['document']['palette'],custom)
+ def test_structured_report_crosses_the_shared_render_boundary_without_html_mutation(self):
+  """ReportLab gets its dict intact; only WeasyPrint documents are HTML."""
+  from types import SimpleNamespace
+  from unittest.mock import patch
+  captured={}
+  class Backend:
+   capabilities=SimpleNamespace(name='reportlab')
+   def render(self,document,geometry,metadata,destination,policy):
+    captured['document']=document
+    destination.write_bytes(b'%PDF-sample')
+  verified=SimpleNamespace(bytes=11,pages=1,version='1.4',sha256='sample',mime_type='application/pdf',warnings=())
+  with patch('pdf_system.service.verify_pdf',return_value=verified):
+   PdfService(self.policy)._render({'title':'Structured','palette':{}},Backend(),self.output/'report.pdf',{'Title':'Structured'},'A4','portrait')
+  self.assertEqual(captured['document']['title'],'Structured')
  def test_weasyprint_object_stream_unicode_and_exact_hash(self):
   if not production_dependencies_available():self.skipTest('production PDF dependencies not installed')
   src=self.source/'unicode.md';src.write_text(UNICODE_MARKDOWN,encoding='utf-8');out=self.output/'unicode.pdf'

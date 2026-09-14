@@ -43,13 +43,27 @@ import sys
 HEX_COLOUR = re.compile(r"^#[0-9A-Fa-f]{6}$")
 SLUG = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 
-# The two backgrounds an accent has to survive. Both are in references/design.md
-# with their measured ratios; changing one here without changing the document there
-# leaves the skill telling the reader something that is no longer true.
+# These are renderer-local projections of skill-brand-defaults' profile. They
+# stay local because independently materialised skill bundles cannot import one
+# another at runtime. The contract test pins them to the profile so this Protected
+# Variation cannot drift while each renderer remains independently deployable.
 LIGHT_BACKGROUND = "#FFFFFF"
-DARK_BACKGROUND = "#0F172A"
-DEFAULT_ACCENT = "#1D4ED8"
-DEFAULT_ACCENT_DARK = "#60A5FA"
+DARK_BACKGROUND = "#010102"
+DEFAULT_ACCENT = "#327B61"
+DEFAULT_ACCENT_DARK = "#70BD9E"
+PALETTE_KEYS = ("background", "surface", "ink", "body", "muted", "rule", "accent", "accentInk")
+DEFAULT_PALETTES = {
+    "light": {
+        "background": "#FFFFFF", "surface": "#F9FAFB", "ink": "#101828",
+        "body": "#364153", "muted": "#6A7282", "rule": "#E5E7EB",
+        "accent": DEFAULT_ACCENT, "accentInk": "#FFFFFF",
+    },
+    "dark": {
+        "background": DARK_BACKGROUND, "surface": "#18181B", "ink": "#D7D7DA",
+        "body": "#A4A4A9", "muted": "#85858D", "rule": "#1F1F22",
+        "accent": DEFAULT_ACCENT_DARK, "accentInk": "#0B2118",
+    },
+}
 
 # WCAG AA for normal-size text. Applied to the accent even though most accent text
 # is large, because the accent also sets link colour inside body copy.
@@ -157,6 +171,47 @@ def check_colour(value: object, path: str, background: str, errors: SpecErrors, 
             "references/design.md lists checked pairs.",
         )
     return colour
+
+
+def check_palette(value: object, path: str, errors: SpecErrors) -> dict[str, str] | None:
+    """Validate a complete custom palette without inheriting Chainabit roles.
+
+    A partial palette is ambiguous: filling its gaps with the platform palette
+    would quietly co-brand an explicitly branded artifact. The generator keeps
+    the resolved palette local and only renders it when every role is present.
+    """
+    if not isinstance(value, dict):
+        errors.add(path, "must be an object with every palette role")
+        return None
+    unknown = sorted(set(value) - set(PALETTE_KEYS))
+    missing = [key for key in PALETTE_KEYS if key not in value]
+    if unknown:
+        errors.add(path, "contains unsupported role(s): " + ", ".join(unknown))
+    if missing:
+        errors.add(path, "must include every role: " + ", ".join(missing))
+    palette: dict[str, str] = {}
+    for key in PALETTE_KEYS:
+        raw = value.get(key)
+        if not isinstance(raw, str) or not HEX_COLOUR.match(raw):
+            errors.add(f"{path}.{key}", "must be a #RRGGBB colour")
+            continue
+        palette[key] = raw.upper()
+    if len(palette) != len(PALETTE_KEYS):
+        return None
+    for key in ("ink", "body", "muted", "accent"):
+        ratio = contrast_ratio(palette[key], palette["background"])
+        if ratio < CONTRAST_FLOOR:
+            errors.add(
+                f"{path}.{key}",
+                f"is {ratio:.2f}:1 on {palette['background']}, under the {CONTRAST_FLOOR}:1 floor",
+            )
+    accent_ratio = contrast_ratio(palette["accentInk"], palette["accent"])
+    if accent_ratio < CONTRAST_FLOOR:
+        errors.add(
+            f"{path}.accentInk",
+            f"is {accent_ratio:.2f}:1 on {palette['accent']}, under the {CONTRAST_FLOOR}:1 floor",
+        )
+    return palette
 
 
 def check_page_path(value: object, path: str, errors: SpecErrors) -> str:
@@ -316,12 +371,39 @@ def validate_spec(spec: object) -> tuple[dict, SpecErrors]:
     else:
         font = requested_font.strip()
         font_source = "user_override"
-        if font not in AVAILABLE_WEB_FAMILIES:
-            errors.add(
-                "site.font",
-                "is not available in the offline artifact runtime; supported families are "
-                + ", ".join(sorted(AVAILABLE_WEB_FAMILIES)),
-            )
+
+    requested_palette = site.get("palette")
+    if (
+        font_source == "user_override"
+        and font not in AVAILABLE_WEB_FAMILIES
+        and requested_palette is None
+    ):
+        errors.add(
+            "site.palette",
+            "is required for a non-Chainabit font override; supply complete active palettes",
+        )
+    active_modes = ("light", "dark") if theme == "auto" else (theme,)
+    palettes = {mode: dict(DEFAULT_PALETTES[mode]) for mode in THEMES if mode != "auto"} if requested_palette is None else {}
+    palette_source = "chainabit_default"
+    if requested_palette is not None:
+        if not isinstance(requested_palette, dict):
+            errors.add("site.palette", "must be an object with light and/or dark palettes")
+        else:
+            unsupported_modes = sorted(set(requested_palette) - {"light", "dark"})
+            if unsupported_modes:
+                errors.add("site.palette", "contains unsupported mode(s): " + ", ".join(unsupported_modes))
+            for mode in active_modes:
+                if mode not in requested_palette:
+                    errors.add(f"site.palette.{mode}", "is required for the selected site.theme")
+                    continue
+                checked = check_palette(requested_palette[mode], f"site.palette.{mode}", errors)
+                if checked is not None:
+                    palettes[mode] = checked
+            palette_source = "user_override"
+
+    has_legacy_accent = site.get("accent") is not None or site.get("accentDark") is not None
+    if requested_palette is not None and has_legacy_accent:
+        errors.add("site", "must not combine palette with accent/accentDark; palette is the complete override")
 
     checked_site = {
         "title": require_text(site.get("title"), "site.title", errors, 80),
@@ -332,9 +414,11 @@ def validate_spec(spec: object) -> tuple[dict, SpecErrors]:
         "font": font,
         "fontSource": font_source,
         "footer": optional_text(site.get("footer"), "site.footer", errors, 300),
-        # The accent is checked against the background it will actually sit on. On
-        # "auto" both apply, because the visitor's system setting decides which one
-        # the site is wearing and neither is the one we get to test in isolation.
+        "palettes": palettes,
+        "paletteSource": "artifact_specific" if has_legacy_accent and requested_palette is None else palette_source,
+        # Retained for compatibility with existing content specs. A complete
+        # palette is the non-co-branding override; this narrower option changes
+        # only the accent role and leaves the default visual system intact.
         "accent": check_colour(
             site.get("accent"), "site.accent", LIGHT_BACKGROUND, errors, DEFAULT_ACCENT
         ),
@@ -342,6 +426,9 @@ def validate_spec(spec: object) -> tuple[dict, SpecErrors]:
             site.get("accentDark"), "site.accentDark", DARK_BACKGROUND, errors, DEFAULT_ACCENT_DARK
         ),
     }
+    if requested_palette is None:
+        checked_site["palettes"]["light"]["accent"] = checked_site["accent"]
+        checked_site["palettes"]["dark"]["accent"] = checked_site["accentDark"]
 
     pages = spec.get("pages")
     if not isinstance(pages, list) or not pages:
@@ -663,9 +750,10 @@ STYLESHEET = """/* Generated by scaffold_site.py. Self-contained: no @import, no
 :root {{
   color-scheme: {colour_scheme};
 
-  /* Chainabit typography is explicit and offline. The primary family is either
-     the user's validated override or the canonical bundled IBM Plex Sans. */
-  --font-sans: {font_family}, "IBM Plex Sans Arabic", sans-serif;
+  /* Chainabit typography is explicit and offline by default. A user family
+     stays first in its own local/system stack; do not append Chainabit fonts
+     to a competing identity. */
+  --font-sans: {font_stack};
   --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
     "Liberation Mono", monospace;
 
@@ -696,14 +784,14 @@ STYLESHEET = """/* Generated by scaffold_site.py. Self-contained: no @import, no
   --measure: 68ch;
   --radius: 0.5rem;
 
-  --bg: #FFFFFF;
-  --surface: #F8FAFC;
-  --ink: #0F172A;
-  --body: #1E293B;
-  --muted: #475569;
-  --rule: #CBD5E1;
-  --accent: {accent};
-  --accent-ink: #FFFFFF;
+  --bg: {light_background};
+  --surface: {light_surface};
+  --ink: {light_ink};
+  --body: {light_body};
+  --muted: {light_muted};
+  --rule: {light_rule};
+  --accent: {light_accent};
+  --accent-ink: {light_accent_ink};
 }}
 {dark_block}
 * {{ box-sizing: border-box; }}
@@ -874,20 +962,26 @@ section:last-child {{ border-bottom: 0; }}
 }}
 """
 
-DARK_TOKENS = """  --bg: #0F172A;
-  --surface: #1E293B;
-  --ink: #F8FAFC;
-  --body: #E2E8F0;
-  --muted: #94A3B8;
-  --rule: #334155;
-  --accent: {accent_dark};
-  --accent-ink: #0F172A;
+DARK_TOKENS = """  --bg: {background};
+  --surface: {surface};
+  --ink: {ink};
+  --body: {body};
+  --muted: {muted};
+  --rule: {rule};
+  --accent: {accent};
+  --accent-ink: {accentInk};
 """
 
 
 def render_stylesheet(site: dict) -> str:
     theme = site["theme"]
-    dark_tokens = DARK_TOKENS.format(accent_dark=site["accentDark"])
+    # A complete override carries only its active themes. Reuse that active
+    # palette to satisfy the stylesheet's base-token shape for a single-theme
+    # site, rather than reintroducing dormant Chainabit values into its CSS or
+    # contract evidence.
+    light = site["palettes"].get("light") or site["palettes"]["dark"]
+    dark = site["palettes"].get("dark") or light
+    dark_tokens = DARK_TOKENS.format(**dark)
     font_family = json.dumps(site["font"], ensure_ascii=False)
     primary_faces = (
             "@font-face {{ font-family: 'IBM Plex Sans'; font-style: normal; "
@@ -901,29 +995,47 @@ def render_stylesheet(site: dict) -> str:
             f"src: url('fonts/{filename}') format('woff2'); }}"
             for filename, weight in FALLBACK_FONT_FILES.items()
     )
-    font_face = "\n".join((*primary_faces, *fallback_faces))
+    # The packaged IBM files are an implementation of the Chainabit default,
+    # not an implicit fallback for a customer's explicit font.  A named user
+    # family resolves from the browser's local/system fonts without a remote
+    # request; supplied webfont files belong in a future explicit asset field.
+    uses_packaged_font = site["font"] in AVAILABLE_WEB_FAMILIES
+    font_face = "\n".join((*primary_faces, *fallback_faces)) if uses_packaged_font else ""
+    font_stack = (
+        f'{font_family}, "IBM Plex Sans Arabic", sans-serif'
+        if site["font"] == DEFAULT_FONT_FAMILY
+        else f"{font_family}, sans-serif"
+    )
 
+    arguments = {
+        "font_face": font_face,
+        "font_stack": font_stack,
+        "light_background": light["background"],
+        "light_surface": light["surface"],
+        "light_ink": light["ink"],
+        "light_body": light["body"],
+        "light_muted": light["muted"],
+        "light_rule": light["rule"],
+        "light_accent": light["accent"],
+        "light_accent_ink": light["accentInk"],
+    }
     if theme == "light":
-        return STYLESHEET.format(colour_scheme="light", accent=site["accent"], dark_block="", font_face=font_face, font_family=font_family)
+        return STYLESHEET.format(colour_scheme="light", dark_block="", **arguments)
     if theme == "dark":
         # A committed dark site still declares the light tokens first and then
         # overwrites them unconditionally, so every token has exactly one place it
         # is defined and none of them can go missing behind a media query.
         return STYLESHEET.format(
             colour_scheme="dark",
-            accent=site["accent"],
             dark_block=":root {\n" + dark_tokens + "}\n",
-            font_face=font_face,
-            font_family=font_family,
+            **arguments,
         )
     return STYLESHEET.format(
         colour_scheme="light dark",
-        accent=site["accent"],
-        font_face=font_face,
-        font_family=font_family,
         dark_block="\n@media (prefers-color-scheme: dark) {\n  :root {\n"
         + "".join("  " + line + "\n" for line in dark_tokens.splitlines())
         + "  }\n}\n",
+        **arguments,
     )
 
 
@@ -1259,20 +1371,21 @@ def write_site(spec: dict, destination: str, force: bool) -> list[str]:
         handle.write(render_stylesheet(spec["site"]))
     written.append("assets/site.css")
 
-    font_destination = os.path.join(assets, "fonts")
-    os.makedirs(font_destination, exist_ok=True)
-    for filename in (*FONT_FILES, *FALLBACK_FONT_FILES):
-        source = os.path.join(DEFAULT_FONT_DIR, filename)
-        if not os.path.isfile(source):
-            raise RuntimeError(
-                f"canonical font asset is unavailable: {source}. The sandbox "
-                "runtime must provide the declared Chainabit typography bundle."
-            )
-        with open(source, "rb") as handle:
-            if handle.read(4) != b"wOF2":
-                raise RuntimeError(f"canonical font asset is not WOFF2: {source}")
-        shutil.copyfile(source, os.path.join(font_destination, filename))
-        written.append(f"assets/fonts/{filename}")
+    if spec["site"]["font"] in AVAILABLE_WEB_FAMILIES:
+        font_destination = os.path.join(assets, "fonts")
+        os.makedirs(font_destination, exist_ok=True)
+        for filename in (*FONT_FILES, *FALLBACK_FONT_FILES):
+            source = os.path.join(DEFAULT_FONT_DIR, filename)
+            if not os.path.isfile(source):
+                raise RuntimeError(
+                    f"canonical font asset is unavailable: {source}. The sandbox "
+                    "runtime must provide the declared Chainabit typography bundle."
+                )
+            with open(source, "rb") as handle:
+                if handle.read(4) != b"wOF2":
+                    raise RuntimeError(f"canonical font asset is not WOFF2: {source}")
+            shutil.copyfile(source, os.path.join(font_destination, filename))
+            written.append(f"assets/fonts/{filename}")
 
     contract_path = ".chainabit-site.json"
     with open(os.path.join(destination, contract_path), "w", encoding="utf-8") as handle:
@@ -1284,6 +1397,10 @@ def write_site(spec: dict, destination: str, force: bool) -> list[str]:
                 "typography": {
                     "family": spec["site"]["font"],
                     "source": spec["site"]["fontSource"],
+                },
+                "branding": {
+                    "source": spec["site"]["paletteSource"],
+                    "palettes": spec["site"]["palettes"],
                 },
                 "runtime": {"network": "offline", "javascript": False},
             },
@@ -1443,6 +1560,7 @@ def main(argv: list[str] | None = None) -> int:
             "family": spec["site"]["font"],
             "source": spec["site"]["fontSource"],
         },
+        "branding": {"source": spec["site"]["paletteSource"]},
     }, ensure_ascii=False, sort_keys=True))
     return 0
 

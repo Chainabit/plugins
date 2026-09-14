@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "skill-pdf",
   "name": "PDF Generation Skill",
-  "version": "5.2.3",
+  "version": "5.2.6",
   "description": "Produces and verifies secure, quality-first PDFs through explicit capability selection with optional professional rendering and manipulation adapters.",
   "author": {
     "name": "NEXUS Community"
@@ -28,6 +28,12 @@
     "skills": [
       "skills/pdf"
     ]
+  },
+  "composition": {
+    "requires": [
+      "skill-brand-defaults"
+    ],
+    "role": "capability"
   },
   "permissions": {
     "network": [],

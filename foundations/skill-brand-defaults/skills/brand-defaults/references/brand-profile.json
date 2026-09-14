@@ -1,0 +1,67 @@
+{
+  "schema": "chainabit.brand-defaults/v1",
+  "purpose": "Default visual identity for generated artifacts when no user or supplied artifact identity is present.",
+  "precedence": [
+    "explicit_user_branding",
+    "artifact_specific_branding",
+    "chainabit_default"
+  ],
+  "explicitSignals": [
+    "brand",
+    "brand guide",
+    "logo",
+    "font",
+    "palette",
+    "theme",
+    "design system",
+    "template",
+    "visual style",
+    "reference artifact"
+  ],
+  "default": {
+    "typography": {
+      "primaryFamily": "IBM Plex Sans",
+      "fallbackFamilies": [
+        "IBM Plex Sans Arabic",
+        "sans-serif"
+      ],
+      "monospaceFamily": "Fira Code",
+      "weights": [400, 500, 600, 700]
+    },
+    "brandAnchor": "#489779",
+    "lightPalette": {
+      "background": "#FFFFFF",
+      "surface": "#F9FAFB",
+      "ink": "#101828",
+      "body": "#364153",
+      "muted": "#6A7282",
+      "rule": "#E5E7EB",
+      "accent": "#327B61",
+      "accentInk": "#FFFFFF"
+    },
+    "darkPalette": {
+      "background": "#010102",
+      "surface": "#18181B",
+      "ink": "#D7D7DA",
+      "body": "#A4A4A9",
+      "muted": "#85858D",
+      "rule": "#1F1F22",
+      "accent": "#70BD9E",
+      "accentInk": "#0B2118"
+    },
+    "layout": {
+      "spacingBasePx": 4,
+      "preferredRadiiPx": [8, 12, 18],
+      "tone": "restrained, clear hierarchy, generous whitespace, and accessible contrast"
+    },
+    "logo": {
+      "rule": "Use only a supplied or runtime-packaged Chainabit mark; do not fabricate, download, or stamp a logo into user-authored content."
+    }
+  },
+  "ownership": {
+    "informationExpert": "this profile owns distributed artifact-default values and precedence semantics",
+    "controller": "the composed artifact skill resolves the request into its format-specific spec before invoking a renderer",
+    "creator": "the format renderer creates its concrete theme from the resolved spec",
+    "staticAssets": "the publishing runtime owns website shell metadata and browser assets, not generated content"
+  }
+}

@@ -47,30 +47,30 @@ its measured ratio against the surface it actually sits on.
 | Role | Hex | On | Ratio |
 |------|-----|----|-------|
 | Background | `#FFFFFF` | — | — |
-| Surface (cards) | `#F8FAFC` | — | — |
-| Ink (headings) | `#0F172A` | background | 17.85:1 |
-| Body | `#1E293B` | background | 14.63:1 |
-| Muted (meta, footer) | `#475569` | background | 7.58:1 |
-| Muted on a card | `#475569` | surface | 7.24:1 |
-| Rule / divider | `#CBD5E1` | — | non-text |
-| Accent | `#1D4ED8` | background | 6.70:1 |
-| Accent on a card | `#1D4ED8` | surface | 6.41:1 |
-| Button label | `#FFFFFF` | accent | 6.70:1 |
+| Surface (cards) | `#F9FAFB` | — | — |
+| Ink (headings) | `#101828` | background | 17.75:1 |
+| Body | `#364153` | background | 10.30:1 |
+| Muted (meta, footer) | `#6A7282` | background | 4.84:1 |
+| Muted on a card | `#6A7282` | surface | 4.76:1 |
+| Rule / divider | `#E5E7EB` | — | non-text |
+| Accent | `#327B61` | background | 5.07:1 |
+| Accent on a card | `#327B61` | surface | 4.90:1 |
+| Button label | `#FFFFFF` | accent | 5.07:1 |
 
 ### Dark
 
 | Role | Hex | On | Ratio |
 |------|-----|----|-------|
-| Background | `#0F172A` | — | — |
-| Surface (cards) | `#1E293B` | — | — |
-| Ink (headings) | `#F8FAFC` | background | 17.06:1 |
-| Body | `#E2E8F0` | background | 14.48:1 |
-| Muted | `#94A3B8` | background | 6.96:1 |
-| Muted on a card | `#94A3B8` | surface | 5.71:1 |
-| Rule / divider | `#334155` | — | non-text |
-| Accent | `#60A5FA` | background | 7.02:1 |
-| Accent on a card | `#60A5FA` | surface | 5.75:1 |
-| Button label | `#0F172A` | accent | 7.02:1 |
+| Background | `#010102` | — | — |
+| Surface (cards) | `#18181B` | — | — |
+| Ink (headings) | `#D7D7DA` | background | 14.53:1 |
+| Body | `#A4A4A9` | background | 8.41:1 |
+| Muted | `#85858D` | background | 5.70:1 |
+| Muted on a card | `#85858D` | surface | 5.34:1 |
+| Rule / divider | `#1F1F22` | — | non-text |
+| Accent | `#70BD9E` | background | 9.40:1 |
+| Accent on a card | `#70BD9E` | surface | 8.80:1 |
+| Button label | `#0B2118` | accent | 7.60:1 |
 
 ### Semantic accents, if a status or a chart needs one
 
@@ -191,9 +191,12 @@ uses the explicit script-compatible companion family.
 A webfont is not an option here, and not only as a matter of taste: the sandbox
 has no network egress, so `@import` from Google Fonts resolves to nothing and the
 page silently renders in the fallback face you did not choose. `validate_site.py`
-treats any remote asset reference as an error for exactly that reason. If a
-specific face is genuinely required, the font file has to be copied into the site
-directory and referenced relatively, or inlined as a `data:` URI.
+treats any remote asset reference as an error for exactly that reason. An
+explicit user family such as `Inter` is emitted as `"Inter", sans-serif`, with
+no Chainabit font appended; it is allowed to resolve locally or fall back to the
+generic family. If a specific face must be guaranteed, its supplied font file has
+to be copied into the site directory and referenced relatively, or inlined as a
+`data:` URI.
 
 ## Accessibility floor
 

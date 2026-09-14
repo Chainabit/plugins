@@ -47,24 +47,24 @@ listed with its measured ratio against the surface it is meant to sit on.
 | Role | Hex | On | Ratio |
 |------|-----|----|-------|
 | Background | `#FFFFFF` | — | — |
-| Surface (panels) | `#F8FAFC` | — | — |
-| Ink (titles) | `#0F172A` | white | 17.85:1 |
-| Body | `#1E293B` | white | 14.63:1 |
-| Muted (meta, footnotes) | `#475569` | white | 7.58:1 |
-| Rule / divider | `#CBD5E1` | — | non-text |
-| Accent | `#1D4ED8` | surface | 6.41:1 |
+| Surface (panels) | `#F9FAFB` | — | — |
+| Ink (titles) | `#101828` | white | 17.75:1 |
+| Body | `#364153` | white | 10.30:1 |
+| Muted (meta, footnotes) | `#6A7282` | white | 4.84:1 |
+| Rule / divider | `#E5E7EB` | — | non-text |
+| Accent | `#327B61` | surface | 4.90:1 |
 
 ### Dark
 
 | Role | Hex | On | Ratio |
 |------|-----|----|-------|
-| Background | `#0F172A` | — | — |
-| Surface (panels) | `#1E293B` | — | — |
-| Ink (titles) | `#F8FAFC` | background | 17.06:1 |
-| Body | `#E2E8F0` | background | 14.48:1 |
-| Muted | `#CBD5E1` | background | 12.02:1 |
-| Rule / divider | `#334155` | — | non-text |
-| Accent | `#60A5FA` | surface | 5.75:1 |
+| Background | `#010102` | — | — |
+| Surface (panels) | `#18181B` | — | — |
+| Ink (titles) | `#D7D7DA` | background | 14.53:1 |
+| Body | `#A4A4A9` | background | 8.41:1 |
+| Muted | `#85858D` | background | 5.70:1 |
+| Rule / divider | `#1F1F22` | — | non-text |
+| Accent | `#70BD9E` | surface | 8.80:1 |
 
 ### Semantic accents, if a chart or a status needs one
 
