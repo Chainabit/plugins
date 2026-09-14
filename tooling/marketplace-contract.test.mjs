@@ -95,6 +95,29 @@ test("visual artifact skills compose one brand-default policy and renderer proje
   }
 });
 
+test("the deck skill composes the PDF capability that checks its PDF on delivery", () => {
+  // skill-pptx renders a PDF but does not own PDF validation. The dependency is
+  // declared, and the deck skill states that its PDF is checked by that
+  // validator on delivery -- by the identity the owner declares, never by naming
+  // the other bundle's script, which a reader would then try to run.
+  const { manifests } = validateMarketplace(root);
+  const validator = (manifests.get("skill-pdf").manifest.validators ?? []).find(
+    (entry) => entry.target?.extensions?.includes(".pdf"),
+  );
+  assert.ok(validator, "skill-pdf must declare the PDF validator");
+  assert.ok(
+    resolveCompositionGraph(manifests, ["skill-pptx"]).includes("skill-pdf"),
+    "skill-pptx renders PDFs and must compose the plugin that validates them",
+  );
+  const scriptName = validator.entrypoint.split("/").pop();
+  const skillRoot = join(root, "artifacts", "skill-pptx", "skills", "pptx");
+  for (const file of ["scripts/deck_pdf.py", "SKILL.md"]) {
+    const text = readFileSync(join(skillRoot, ...file.split("/")), "utf8");
+    assert.ok(text.includes(validator.id), `${file} must name ${validator.id} as the check on delivery`);
+    assert.ok(!text.includes(scriptName), `${file} must not name ${scriptName}, another bundle's script`);
+  }
+});
+
 test("detects listing version drift, duplicate identity, unsafe paths, and forged signatures", () => {
   temporaryRepository((copy) => {
     const indexPath = join(copy, "marketplace.json");
