@@ -130,6 +130,23 @@ class PdfSystemTests(unittest.TestCase):
   validated=subprocess.run([sys.executable,str(ROOT/'scripts/validate_pdf.py'),str(out)],capture_output=True,text=True,check=False)
   self.assertEqual(validated.returncode,0,validated.stderr);validation_message=json.loads(validated.stdout)
   self.assertEqual(validation_message['schema'],'chainabit.pdf.validation/v1');self.assertEqual(validation_message['subject']['sha256'],render_message['output']['sha256']);self.assertTrue(validation_message['fonts'])
+ def test_markdown_form_feed_emits_a_page_break(self):
+  """A form feed is the explicit Markdown page break.
+
+  models.py raises the `page_breaks` requirement when it sees one, which
+  constrains backend selection -- and then str.splitlines() in _markdown_html
+  split on the form feed and discarded it, so the break never reached the
+  HTML. A document authored as ten pages rendered as two, and validate_pdf.py
+  could not detect the loss because it only bounds the page count.
+  """
+  try: import markdown  # noqa: F401
+  except ImportError: self.skipTest('markdown is not installed')
+  service=PdfService(self.policy); text="# One\nbody one\n\f# Two\nbody two\n\f# Three\nbody three"
+  body='<div class="page-break"></div>'.join(service._markdown_blocks(page) for page in text.split("\f"))
+  self.assertEqual(body.count('class="page-break"'),2); self.assertEqual(body.count('<h1>'),3)
+  # The pre-fix path, kept as the contrast that makes the assertion mean
+  # something: rendering the un-split text yields no break at all.
+  self.assertEqual(service._markdown_blocks(text).count('page-break'),0)
  def test_cli_input_rejection_is_exit_one(self):
   src=self.source/'empty.md';src.write_text('');out=self.output/'empty.pdf'
   result=subprocess.run([sys.executable,str(ROOT/'scripts/md_to_pdf.py'),str(src),str(out)],capture_output=True,text=True,check=False)
@@ -143,27 +160,3 @@ class PdfSystemTests(unittest.TestCase):
   result=subprocess.run([sys.executable,str(ROOT/'scripts/validate_pdf.py'),str(out)],capture_output=True,text=True,check=False)
   self.assertEqual(result.returncode,1);message=json.loads(result.stderr);self.assertEqual(message['error']['class'],'produced_artifact_rejected')
 if __name__=='__main__': unittest.main()
-
-
-def test_markdown_form_feed_emits_a_page_break():
-    """A form feed is the explicit Markdown page break.
-
-    models.py raises the `page_breaks` requirement when it sees one, which
-    constrains backend selection -- and then str.splitlines() in _markdown_html
-    split on \f and discarded it, so the break never reached the HTML. A
-    document authored as ten pages rendered as two, and validate_pdf.py could
-    not detect the loss because it only bounds the page count.
-    """
-    from pdf_system.service import PdfService
-
-    service = PdfService.__new__(PdfService)
-    text = "# One\nbody one\n\f# Two\nbody two\n\f# Three\nbody three"
-    body = '<div class="page-break"></div>'.join(
-        service._markdown_blocks(page) for page in text.split("\f")
-    )
-
-    assert body.count('class="page-break"') == 2
-    assert body.count("<h1>") == 3
-    # The pre-fix path, kept as the contrast that makes the assertion mean
-    # something: rendering the un-split text yields no break at all.
-    assert service._markdown_blocks(text).count("page-break") == 0

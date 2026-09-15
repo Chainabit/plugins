@@ -4,6 +4,7 @@ The official Markdown PDF contract has explicit third-party runtime dependencies
 
 ```text
 weasyprint 69.0   HTML/CSS pagination, embedded fonts, tables, images, RGB styling
+markdown 3.8.2    Markdown parsing, read through the skill's CommonMark block adapter
 reportlab    programmatic tables and page-flow reports
 Pillow       bounded image decode, validation, orientation and normalization
 pypdf 6.16.2     authoritative parsing, page/content validation, exact hashing

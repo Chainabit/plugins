@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "skill-pdf",
   "name": "PDF Generation Skill",
-  "version": "5.2.7",
+  "version": "5.2.8",
   "description": "Produces and verifies secure, quality-first PDFs through explicit capability selection with optional professional rendering and manipulation adapters.",
   "author": {
     "name": "NEXUS Community"
@@ -87,7 +87,8 @@
   "requires": {
     "python": [
       "weasyprint",
-      "pypdf"
+      "pypdf",
+      "markdown"
     ],
     "binaries": [
       "python3"
@@ -100,7 +101,8 @@
     "required": {
       "python": [
         "weasyprint",
-        "pypdf"
+        "pypdf",
+        "markdown"
       ],
       "binaries": [
         "python3"
