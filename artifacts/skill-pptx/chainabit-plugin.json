@@ -2,8 +2,8 @@
   "schemaVersion": 2,
   "id": "skill-pptx",
   "name": "Presentation Skill",
-  "version": "1.2.3",
-  "description": "Builds real .pptx presentations from a JSON spec using four brand-safe layouts — title, content, comparison, closing — with a palette and type scale checked against WCAG AA, and validates OOXML structure, relationships, typography, empty slides, overflowing text, low contrast and over-dense bullets. PDF delivery remains owned by the PDF capability and its validator.",
+  "version": "1.2.4",
+  "description": "Builds real .pptx presentations from a JSON spec using four brand-safe layouts — title, content, comparison, closing — with a palette and type scale checked against WCAG AA, renders the same spec as a matching PDF through a registered PDF generator, and validates OOXML structure, relationships, typography, empty slides, overflowing text, low contrast and over-dense bullets. The PDF format and its validator remain owned by the composed PDF capability.",
   "author": {
     "name": "NEXUS Community"
   },
@@ -85,7 +85,8 @@
     }
   ],
   "produces": [
-    ".pptx"
+    ".pptx",
+    ".pdf"
   ],
   "requires": {
     "python": [
@@ -135,6 +136,16 @@
         "protocol": "chainabit.pptx.execution/v1",
         "formats": [
           "pptx"
+        ]
+      },
+      {
+        "id": "skill-pptx.deck_pdf",
+        "runtime": "python3",
+        "entrypoint": "skills/pptx/scripts/deck_pdf.py",
+        "outputArgumentIndex": 3,
+        "protocol": "chainabit.pdf.execution/v1",
+        "formats": [
+          "pdf"
         ]
       }
     ]

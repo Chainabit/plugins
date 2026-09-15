@@ -4,8 +4,8 @@
     {
       "path": "SKILL.md",
       "type": "instructions",
-      "sha256": "d09895c06c540cc5f143edd05a645a976ce6c09551bb739f79ca97b7e8feec13",
-      "bytes": 12499,
+      "sha256": "51aed80194df16de771ef9ef903a95f8071acb74db52a1946db65a249016a3b3",
+      "bytes": 13122,
       "mode": "0644"
     },
     {
@@ -18,15 +18,15 @@
     {
       "path": "scripts/deck_pdf.py",
       "type": "scripts",
-      "sha256": "56a695895612e3942651b2d4fef062a6f96893d4e5784dec73a1ed26ca557428",
-      "bytes": 17902,
+      "sha256": "0975a145244727217685f6362546a15a9c5f2445aa53a5385ea7026423af6d99",
+      "bytes": 18179,
       "mode": "0644"
     },
     {
       "path": "scripts/deck_pptx.py",
       "type": "scripts",
-      "sha256": "b2c3e9cffe90673a76bf564d2161ea41369ec5d647e999540af36ca87079ff64",
-      "bytes": 33016,
+      "sha256": "a4806d2e0657ad23f9e5fffe17f1252d16f51e79cf1f3055de378693724f4260",
+      "bytes": 33718,
       "mode": "0644"
     },
     {
@@ -39,8 +39,8 @@
     {
       "path": "tests/test_artifact_contract.py",
       "type": "metadata",
-      "sha256": "90677e4edd7d909c56f73421c87b9c917c2dc804b916228a8314b3c8c236f0c4",
-      "bytes": 12770,
+      "sha256": "283127bc0a1486b66d972f2fb3a254c63d5fa2c0d6259e8bde82a872a4d225db",
+      "bytes": 15750,
       "mode": "0644"
     }
   ]

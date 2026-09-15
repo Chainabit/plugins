@@ -46,6 +46,7 @@ from deck_pptx import (
     build_geometry,
     check_fit,
     plan_slide,
+    preflight_frame,
     resolve_theme,
     validate_spec,
 )
@@ -332,6 +333,10 @@ def build_pdf(spec: dict, geometry: dict, output: str) -> None:
 #: that skill declares.
 PDF_VALIDATOR_ID = 'skill-pdf.validate_pdf'
 
+#: The execution protocol this renderer reports in: the PDF protocol, not the
+#: deck's, because its output is a PDF and is delivered as one.
+EXECUTION_SCHEMA = 'chainabit.pdf.execution/v1'
+
 
 def validation_handoff(output: str) -> str:
     """The `Next:` line printed after a successful render.
@@ -421,6 +426,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.validate_only:
         print(f"OK: {args.spec} is a valid deck spec ({len(spec['slides'])} slide(s))")
+        print(json.dumps(preflight_frame(EXECUTION_SCHEMA), sort_keys=True))
         return 0
 
     try:
@@ -452,7 +458,7 @@ def main(argv: list[str] | None = None) -> int:
     with open(args.output, "rb") as handle:
         digest = hashlib.sha256(handle.read()).hexdigest()
     print(json.dumps({
-        "schema": "chainabit.pdf.execution/v1",
+        "schema": EXECUTION_SCHEMA,
         "success": True,
         "generator": "skill-pptx.deck_pdf",
         "output": {
