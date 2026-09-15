@@ -56,14 +56,20 @@ import xml.etree.ElementTree as ET
 import zipfile
 
 
-# A path this script prints is an instruction the reader will run, so it has to
-# be correct from the reader's working directory -- which is the workspace root,
-# not this bundle. `scripts/validate_x.py` was only ever right by accident, and
-# in the environment that actually runs these scripts it was wrong: the bundle
-# lives wherever the host materialized it. `__file__` is the one thing that
-# knows, so sibling invocations are derived from it rather than guessed.
-def _sibling_command(script: str) -> str:
-    return f"python3 {os.path.join(os.path.dirname(os.path.abspath(__file__)), script)}"
+#: The validator a deck built here is checked by when it is delivered.
+DECK_VALIDATOR_ID = "skill-pptx.validate_pptx"
+
+
+def validation_handoff(output: str) -> str:
+    """The `Next:` line printed after a successful build.
+
+    A printed line is read as an instruction. It used to be a command that ran
+    the validator, which readers then chained onto the build in one command
+    line -- and a build joined to other commands is no longer a build delivery
+    can recognise, so the deck was refused. The deck is validated when it is
+    delivered, so the line states that fact and names no command to run.
+    """
+    return f"Next: deliver {output}; it is checked by {DECK_VALIDATOR_ID} on delivery."
 
 LAYOUTS = ("title", "content", "comparison", "closing")
 DEFAULT_FONT = os.environ.get("CHAINABIT_ARTIFACT_FONT_FAMILY", "IBM Plex Sans").strip() or "IBM Plex Sans"
@@ -688,6 +694,18 @@ def apply_theme_font(path: str, font: str) -> None:
             os.unlink(temporary)
 
 
+def preflight_frame(schema: str = EXECUTION_SCHEMA) -> dict:
+    """The frame a spec check prints: checked, and nothing produced.
+
+    Every run of a registered generator ends in one machine-readable line, and
+    a host reads that line as the run's evidence. A `--validate-only` run writes
+    no file, so it cannot report an output identity; without a frame of its own
+    it printed nothing a host could read, which looks exactly like a render that
+    lost its evidence.
+    """
+    return {"schema": schema, "ok": True, "operation": "preflight", "valid": True}
+
+
 def artifact_identity(path: str, slides: int, font: str) -> dict:
     with open(path, "rb") as handle:
         data = handle.read()
@@ -787,6 +805,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.validate_only:
         print(f"OK: {args.spec} is a valid deck spec ({len(spec['slides'])} slide(s))")
+        print(json.dumps(preflight_frame(), sort_keys=True))
         return 0
 
     try:
@@ -811,7 +830,7 @@ def main(argv: list[str] | None = None) -> int:
 
     size = os.path.getsize(args.output)
     print(f"OK: wrote {args.output} ({size} bytes, {len(spec['slides'])} slide(s))")
-    print(f"Next: {_sibling_command('validate_pptx.py')} {args.output}")
+    print(validation_handoff(args.output))
     print(json.dumps(artifact_identity(args.output, len(spec["slides"]), spec.get("font") or DEFAULT_FONT), sort_keys=True))
     return 0
 

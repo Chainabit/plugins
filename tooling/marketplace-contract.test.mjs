@@ -118,6 +118,54 @@ test("the deck skill composes the PDF capability that checks its PDF on delivery
   }
 });
 
+test("the deck's PDF comes from a registered generator and is validated by the composed PDF capability", () => {
+  // A request for a deck and a PDF of it is delivered by this skill's own
+  // renderer. Registering the renderer is what lets its PDF carry the same
+  // production evidence as the deck. The PDF format, and the validator that
+  // judges it, stay with the plugin that owns PDF validation.
+  const { manifests } = validateMarketplace(root);
+  const pptx = manifests.get("skill-pptx").manifest;
+  const pdf = manifests.get("skill-pdf").manifest;
+  const renderer = pptx.artifactContract.generators.find((generator) => generator.entrypoint.endsWith("/deck_pdf.py"));
+  assert.ok(renderer, "skill-pptx must register deck_pdf.py as a generator");
+  assert.equal(renderer.id, "skill-pptx.deck_pdf");
+  assert.deepEqual(renderer.formats, ["pdf"]);
+  assert.equal(renderer.outputArgumentIndex, 3);
+  assert.ok(
+    pdf.artifactContract.generators.some((generator) => generator.protocol === renderer.protocol),
+    "the deck's PDF must report in the PDF execution protocol",
+  );
+  assert.ok(
+    !pptx.artifactContract.formats.some((format) => format.format === "pdf"),
+    "the PDF format and its validator remain owned by skill-pdf",
+  );
+  assert.equal(
+    pdf.artifactContract.formats.find((format) => format.format === "pdf")?.validatorId,
+    "skill-pdf.validate_pdf",
+  );
+  // A render joined to other commands is not a render delivery can recognise,
+  // and delivery already runs each file's validator. The instructions run every
+  // command on its own and never chain one onto a render.
+  const instructions = readFileSync(join(root, "artifacts", "skill-pptx", "skills", "pptx", "SKILL.md"), "utf8");
+  for (const chain of ["&&", "||", "; python3"]) {
+    assert.ok(!instructions.includes(chain), `skill-pptx instructions must not chain commands with ${JSON.stringify(chain)}`);
+  }
+});
+
+test("a generator may only produce a format that its plugin or a composed plugin declares", () => {
+  temporaryRepository((copy) => {
+    const manifestPath = join(copy, "artifacts", "skill-pptx", "chainabit-plugin.json");
+    const manifest = json(manifestPath);
+    manifest.composition.requires = manifest.composition.requires.filter((id) => id !== "skill-pdf");
+    save(manifestPath, manifest);
+    const result = validateMarketplace(copy);
+    assert.ok(
+      result.problems.some((problem) => problem.message.includes('"skill-pptx.deck_pdf" produces "pdf"')),
+      JSON.stringify(result.problems),
+    );
+  });
+});
+
 test("detects listing version drift, duplicate identity, unsafe paths, and forged signatures", () => {
   temporaryRepository((copy) => {
     const indexPath = join(copy, "marketplace.json");
