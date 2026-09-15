@@ -1,9 +1,9 @@
 ---
 name: pptx
-description: Builds real .pptx presentations inside the sandbox from a JSON spec, using four brand-safe layouts with a checked palette and type scale, renders that same spec as a matching PDF, and verifies the result is presentable before it is handed back. Use when the requested deliverable is a slide deck: the request mentions PowerPoint, pptx, .pptx, slides, a deck, a presentation, a pitch, "sunum", "slayt", a board update or a talk - including when it also asks for a PDF of that deck, or for the deck in several formats at once. Also use to check whether an existing .pptx is valid, or whether its slides are empty, overflowing, unreadably small, or too dense. Do NOT use when the deliverable is a document or report meant to be read rather than shown - use the pdf skill; do NOT use for a spreadsheet (.xlsx), a Markdown outline, or a web page. Renders Turkish and other Latin Extended-A characters correctly.
+description: Builds real .pptx presentations inside the sandbox from a JSON spec, using eight brand-safe layouts with a checked palette and type scale - four text layouts, three that embed a picture, and one that plots a chart - renders that same spec as a matching PDF, and verifies the result is presentable before it is handed back. Use when the requested deliverable is a slide deck: the request mentions PowerPoint, pptx, .pptx, slides, a deck, a presentation, a pitch, "sunum", "slayt", a board update or a talk - including when it also asks for a PDF of that deck, for a picture or chart on the slides, or for the deck in several formats at once. Also use to check whether an existing .pptx is valid, or whether its slides are empty, overflowing, unreadably small, or too dense, and how many pictures and charts it embeds. Do NOT use when the deliverable is a document or report meant to be read rather than shown - use the pdf skill; do NOT use for a spreadsheet (.xlsx), a Markdown outline, or a web page. Renders Turkish and other Latin Extended-A characters correctly.
 license: Apache-2.0
 metadata:
-  version: 1.2.4
+  version: 1.3.0
 ---
 
 # Presentation generation
@@ -23,8 +23,9 @@ is the check a deck is held to.
 - **`validate_pptx.py`** — the deck's validator, `skill-pptx.validate_pptx`. It
   catches the defects that raise no exception: empty slides, text spilling out
   of its box, contrast below the readable floor, type under the size floor,
-  over-dense bullet lists. Delivery runs it on every deck this skill builds; run
-  it yourself only to check a deck you did not build here.
+  over-dense bullet lists. It also reports how many pictures and charts the deck
+  actually embeds, per slide and in total. Delivery runs it on every deck this
+  skill builds; run it yourself only to check a deck you did not build here.
 
 Every script path in this document is written as `{{SKILL_DIR}}/...`. That is a
 reference, not a location: the host substitutes it for wherever it actually put
@@ -33,8 +34,8 @@ the commands as written. Output paths are relative to your working directory,
 which is the workspace root; the scripts write only to the output path they are
 given.
 
-`python-pptx` and `reportlab` are **already installed** in the sandbox image, so
-both scripts run with no setup step. Do not guess at what else is installed or
+`python-pptx`, `reportlab` and `Pillow` are **already installed** in the sandbox
+image, so both scripts run with no setup step. Do not guess at what else is installed or
 whether you may install it — that is not a fixed property of this skill, it is a
 property of the container and the lease's policy, and it changes. Call the
 `workspace.env` tool: it reports the interpreters, the installed packages, the
@@ -126,13 +127,17 @@ python3 {{SKILL_DIR}}/scripts/deck_pptx.py spec.json out/q3.pptx
 python3 {{SKILL_DIR}}/scripts/deck_pdf.py spec.json out/q3.pdf
 ```
 
-Run each render as its own command, then deliver each file. Do not join the
-renders into one command line, and do not add a validator after them: each file
-is validated when it is delivered, and a render joined to other commands is no
-longer a render delivery can recognise. The order matters only in that the spec
-is written once. Do not build the deck, report it as done, and leave the PDF for
-a turn that never comes — that is the single most common way this skill
-produces half a deliverable.
+Run each render as its own command: the interpreter, the script, the spec and
+the output, with no shell wrapper and nothing chained before or after it. Do not
+join the two renders, and do not chain a validator onto either of them — each
+file is validated when it is delivered, and a render joined to other commands is
+no longer a render that delivery can recognise. To check a file yourself, run
+the validator as a separate command and rely on its own exit status.
+
+Then deliver each file. The order matters only in that the spec is written once.
+Do not build the deck, report it as done, and leave the PDF for a turn that never
+comes — that is the single most common way this skill produces half a
+deliverable.
 
 ### How the deck's PDF is checked
 
@@ -155,14 +160,18 @@ Chainabit default is `IBM Plex Sans`; an explicit safe family name overrides it.
 selected default palette in full — it does not inherit Chainabit colours — so a
 customer palette remains customer-branded.
 
-### The four layouts
+### The eight layouts
 
-| `layout`     | Fields                                             | For |
-|--------------|----------------------------------------------------|-----|
-| `title`      | `title`, `subtitle?`, `meta?`                       | the cover |
-| `content`    | `title`, `bullets` (1–6), `note?`                   | the body of the deck |
-| `comparison` | `title`, `left`/`right`, each `{heading, bullets}`  | two options, before/after |
-| `closing`    | `title`, `subtitle?`, `contact?`                    | the last slide |
+| `layout`        | Fields                                             | For |
+|-----------------|----------------------------------------------------|-----|
+| `title`         | `title`, `subtitle?`, `meta?`                       | the cover |
+| `content`       | `title`, `bullets` (1–6), `note?`                   | the body of the deck |
+| `comparison`    | `title`, `left`/`right`, each `{heading, bullets}`  | two options, before/after |
+| `closing`       | `title`, `subtitle?`, `contact?`                    | the last slide |
+| `title-image`   | `title`, `image`, `subtitle?`, `meta?`              | a cover with a hero picture |
+| `image-content` | `title`, `image`, `bullets` (1–6), `caption?`       | a picture beside the point it makes |
+| `image-full`    | `title`, `image`, `caption?`                        | one picture, edge to edge |
+| `chart`         | `title`, `chart` **or** `image`, `note?`            | numbers, plotted |
 
 Any slide also takes `"notes"` — speaker notes, unlimited length, never rendered
 on the slide. That is where the sentence goes when the bullet has to stay a
@@ -172,6 +181,68 @@ There are no other layouts and no styling fields, on purpose. Size, colour and
 position are decided from the content: each box takes the largest size on its
 ladder that the text actually fits at, and when it will not fit even at the
 floor, that is a spec error rather than type shrunk into illegibility.
+
+### Pictures
+
+```json
+{ "layout": "image-content", "title": "Where the risk sits",
+  "bullets": ["Payment review is open", "Crash dashboard is not wired"],
+  "image": { "path": "path/the/copy/landed/at.png", "alt": "The release pipeline, three stages" },
+  "caption": "Release pipeline, current state" }
+```
+
+Both fields are required. `path` is resolved **relative to the spec file's own
+directory** and must stay inside it; `alt` is what a screen reader and
+PowerPoint's own accessibility check read, so it describes the picture rather
+than repeating the title.
+
+A picture must already be a file before the spec names it. An image the platform
+holds is copied into the workspace with the `workspace.files` tool: pass its
+`sourceFileId` **on its own**, with no `path` and no `op`, and the result gives
+the exact path the copy landed at. Use that path, verbatim, as `image.path`, and
+write the spec where that path resolves from — the spec's directory is the root.
+
+A link is not a picture. The renderers have no network, so a URL, a `data:` URI
+or an absolute path in `image.path` is refused by name rather than drawn as a
+blank. Accepted formats are PNG, JPEG and GIF, up to 25 MB and 40 megapixels.
+
+`title-image` and `image-full` crop the picture to fill their box; `image-content`
+and a `chart` slide's picture are letterboxed, because cropping a diagram
+silently removes part of the figure.
+
+### Charts
+
+```json
+{ "layout": "chart", "title": "Open items by priority",
+  "chart": { "kind": "bar", "categories": ["P1", "P2", "P3"],
+             "series": [{ "name": "Open",   "values": [3, 7, 4] },
+                        { "name": "Closed", "values": [1, 5, 9] }],
+             "unit": "items" },
+  "note": "Counted at 09:00 today." }
+```
+
+`kind` is `bar`, `line` or `pie`. Every series carries one value per category.
+Up to 12 categories and 4 series; a `pie` takes exactly one series, because a pie
+shows one whole. `unit` is optional and labels the value axis.
+
+This is a **real chart part** in the delivered file: whoever opens it can correct
+a number, recolour a series or re-point the data. That is why it is preferred
+over a picture of a chart. Every value is printed on the chart, and a legend
+appears as soon as more than one thing is being distinguished — colour alone is
+not a label.
+
+When the figure already exists as a picture, a `chart` slide takes `image`
+instead of `chart`. It takes one or the other, never both.
+
+### A slide cannot promise a figure it does not carry
+
+`image` and `chart` are **required** by the layouts that declare them, and the
+spec is refused when any text field reads as a stand-in for a figure —
+`(Chart inserted here…)`, `[image goes here]`, `TODO`, `TBD`, `lorem ipsum`.
+There is no spelling of these slides that renders without the picture or the
+data, so a deck asked for with a figure in it either has one or is refused. If
+the figure is not available yet, leave the slide out and say so; do not describe
+it on a slide.
 
 ### Error output
 
@@ -202,6 +273,11 @@ slide edge, with the estimated and available sizes; the computed WCAG contrast
 ratio of each run against the colour actually behind it, resolved through theme
 colours and backgrounds; type under the 14pt floor (and under 18pt for body); and
 bullets, words per bullet, and slides over the density limits.
+
+It also counts what the deck embeds — pictures and chart parts, per slide and in
+total — on stdout and in the `subject` of its JSON frame. That is not a defect
+check: a deck of clean, readable text passes every other check whether or not it
+carries the figure it was asked for, and the count is what separates the two.
 
 Exit codes:
 

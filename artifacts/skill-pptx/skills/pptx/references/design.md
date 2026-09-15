@@ -130,6 +130,42 @@ are what the presenter actually says. Moving text there is not losing it.
 - Body starts at 1.8in and runs to 1.05in from the bottom.
 - Comparison columns split the live area with a 0.4in gutter and sit on the
   surface colour so each half reads as one panel.
+- A hero picture takes the right 45% of the cover, full height; the cover text
+  keeps the left, one gutter clear of it.
+- `image-content` puts the picture in the left column and the bullets in the
+  right, on the same grid as a comparison slide, with the caption under the
+  picture.
+- `image-full` runs the picture edge to edge and sets the title in a **solid**
+  band 1.0in deep across the foot. The band is solid rather than translucent
+  because text over a picture has no computable contrast ratio, and "check it by
+  eye" is not a floor.
+- A chart takes the body box, so a chart slide and a bullet slide sit on the
+  same grid.
+
+## Pictures and charts
+
+| Limit | Value | Enforced as |
+|-------|-------|-------------|
+| Picture formats | PNG, JPEG, GIF | error on anything else |
+| Picture size | **25 MB**, **40 megapixels** | error above either |
+| Picture location | inside the spec file's own directory | error outside it |
+| Chart categories | **12** | error above it |
+| Chart series | **4**, and exactly **1** for a pie | error above it |
+| Chart text | **16pt** | above the 14pt absolute floor |
+
+The format list is the intersection of what the pdf capability accepts and what
+an OOXML package can carry, so one picture is either safe to embed in a deck and
+the report beside it, or in neither. The size and pixel ceilings are the pdf
+capability's own numbers, kept identical on purpose.
+
+A picture is never stretched. `title-image` and `image-full` crop to fill their
+box; `image-content` and a chart slide's picture are letterboxed, because
+cropping a diagram silently removes part of the figure.
+
+Native charts use the deck's accent first, then the semantic set above, and print
+every value on the chart. A legend appears as soon as more than one thing is
+being distinguished. Colour alone never carries the meaning — see the note under
+the semantic accents.
 
 Text boxes are written with autofit **off**. python-pptx's default is to turn it
 on, which lets a box silently resize itself around whatever it is handed — after
