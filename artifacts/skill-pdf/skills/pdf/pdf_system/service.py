@@ -8,14 +8,16 @@ import re
 import subprocess
 import tempfile
 import time
+from collections import deque
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterator
 
 from .backends import (CapabilityReport, PypdfManipulator,
                        ReportLabRenderer, WeasyPrintRenderer, capability_registry)
 from .errors import ErrorCode, PdfError
 from .models import DocumentRequirements, PageGeometry, SecurityPolicy
-from .safety import bounded_read, reject_active_markup, safe_output, validate_image
+from .safety import (IMAGE_FILE_FORMATS, bounded_read, image_as_text,
+                     reject_active_markup, safe_output, validate_image)
 from .verification import Verification, verify_pdf
 
 DEFAULT_FONT_FAMILY = os.environ.get(
@@ -68,6 +70,19 @@ def resolve_palette(value: object) -> dict[str, str]:
         return dict(DEFAULT_PALETTE)
     return {key: str(value[key]).upper() for key in PALETTE_KEYS}
 
+
+def _report_strings(spec: dict) -> Iterator[tuple[str, str]]:
+    """Every string in a report spec with its JSON path, walked without recursion."""
+    pending: deque[tuple[str, object]] = deque([("", spec)])
+    while pending:
+        where, value = pending.popleft()
+        if isinstance(value, str):
+            yield where, value
+        elif isinstance(value, dict):
+            pending.extend((f"{where}.{key}" if where else str(key), item) for key, item in value.items())
+        elif isinstance(value, list):
+            pending.extend((f"{where}[{index}]", item) for index, item in enumerate(value))
+
 class TemporaryArtifact:
     def __init__(self, policy: SecurityPolicy): self.policy = policy; self._dir = None
     def __enter__(self) -> Path:
@@ -112,6 +127,9 @@ class PdfService:
         if palette_errors: raise PdfError(ErrorCode.INVALID_INPUT, "; ".join(palette_errors))
         if isinstance(font, str) and font.strip() != DEFAULT_FONT_FAMILY and palette is None:
             raise PdfError(ErrorCode.INVALID_INPUT, "a non-Chainabit font override requires a complete palette")
+        written = image_as_text(text)
+        if written:
+            raise PdfError(ErrorCode.UNSAFE_INPUT, f"Markdown contains {written}, which prints as characters rather than an image; save the image as a {IMAGE_FILE_FORMATS} file in the Markdown file's directory and reference it as ![description](relative/path.png)")
         reject_active_markup(text); req = DocumentRequirements.infer("markdown", text, "basic" if deterministic else quality_profile)
         backend, self.last_decision = self.resolver.resolve(req)
         document = self._markdown_html(text, self.policy, self._font_family(font), resolve_palette(palette), palette is None and font is None); metadata = {"Title": title or source.stem, "Lang": lang, "Creator": "chainabit-pdf"}
@@ -303,6 +321,10 @@ blockquote{{margin:14pt 0;padding:10pt 14pt;background:{palette["surface"]};bord
         if isinstance(spec.get("font"), str) and SAFE_FONT_NAME.fullmatch(spec["font"].strip()) and spec["font"].strip() != DEFAULT_FONT_FAMILY and spec.get("palette") is None:
             errors.append("a non-Chainabit font override requires a complete palette")
         errors.extend(validate_palette(spec.get("palette")))
+        # Every report text field is escaped and printed, so image markup or
+        # inline image data in one would appear as characters, never a picture.
+        written=[f"{where} ({found})" for where, value in _report_strings(spec) if (found := image_as_text(value))]
+        if written: errors.append("image written as text in "+", ".join(written)+f": a report prints text fields literally, so it would appear as characters rather than an image; save the image as a {IMAGE_FILE_FORMATS} file in the report spec's directory and add a block {{\"type\": \"image\", \"path\": \"relative/path.png\"}}")
         blocks=spec.get("blocks")
         if not isinstance(blocks,list) or not blocks: return errors+["blocks must be a non-empty array"]
         allowed={"heading","paragraph","bullets","numbered","table","image","spacer","pagebreak"}

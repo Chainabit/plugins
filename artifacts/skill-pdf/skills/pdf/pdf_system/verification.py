@@ -8,6 +8,7 @@ from pathlib import Path
 
 from .errors import ErrorCode, PdfError
 from .models import Limits
+from .safety import image_payload_page
 
 @dataclass(frozen=True)
 class Verification:
@@ -77,6 +78,19 @@ def _font_evidence(page_objects: list[object]) -> tuple[tuple[str, ...], tuple[s
         except Exception:
             continue
     return tuple(sorted(names)), tuple(sorted(unembedded))
+
+
+def _page_texts(page_objects: list[object]) -> tuple[list[str], tuple[int, ...]]:
+    """Extracted text per page, plus the pages whose text could not be read."""
+    texts: list[str] = []
+    unreadable: list[int] = []
+    for index, page in enumerate(page_objects, 1):
+        try:
+            texts.append(page.extract_text() or "")  # type: ignore[attr-defined]
+        except Exception:
+            texts.append("")
+            unreadable.append(index)
+    return texts, tuple(unreadable)
 
 
 def verify_pdf(
@@ -156,9 +170,25 @@ def verify_pdf(
             ErrorCode.VALIDATION_FAILURE,
             "PDF references non-embedded fonts: " + ", ".join(unembedded_fonts),
         )
+    # A picture that reached a renderer as markup or inline data is printed as
+    # its base64 characters. The PDF stays well formed, painted and
+    # font-complete, so only its text shows that the image was lost.
+    texts, unreadable_text = _page_texts(page_objects)
+    image_page = image_payload_page(texts)
+    if image_page is not None:
+        raise PdfError(
+            ErrorCode.VALIDATION_FAILURE,
+            f"PDF prints base64 image data as text on page {image_page}: an image "
+            "reached the renderer as markup or inline data instead of an image "
+            "file; regenerate the PDF with the image embedded from a file",
+        )
     warnings = (
         ("blank_pages=" + ",".join(str(page) for page in blank_pages),)
         if blank_pages
+        else ()
+    ) + (
+        ("text_unreadable_pages=" + ",".join(str(page) for page in unreadable_text),)
+        if unreadable_text
         else ()
     )
     return Verification(

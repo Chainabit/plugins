@@ -4,8 +4,8 @@
     {
       "path": "SKILL.md",
       "type": "instructions",
-      "sha256": "8d4a38f5a5472761c8d9922cf4d59b1a42df0686b2eb4b8ffe4ea2ad43b2d308",
-      "bytes": 5127,
+      "sha256": "1af837a6bcf7963304e3f131212f649d531001e2ddb2bda39194551c7fc2383e",
+      "bytes": 5640,
       "mode": "0644"
     },
     {
@@ -39,29 +39,29 @@
     {
       "path": "pdf_system/safety.py",
       "type": "metadata",
-      "sha256": "ffbf43076d196cb68d743d0ce53a5cc62687433783351756c9e8f46b9e7cb7c9",
-      "bytes": 3469,
+      "sha256": "73d67b90bc19e6a6c62da5cb0cf3ddb811c7cc50fb339f0f363c42f39c05b5a7",
+      "bytes": 7744,
       "mode": "0644"
     },
     {
       "path": "pdf_system/service.py",
       "type": "metadata",
-      "sha256": "3fa6fedf70ae16fdcee4e813eb34cb9d73491018ff6745c34cc080dacddc5ca6",
-      "bytes": 24461,
+      "sha256": "802ac4890f4b7e19c71cd3549a75e108ae70ac5bc8dc8a0d3a1e36a97447798a",
+      "bytes": 26099,
       "mode": "0644"
     },
     {
       "path": "pdf_system/verification.py",
       "type": "metadata",
-      "sha256": "2954284e8e5a048a52c39e7ee0dd5e2af7fb551982bdcec0c7153e624845fb68",
-      "bytes": 6227,
+      "sha256": "f44562f551b58b5a652e1a2adc215802959f26788eb3cf5f20625341590641af",
+      "bytes": 7562,
       "mode": "0644"
     },
     {
       "path": "references/architecture.md",
       "type": "references",
-      "sha256": "387df224871bb0b9c9b9df2bf72a8acfdcf6a9da3f9330bddfed7fac70e1a99d",
-      "bytes": 1885,
+      "sha256": "86e34699f9d328b6651441ddb65a3a604a3e143d7afed621bef2bb668a04eac3",
+      "bytes": 1941,
       "mode": "0644"
     },
     {
@@ -102,8 +102,15 @@
     {
       "path": "scripts/validate_pdf.py",
       "type": "scripts",
-      "sha256": "f29da6dba3cc4fb5c4371626320c9d86bf46c8472d886c9e755b197e8be88c35",
-      "bytes": 1856,
+      "sha256": "c6eb7233b5a100fdfbdd246b297a46f1bbd20e9eac9cabe2040d0c35f03e63d9",
+      "bytes": 1880,
+      "mode": "0644"
+    },
+    {
+      "path": "tests/test_image_as_text.py",
+      "type": "metadata",
+      "sha256": "cfe9eae0ceebf96fc27fec4a73fda1540fed78f97a55d83455a8997cff1503c8",
+      "bytes": 12911,
       "mode": "0644"
     },
     {
