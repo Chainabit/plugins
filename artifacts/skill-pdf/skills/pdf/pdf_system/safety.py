@@ -164,3 +164,9 @@ def validate_image(path: Path, policy: SecurityPolicy) -> tuple[str, int, int]:
     except PdfError: raise
     except Exception as exc:
         raise PdfError(ErrorCode.INVALID_INPUT, "image is malformed or cannot be safely decoded") from exc
+
+
+def image_data_uri(path: Path, policy: SecurityPolicy) -> str:
+    """A validated image file as the data: URI an HTML renderer embeds."""
+    mime, _, _ = validate_image(path, policy)
+    return f"data:{mime};base64,{base64.b64encode(path.read_bytes()).decode('ascii')}"

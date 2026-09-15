@@ -3,7 +3,7 @@ name: pdf
 description: Create, validate, and manipulate secure PDF artifacts. Inspect required capabilities first and prefer the highest-quality available backend; never silently downgrade rich content.
 license: Apache-2.0
 metadata:
-  version: 5.2.7
+  version: 5.2.8
 ---
 
 # PDF artifact system
@@ -32,11 +32,14 @@ through an unregistered wrapper cannot acquire publication proof.
 
 Sources passed to those entrypoints must be regular files inside the workspace.
 Write JSON or Markdown inputs first; process substitution and `/dev/fd/*` paths
-are intentionally rejected by the filesystem boundary. Run validation as its
-own command, or join generation and validation with `&&`. Never place a later
-command such as `ls` after validation with `;` or a bare newline, because its
-zero exit status can hide a rejected PDF. Promote only after
-`{{SKILL_DIR}}/scripts/validate_pdf.py` itself exits successfully.
+are intentionally rejected by the filesystem boundary.
+
+Run each generator as its own command: the interpreter, the script, the source
+and the output, with no shell wrapper and nothing chained before or after it.
+Do not join generation and validation in one shell, as in
+`sh -c "... && ..."`. The platform validates the PDF when the file is saved.
+To check a file yourself, run `{{SKILL_DIR}}/scripts/validate_pdf.py` as a
+separate command and rely on its own exit status.
 
 For a structured report, encode an explicit visual override in the JSON spec:
 `font` selects a safe installed family and `palette` supplies every `#RRGGBB`
@@ -45,6 +48,14 @@ role — `background`, `surface`, `ink`, `body`, `muted`, `rule`, `accent`, and
 Chainabit role; when a custom palette is used the automatic `CHAINABIT` footer
 is omitted. A non-Chainabit `font` without that complete palette is rejected.
 Use a report spec rather than unsafe custom CSS for a branded PDF.
+
+Markdown sources are read as CommonMark with GFM pipe tables: ATX and setext
+headings, emphasis and strong emphasis, ordered and unordered lists nested by
+their content indentation, block quotes, horizontal rules, inline code, fenced
+and indented code blocks, links, images, and `~~strikethrough~~`. A list,
+table, heading, quote or fence may follow a paragraph line directly. Raw HTML
+is printed as text; only `<br>` is honoured, as a line break inside a table
+cell. Links keep `http`, `https` and `mailto` targets.
 
 Images reach a PDF only as files. Save each chart or picture as a PNG, JPEG,
 GIF, or WebP file in the source's directory, then reference it with Markdown

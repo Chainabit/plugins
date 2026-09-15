@@ -4,8 +4,8 @@
     {
       "path": "SKILL.md",
       "type": "instructions",
-      "sha256": "1af837a6bcf7963304e3f131212f649d531001e2ddb2bda39194551c7fc2383e",
-      "bytes": 5640,
+      "sha256": "5ad288e8c5bacdd4e835117f906110164deb67c74ae55972963e8dadf2b9c92b",
+      "bytes": 6270,
       "mode": "0644"
     },
     {
@@ -30,6 +30,13 @@
       "mode": "0644"
     },
     {
+      "path": "pdf_system/markdown_html.py",
+      "type": "metadata",
+      "sha256": "62aa901b146295969759752e0545227386219762abd8cb3c534a0d00c89f2277",
+      "bytes": 17467,
+      "mode": "0644"
+    },
+    {
       "path": "pdf_system/models.py",
       "type": "metadata",
       "sha256": "22b378924d92d73007bd3a5474c6e2a42883584ed9c946285a900d977b9ac6f2",
@@ -39,15 +46,15 @@
     {
       "path": "pdf_system/safety.py",
       "type": "metadata",
-      "sha256": "73d67b90bc19e6a6c62da5cb0cf3ddb811c7cc50fb339f0f363c42f39c05b5a7",
-      "bytes": 7744,
+      "sha256": "baa518505e1a5f1269ce3f1eb1a73a8f972ccaa9ed181aeb176bb4aec575fb97",
+      "bytes": 8017,
       "mode": "0644"
     },
     {
       "path": "pdf_system/service.py",
       "type": "metadata",
-      "sha256": "802ac4890f4b7e19c71cd3549a75e108ae70ac5bc8dc8a0d3a1e36a97447798a",
-      "bytes": 26099,
+      "sha256": "a91d8fec352fe619ec37935751ea633dfafa0c47909372182c2118ed3720402c",
+      "bytes": 23027,
       "mode": "0644"
     },
     {
@@ -60,15 +67,15 @@
     {
       "path": "references/architecture.md",
       "type": "references",
-      "sha256": "86e34699f9d328b6651441ddb65a3a604a3e143d7afed621bef2bb668a04eac3",
-      "bytes": 1941,
+      "sha256": "17c348b511d2afea7ed59ad2aade7aa09a2d8775b34b94941be3019239e443fa",
+      "bytes": 2360,
       "mode": "0644"
     },
     {
       "path": "references/dependencies.md",
       "type": "references",
-      "sha256": "3f245c227c70b47bc32734a52ec2c1bc7bd448d1382a25e4a177ded9e6b1bdcd",
-      "bytes": 951,
+      "sha256": "5e5b8e02c72e99ed4dfdba4401077ea1586f912c86ad47313a28e020cf94ca38",
+      "bytes": 1037,
       "mode": "0644"
     },
     {
@@ -114,10 +121,17 @@
       "mode": "0644"
     },
     {
+      "path": "tests/test_markdown_rendering.py",
+      "type": "metadata",
+      "sha256": "7f71589d47b574c77ab12190e05b0f88396868848741f9412200663096eebf1a",
+      "bytes": 16844,
+      "mode": "0644"
+    },
+    {
       "path": "tests/test_pdf_system.py",
       "type": "metadata",
-      "sha256": "2bf1b3df731344808f9bd686c7df1a1212e4ac47bb781dbabb0a7d41ca1e91cf",
-      "bytes": 12909,
+      "sha256": "7f2939723d93918359dd7e7fc28b2570afbeefd2d43b7776b77c682f5c2b6069",
+      "bytes": 12942,
       "mode": "0644"
     }
   ]

@@ -16,8 +16,9 @@ from .backends import (CapabilityReport, PypdfManipulator,
                        ReportLabRenderer, WeasyPrintRenderer, capability_registry)
 from .errors import ErrorCode, PdfError
 from .models import DocumentRequirements, PageGeometry, SecurityPolicy
+from .markdown_html import render_markdown
 from .safety import (IMAGE_FILE_FORMATS, bounded_read, image_as_text,
-                     reject_active_markup, safe_output, validate_image)
+                     image_data_uri, reject_active_markup, safe_output)
 from .verification import Verification, verify_pdf
 
 DEFAULT_FONT_FAMILY = os.environ.get(
@@ -167,15 +168,6 @@ class PdfService:
                 document = document.replace("@page{size:A4;", f"@page{{size:{geometry.width:.2f}pt {geometry.height:.2f}pt;")
             backend.render(document, geometry, {k:v for k,v in metadata.items() if v}, staged, self.policy)
             result = verify_pdf(staged, self.policy.limits); os.replace(staged, target); return Verification(result.bytes, result.pages, result.version, result.sha256, result.mime_type, result.warnings + (f"backend={backend.capabilities.name}", f"duration_ms={(time.monotonic()-started)*1000:.1f}"))
-    def _paginate(self, lines: list[str], geometry: PageGeometry) -> list[list[str]]:
-        capacity = max(1, int((geometry.height - geometry.margin[0] - geometry.margin[2]) / 12)); pages=[]; current=[]
-        for line in lines:
-            if line == "\f" or len(current) >= capacity: pages.append(current or [""]); current=[]
-            if line != "\f": current.append(line)
-        if current: pages.append(current)
-        return pages or [[""]]
-    def _wrap(self, text: str) -> list[str]: return [text[i:i+100] for i in range(0, len(text), 100)] or [""]
-    def _markdown_lines(self, text: str) -> list[str]: return [line for raw in text.splitlines() for line in self._wrap(re.sub(r"^#{1,6}\s+|^[-*+]\s+|^\d+[.)]\s+", "", raw))]
     def _markdown_html(self, text: str, policy: SecurityPolicy, font: str, palette: dict[str, str], show_chainabit_footer: bool) -> str:
         # A form feed is the explicit page break this system already claims to
         # understand: models.py raises the `page_breaks` requirement when it
@@ -192,44 +184,12 @@ class PdfService:
             font, palette, show_chainabit_footer,
         )
     def _markdown_blocks(self, text: str) -> str:
-        lines=text.splitlines(); out=[]; i=0
-        while i<len(lines):
-            line=lines[i]
-            if not line.strip(): i+=1; continue
-            if line.startswith("```"):
-                code=[]; i+=1
-                while i<len(lines) and not lines[i].startswith("```"): code.append(lines[i]); i+=1
-                if i==len(lines): raise PdfError(ErrorCode.INVALID_INPUT, "unclosed Markdown code block")
-                out.append("<pre><code>"+html.escape("\n".join(code))+"</code></pre>"); i+=1; continue
-            m=re.match(r"^(#{1,6})\s+(.+)$",line)
-            if m: out.append(f"<h{len(m.group(1))}>{self._inline(m.group(2))}</h{len(m.group(1))}>"); i+=1; continue
-            if line.startswith("|") and i+1<len(lines) and "|" in lines[i+1]:
-                rows=[]
-                while i<len(lines) and lines[i].startswith("|"):
-                    cells=[x.strip() for x in lines[i].strip("|").split("|")]
-                    if not all(set(x)<=set("-: ") for x in cells): rows.append(cells)
-                    i+=1
-                out.append("<table><thead><tr>"+"".join("<th>"+self._inline(x)+"</th>" for x in rows[0])+"</tr></thead><tbody>"+"".join("<tr>"+"".join("<td>"+self._inline(x)+"</td>" for x in row)+"</tr>" for row in rows[1:])+"</tbody></table>"); continue
-            if re.match(r"^[-*+]\s+",line):
-                items=[]
-                while i<len(lines) and re.match(r"^[-*+]\s+",lines[i]): items.append("<li>"+self._inline(re.sub(r"^[-*+]\s+","",lines[i]))+"</li>"); i+=1
-                out.append("<ul>"+"".join(items)+"</ul>"); continue
-            out.append("<p>"+self._inline(line)+"</p>"); i+=1
-        return "".join(out)
-    def _inline(self, value: str) -> str:
-        if re.search(r"\$[^$]+\$|\\\(|\\\[", value):
-            if re.search(r"\\(frac|sqrt|begin|end|newcommand)\b", value):
-                raise PdfError(ErrorCode.UNSUPPORTED_CAPABILITY, "equation uses unsupported or unsafe math syntax")
-            value = re.sub(r"\$([^$]+)\$", r"<math><mrow><mi>\1</mi></mrow></math>", value)
-        value=re.sub(r"!\[([^]]*)\]\(([^)]+)\)", lambda m: self._image_tag(m.group(1),m.group(2)), value)
-        math_parts=[]
-        value=re.sub(r"<math>.*?</math>", lambda m: (math_parts.append(m.group(0)) or f"@@MATH{len(math_parts)-1}@@"), value)
-        value=html.escape(value, quote=True); value=re.sub(r"\*\*(.+?)\*\*",r"<strong>\1</strong>",value); value=re.sub(r"`([^`]+)`",r"<code>\1</code>",value); value=re.sub(r"\[([^]]+)\]\((https?://[^)]+)\)",r'<a href="\2">\1</a>',value)
-        for i, part in enumerate(math_parts): value=value.replace(f"@@MATH{i}@@", part)
-        return value
+        # One page of Markdown. The Markdown dialect (CommonMark blocks plus
+        # GFM tables) is owned by markdown_html; this controller only binds
+        # the page to the request's security policy.
+        return render_markdown(text, self.policy)
     def _image_tag(self, alt: str, uri: str) -> str:
-        path=(self.policy.input_root / uri).resolve(); mime,_,_=validate_image(path,self.policy); import base64
-        encoded=base64.b64encode(path.read_bytes()).decode("ascii"); return f'<img alt="{html.escape(alt,quote=True)}" src="data:{mime};base64,{encoded}">' 
+        return f'<img alt="{html.escape(alt,quote=True)}" src="{image_data_uri((self.policy.input_root / uri).resolve(), self.policy)}">'
     def _report_html(self, spec: dict, policy: SecurityPolicy, font: str, palette: dict[str, str], show_chainabit_footer: bool) -> str:
         chunks=[f"<h1>{html.escape(spec['title'])}</h1>"]
         for b in spec["blocks"]:
@@ -308,7 +268,8 @@ th{{background:{palette["ink"]};color:{palette["accentInk"]};font-weight:700}}th
 th:last-child,td:last-child{{border-right:0}}tr:last-child td{{border-bottom:0}}tbody tr:nth-child(even){{background:{palette["surface"]}}}thead{{display:table-header-group}}tr{{page-break-inside:avoid}}
 pre{{white-space:pre-wrap;background:{palette["ink"]};color:{palette["accentInk"]};border-left:4pt solid {palette["accent"]};border-radius:5pt;padding:11pt 13pt;font-size:8.5pt;line-height:1.45;page-break-inside:avoid}}
 code{{font-family:"Fira Code","Noto Sans Mono",monospace;background:{palette["surface"]};border-radius:2pt;padding:1pt 3pt}}pre code{{background:transparent;padding:0}}
-blockquote{{margin:14pt 0;padding:10pt 14pt;background:{palette["surface"]};border-left:4pt solid {palette["accent"]};color:{palette["body"]}}}
+blockquote{{margin:14pt 0;padding:10pt 14pt;background:{palette["surface"]};border-left:4pt solid {palette["accent"]};color:{palette["body"]}}}blockquote>:last-child{{margin-bottom:0}}
+hr{{border:0;border-top:1pt solid {palette["rule"]};margin:18pt 0}}li>ul,li>ol{{margin:4pt 0 0}}li>p{{margin:0 0 5pt}}
 .page-break{{break-before:page}}img{{display:block;max-width:100%;height:auto;margin:14pt auto;border-radius:5pt}}
 '''
         return '<!doctype html><html><head><meta charset="utf-8"><style>'+style+'</style></head><body>'+body+'</body></html>'
