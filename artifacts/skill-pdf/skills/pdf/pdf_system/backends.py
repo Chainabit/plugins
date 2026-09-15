@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 """Capability registry and isolated renderer/manipulator adapters."""
+import html
 import importlib
 import importlib.util
 import json
@@ -93,9 +94,29 @@ class PdfRenderer(ABC):
     def render(self, document: Any, geometry: PageGeometry, metadata: dict[str, str], destination: Path, policy: Any) -> None: ...
 
 class WeasyPrintRenderer(PdfRenderer):
+    # The `metadata` capability this backend advertises is honoured here.
+    # WeasyPrint takes document metadata from the head of the HTML it is given
+    # and from nowhere else, so the neutral dictionary every renderer receives
+    # is translated into that idiom by the adapter that knows it. Without this
+    # the title, language and author a caller supplied were built, passed down
+    # and dropped, and every PDF carried nothing but a producer string -- which
+    # left a document's own body as the only place its metadata could go.
+    HEAD_FIELDS = (("Author", "author"), ("Subject", "description"), ("Creator", "generator"))
     capabilities = next(c for c in capability_registry() if c.name == "weasyprint")
+    def _with_metadata(self, document: str, metadata: dict[str, str]) -> str:
+        head = "".join(
+            f'<meta name="{name}" content="{html.escape(metadata[key], quote=True)}">'
+            for key, name in self.HEAD_FIELDS if metadata.get(key)
+        )
+        if metadata.get("Title"):
+            head += f'<title>{html.escape(metadata["Title"])}</title>'
+        language = metadata.get("Lang")
+        if language and language != "und":
+            document = document.replace("<html>", f'<html lang="{html.escape(language, quote=True)}">', 1)
+        return document.replace("<head>", f"<head>{head}", 1) if head else document
     def render(self, document: str, geometry: PageGeometry, metadata: dict[str, str], destination: Path, policy: Any) -> None:
         if not self.capabilities.available: raise PdfError(ErrorCode.DEPENDENCY_UNAVAILABLE, "professional HTML/CSS rendering requires optional dependency 'weasyprint'")
+        document = self._with_metadata(document, metadata)
         try:
             from weasyprint import HTML
             from weasyprint.urls import URLFetcher

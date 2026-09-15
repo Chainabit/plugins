@@ -66,7 +66,7 @@ def png_bytes(width: int = 160, height: int = 80) -> bytes:
 # and tables that follow their lead-in line directly.
 FIXTURE = """# Quarterly Release Readiness
 
-*Prepared by the delivery team* on **2026-09-15**. Overall status: ***at risk***.
+*Scope*: the **1.4** release train. Overall status: ***at risk***.
 
 ## Observed state
 
@@ -107,6 +107,12 @@ Ownership:
 ![Burn-down chart](chart.png)
 
 Closing remark.
+
+- Sign-off owner
+  ---
+
+Final note
+---
 """
 
 
@@ -138,6 +144,22 @@ class BlockAdapterTests(unittest.TestCase):
     def test_a_paragraph_is_ended_only_where_commonmark_ends_it(self):
         self.assertEqual(self.normalize("Intro:\n- a"), ["Intro:", "", "- a"])
         self.assertEqual(self.normalize("Steps\n2. b"), ["Steps", "2\\. b"])
+
+    def test_a_setext_underline_becomes_the_atx_heading_it_declares(self):
+        # Python-Markdown reads an underline only beneath a one-line paragraph
+        # at the root, so it is resolved here instead, at every depth.
+        self.assertEqual(self.normalize("Title\n---"), ["## Title", ""])
+        self.assertEqual(self.normalize("Title\n==="), ["# Title", ""])
+        self.assertEqual(self.normalize("Line A\nLine B\n---"), ["## Line A Line B", ""])
+        # A heading that began on its item's marker line keeps that marker, so
+        # the list around it is left unbroken.
+        self.assertEqual(self.normalize("- item\n  ---"), ["- ## item"])
+        self.assertEqual(self.normalize("- one\n- two\n  ----\n- three"),
+                         ["- one", "- ## two", "- three"])
+        self.assertEqual(self.normalize("1. one\n   ---\n2. two"), ["1. ## one", "2. two"])
+        self.assertEqual(self.normalize("> quoted\n> ---"), ["> ## quoted", ""])
+        # A trailing run of hashes is the heading's text, not an ATX closer.
+        self.assertEqual(self.normalize("Section #\n---"), ["## Section \\#", ""])
 
     def test_nested_fences_and_quotes_keep_their_content(self):
         self.assertEqual(
@@ -221,6 +243,40 @@ class CommonMarkStructureTests(unittest.TestCase):
         self.assertEqual(self.blocks("- a\n---\nb"), ["ul", "hr", "p"])
         self.assertEqual(self.blocks("Title\n---"), ["h2"])
         self.assertEqual(self.blocks("#tag is text\n# Heading"), ["p", "h1"])
+
+    def test_a_rule_of_dashes_never_reaches_the_page_as_characters(self):
+        """Both readings of `---`, in every position a document puts it in.
+
+        A blank line before the dashes makes them the thematic break they look
+        like; without one CommonMark reads them as the underline of the line
+        above. The reported document had neither reading: the characters
+        printed. Nothing below may print them, at any depth, and a trailing
+        rule at the end of a document is the case that was shipped.
+        """
+        for source, expected in (
+            ("Durum: hazir\n\n---\n", ["p", "hr"]),
+            ("Durum: hazir\n\n---\n\nSonraki bolum\n", ["p", "hr", "p"]),
+            ("- a\n- b\n\n----\n", ["ul", "hr"]),
+            ("## Bolum\n\n***\n", ["h2", "hr"]),
+            ("Durum: hazir\n---\n", ["h2"]),
+            ("Durum: hazir\n----", ["h2"]),
+            ("- a\n---\nb\n", ["ul", "hr", "p"]),
+        ):
+            self.assertEqual(self.blocks(source), expected, source)
+
+        for source in (
+            "# Rapor\n\nGovde metni.\n\n**Durum:** hazir\n---\n",
+            "# Rapor\n\n**Durum:** hazir\n\n---\n",
+            "- madde\n  ---\n",
+            "- madde\n  ----\n",
+            "- bir\n- iki\n  ---\n- uc\n",
+            "1. madde\n   ---\n2. sonraki\n",
+            "> alinti\n> ---\n",
+            "Satir A\nSatir B\n---\n",
+            "metin\n\n___\n",
+        ):
+            printed = "".join(self.tree(source).itertext())
+            self.assertNotRegex(printed, r"[-*_=]{2,}", source)
 
     def test_code_keeps_its_characters(self):
         fenced = self.tree("```bash\n./build --release *x*\n```")
@@ -380,8 +436,15 @@ class MarkdownPdfTests(unittest.TestCase):
         self.assertRegex(line_of("Crash fix"), r"Crash fix\s+Mobile\s+2026-09-09")
         self.assertRegex(line_of("CDN renewal"), r"CDN renewal\s+Infra\s+2026-09-13")
 
+        # Both readings of a rule of dashes reach the page as structure: the
+        # separator that had a blank line before it, and the heading made by
+        # the one that did not, inside a list item and at the end of the
+        # document. Neither prints its characters -- the loop above proves it.
+        self.assertIn("Sign-off owner", text)
+        self.assertIn("Final note", text)
+
         # Emphasis is formatting, a link is an annotation, an image is a picture.
-        self.assertIn("Prepared by the delivery team on 2026-09-15. Overall status: at risk.", text)
+        self.assertIn("Scope: the 1.4 release train. Overall status: at risk.", text)
         self.assertIn("The launch date holds only if the P1 items close this week.", text)
         self.assertIn("./build --release", text)
         self.assertIn("https://acme.example/checklist", links)

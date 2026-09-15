@@ -94,6 +94,34 @@ class PdfSystemTests(unittest.TestCase):
   result=PdfService(self.policy).generate_markdown(src,out,lang='tr',deterministic=False,quality_profile='professional')
   self.assertGreater(result.pages,0);self.assertEqual(result.sha256,hashlib.sha256(out.read_bytes()).hexdigest())
   self.assertIn(b'/ObjStm',out.read_bytes());self.assertEqual(verify_pdf(out,self.policy.limits).sha256,result.sha256)
+ def test_document_metadata_is_written_rather_than_dropped(self):
+  """Metadata has somewhere to go other than the body of the document.
+
+  WeasyPrint takes document metadata from the head of the HTML it is given and
+  from nowhere else, so the neutral dictionary the controller builds reached
+  the adapter and was discarded there: every PDF carried a producer string and
+  nothing more. A title, an author or a date then had only the body left to go
+  in, which is where a report's generated header block comes from.
+  """
+  from pdf_system.backends import WeasyPrintRenderer
+  blank='<!doctype html><html><head><meta charset="utf-8"></head><body>x</body></html>'
+  document=WeasyPrintRenderer()._with_metadata(blank,{'Title':'Weekly "Ops" Report','Author':'Operations','Subject':'Week 37','Lang':'tr','Creator':'chainabit-pdf'})
+  self.assertIn('<html lang="tr">',document)
+  self.assertIn('<title>Weekly &quot;Ops&quot; Report</title>',document)
+  self.assertIn('<meta name="author" content="Operations">',document)
+  self.assertIn('<meta name="description" content="Week 37">',document)
+  self.assertIn('<meta name="generator" content="chainabit-pdf">',document)
+  self.assertTrue(document.endswith('<body>x</body></html>'))
+  # An unstated language is not a language: "und" must not become <html lang>.
+  self.assertEqual(WeasyPrintRenderer()._with_metadata(blank,{'Lang':'und'}),blank)
+  if not production_dependencies_available():self.skipTest('production PDF dependencies/fonts not installed')
+  from pypdf import PdfReader
+  src=self.source/'m.md';src.write_text('# Report\n\nBody.',encoding='utf-8');out=self.output/'m.pdf'
+  PdfService(self.policy).generate_markdown(src,out,title='Weekly Ops Report',lang='tr')
+  reader=PdfReader(str(out))
+  self.assertEqual(reader.metadata.get('/Title'),'Weekly Ops Report')
+  self.assertEqual(str(reader.trailer['/Root'].get('/Lang')),'tr')
+  self.assertNotIn('Weekly Ops Report',reader.pages[0].extract_text())
  def test_arabic_companion_font_is_embedded_offline(self):
   if not production_dependencies_available():self.skipTest('production PDF dependencies not installed')
   src=self.source/'ar.md';src.write_text('# Chainabit\n\nمرحبا بالعالم — Latin Extended-A ğüşöçıİĞÜŞÖÇ',encoding='utf-8');out=self.output/'ar.pdf'

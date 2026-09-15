@@ -11,10 +11,19 @@ under a lead-in line printed its pipes, and a fence inside a list item printed
 its backticks.
 
 `_BlockNormalizer` is the one place that knows both dialects. It rewrites
-container indentation, list delimiters and paragraph interruptions from
-CommonMark's rules into the layout Python-Markdown parses the same way, and it
-changes no text. Everything inline (emphasis, code spans, links, images,
-escapes) stays with Python-Markdown.
+container indentation, list delimiters, paragraph interruptions and setext
+headings from CommonMark's rules into the layout Python-Markdown parses the same
+way, and it changes no text. Everything inline (emphasis, code spans, links,
+images, escapes) stays with Python-Markdown.
+
+A rule of dashes is the case where the two dialects disagree in public. In
+CommonMark ``---`` on the line directly after a paragraph is that paragraph's
+setext underline, not a thematic break; only a blank line before it makes it a
+rule. Python-Markdown reads a setext underline solely beneath a one-line
+paragraph at the document root, so the same three dashes under a list item were
+neither a heading nor a rule and printed as characters. The normalizer therefore
+resolves a setext heading itself, into the ATX form the parser reads alike at
+every depth, and no underline reaches it.
 
 Raw HTML is text here, never markup. The renderer is not an HTML sanitizer, and
 an author's tag must not become a styling or asset boundary. The single
@@ -44,6 +53,7 @@ _LIST_ITEM = re.compile(
 _TABLE_DELIMITER = re.compile(r"^\|?[ ]*:?-+:?[ ]*(?:\|[ ]*:?-+:?[ ]*)*\|?[ ]*$")
 _QUOTE_MARKER = re.compile(r"^[ ]{0,3}>[ ]?")
 _UNESCAPED_PIPE = re.compile(r"(?<!\\)\|")
+_TRAILING_HASHES = re.compile(r"#+$")
 
 # Math keeps the renderer's projection: the expression's text in a MathML run,
 # without its delimiters. A single-dollar span needs no space inside either
@@ -63,6 +73,15 @@ LINK_SCHEMES = frozenset({"http", "https", "mailto"})
 class _Item:
     content: int  # source column where the item's content starts
     ordered: bool
+
+
+@dataclass(frozen=True)
+class _Paragraph:
+    """The open paragraph, as the one thing a setext underline can close."""
+
+    depth: int  # container depth its lines are emitted at
+    start: int  # index of its first line in the output
+    on_marker: bool  # it began on its list item's marker line
 
 
 def _indent(line: str) -> int:
@@ -121,8 +140,7 @@ class _BlockNormalizer:
         self.nested = nested
         self.out: list[str] = []
         self.items: list[_Item] = []
-        self.paragraph: int | None = None  # container depth of an open paragraph
-        self.item_text = False  # that paragraph began on its item's marker line
+        self.paragraph: _Paragraph | None = None
         self.table: int | None = None  # container depth of an open table
         self.block_depth: int | None = None  # depth of the current block's first line
 
@@ -203,20 +221,19 @@ class _BlockNormalizer:
             self.table = None
 
         if self.paragraph is not None:
-            if opens and self.paragraph == keep and _SETEXT_UNDERLINE.match(probe):
-                self._emit(keep, text)  # the open paragraph is a setext heading
-                self.paragraph = None
+            if opens and self.paragraph.depth == keep and _SETEXT_UNDERLINE.match(probe):
+                self._setext(self.paragraph, probe)  # the paragraph is a heading
                 return index + 1
             interrupts = rule or fence or heading or quote or table or bool(
-                item and (self.paragraph != keep or _can_interrupt_paragraph(item))
+                item and (self.paragraph.depth != keep or _can_interrupt_paragraph(item))
             )
             if not interrupts:
                 # CommonMark lazy continuation: the line belongs to the open
                 # paragraph whatever its indentation.
-                self._emit(self.paragraph, _literal(text))
+                self._emit(self.paragraph.depth, _literal(text))
                 return index + 1
 
-        open_paragraph, from_item = self.paragraph, self.item_text
+        open_paragraph = self.paragraph
         closed = self.items[keep:]
         del self.items[keep:]
         self.paragraph = None
@@ -237,21 +254,50 @@ class _BlockNormalizer:
             self.table = keep
             return index + 2
         if item:
-            return self._item(item, index, keep, indent, closed, open_paragraph, from_item)
+            return self._item(item, index, keep, indent, closed, open_paragraph)
         if relative > 3:
             self._emit(keep, " " * relative + text)  # indented code
         else:
             self._emit(keep, _literal(text))
-            self.paragraph, self.item_text = keep, False
+            self.paragraph = _Paragraph(keep, len(self.out) - 1, False)
         return index + 1
 
+    def _setext(self, paragraph: _Paragraph, underline: str) -> None:
+        """Rewrite an open paragraph as the ATX heading its underline declares.
+
+        Python-Markdown reads an underline only beneath a one-line paragraph at
+        the document root, so the heading is resolved here rather than forwarded:
+        the paragraph's lines become the heading's text, and one that began on a
+        list item's marker line keeps that marker.
+        """
+        lines = self.out[paragraph.start:]
+        del self.out[paragraph.start:]
+        head = lines[0]
+        marker = _LIST_ITEM.match(head.lstrip(" ")) if paragraph.on_marker else None
+        opening = head[:_indent(head) + (marker.end("gap") if marker else 0)]
+        words = " ".join(" ".join(line.split()) for line in [head[len(opening):], *lines[1:]]).strip()
+        # Python-Markdown reads a trailing run of hashes as an ATX closing
+        # sequence and drops it; CommonMark keeps it as the heading's own text.
+        words = _TRAILING_HASHES.sub(lambda run: "".join("\\" + char for char in run.group()), words)
+        text = f"{opening}{'#' if underline.startswith('=') else '##'} {words}"
+        self.paragraph = None
+        if marker:
+            # The heading is that item's own first block, so the line stays a
+            # list item line and the list around it is left unbroken.
+            self.out.append(text)
+            self.block_depth = paragraph.depth - 1
+            return
+        self._blank()
+        self.out.append(text)
+        self._blank()
+
     def _item(self, item: re.Match, index: int, depth: int, indent: int,
-              closed: list[_Item], open_paragraph: int | None, from_item: bool) -> int:
+              closed: list[_Item], open_paragraph: _Paragraph | None) -> int:
         number = item.group("number")
         ordered = number is not None
         if closed and closed[0].ordered != ordered:
             self._blank()  # a different list type starts a new list
-        elif open_paragraph == depth and not from_item:
+        elif open_paragraph is not None and open_paragraph.depth == depth and not open_paragraph.on_marker:
             self._blank()  # the list interrupts a paragraph
         marker, gap, rest = item.group("marker"), item.group("gap"), item.group("rest")
         if rest and len(gap) <= 4:
@@ -261,8 +307,7 @@ class _BlockNormalizer:
             rest = gap[1:] + rest if rest else ""
         self._emit(depth, f"{number}. {rest}" if ordered else f"{marker} {rest}")
         self.items.append(_Item(content, ordered))
-        self.paragraph = depth + 1 if rest.strip() else None
-        self.item_text = True
+        self.paragraph = _Paragraph(depth + 1, len(self.out) - 1, True) if rest.strip() else None
         return index + 1
 
     def _fence(self, lines: list[str], index: int, depth: int, column: int,
