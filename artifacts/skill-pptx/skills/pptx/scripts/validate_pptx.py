@@ -15,7 +15,14 @@ This is the exit gate that looks. It reports, per slide:
   * contrast below the readable floor, with the computed WCAG ratio;
   * font sizes under the projection floor;
   * bullet counts and bullet lengths over the density limits;
-  * a slide count over the cap.
+  * a slide count over the cap;
+  * how many pictures and charts the deck actually embeds, per slide and in
+    total.
+
+That last one is not a defect check, and it is here because every other check
+passes on a deck of clean, readable, well-fitted text that was asked for with a
+figure in it and has none. A count is the only thing that tells a caller which
+of those two decks it is holding.
 
 Deliberately stdlib-only (zipfile + xml.etree). A .pptx is an OPC ZIP of
 DrawingML, so the file's own structure is enough, and reading it directly keeps
@@ -489,6 +496,13 @@ class SlideReport:
         self.min_font: float | None = None
         self.min_contrast: float | None = None
         self.has_content = False
+        #: Embedded pictures and chart parts on this slide. A deck asked for
+        #: with a figure in it can be built, validated and delivered with no
+        #: figure at all: every other check here passes on a deck of clean,
+        #: readable, well-fitted text. Counting what is actually embedded is
+        #: what lets the caller tell the two apart.
+        self.pictures = 0
+        self.charts = 0
 
     def error(self, message: str) -> None:
         self.errors.append(message)
@@ -782,6 +796,37 @@ def slide_has_graphics(slide: ET.Element) -> bool:
     )
 
 
+#: The graphicData URI a chart frame declares. A table declares a different one,
+#: and a table is not a chart however much data it holds.
+CHART_URI = "http://schemas.openxmlformats.org/drawingml/2006/chart"
+
+
+def count_media(package: Package, slide_part: str, slide: ET.Element) -> tuple[int, int]:
+    """(embedded pictures, chart parts) on one slide.
+
+    A picture counts only when its fill actually resolves to a part inside the
+    package: an OOXML picture whose relationship is missing, or points outside
+    the file, draws nothing. That is exactly the case a count exists to catch,
+    so it is not counted as a picture.
+    """
+    relationships = package.rels(slide_part)
+    pictures = 0
+    for picture in slide.iter(P + "pic"):
+        for blip in picture.iter(A + "blip"):
+            target = relationships.get(blip.get(R + "embed", ""))
+            if target and target in package.archive.namelist():
+                pictures += 1
+                break
+
+    charts = 0
+    for frame in slide.iter(P + "graphicFrame"):
+        for data in frame.iter(A + "graphicData"):
+            if data.get("uri") == CHART_URI:
+                charts += 1
+                break
+    return pictures, charts
+
+
 def graphic_text(slide: ET.Element) -> bool:
     for frame in slide.iter(P + "graphicFrame"):
         for text in frame.iter(A + "t"):
@@ -868,6 +913,7 @@ def check_slide(
         )
 
     check_graphic_fonts(slide, report, limits)
+    report.pictures, report.charts = count_media(package, slide_part, slide)
 
     if graphic_text(slide) or slide_has_graphics(slide):
         report.has_content = True
@@ -1095,7 +1141,13 @@ def main(argv: list[str] | None = None) -> int:
             if report.min_contrast
             else "contrast not computable"
         )
-        print(f"  slide {report.number}: {report.text_blocks} text block(s), {font}, {contrast}")
+        print(
+            f"  slide {report.number}: {report.text_blocks} text block(s), "
+            f"{report.pictures} picture(s), {report.charts} chart(s), {font}, {contrast}"
+        )
+    pictures = sum(report.pictures for report in reports)
+    charts = sum(report.charts for report in reports)
+    print(f"  deck: {pictures} embedded picture(s), {charts} chart(s)")
     with open(path, "rb") as handle:
         digest = hashlib.sha256(handle.read()).hexdigest()
     print(json.dumps({
@@ -1110,6 +1162,7 @@ def main(argv: list[str] | None = None) -> int:
             "text_fit",
             "font_floor",
             "contrast",
+            "media_inventory",
         ],
         "subject": {
             "path": os.path.realpath(path),
@@ -1118,6 +1171,18 @@ def main(argv: list[str] | None = None) -> int:
             "mime": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
             "bytes": size,
             "slides": len(slide_parts),
+            # What the deck actually embeds, per slide and in total. A caller
+            # that owes a figure reads these rather than the deck's prose.
+            "pictures": pictures,
+            "charts": charts,
+            "slideMedia": [
+                {
+                    "slide": report.number,
+                    "pictures": report.pictures,
+                    "charts": report.charts,
+                }
+                for report in reports
+            ],
         },
         "typography": {
             "family": font_family,

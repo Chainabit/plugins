@@ -35,16 +35,23 @@ import json
 import os
 import subprocess
 import sys
+from pathlib import Path
 
 # The layout engine lives in the sibling script. Importing it rather than
 # copying it is the whole point of this file — see the module docstring.
 from deck_pptx import (
     ASPECTS,
     BULLET_SPACING_PT,
+    CHART_TEXT_PT,
     DEFAULT_FONT,
+    IMAGE_FIT,
     LINE_HEIGHT_EM,
+    SERIES_COLOURS,
     build_geometry,
     check_fit,
+    image_box,
+    measure_image,
+    palette_mode,
     plan_slide,
     preflight_frame,
     resolve_theme,
@@ -132,12 +139,15 @@ def to_pdf_y(top_in: float, slide_height_in: float) -> float:
 class Page:
     """One slide's worth of drawing, in the geometry the shared engine chose."""
 
-    def __init__(self, canvas, geometry: dict, theme: dict, fonts: tuple[str, str]):
+    def __init__(self, canvas, geometry: dict, theme: dict, fonts: tuple[str, str],
+                 root: Path):
         self.canvas = canvas
         self.geometry = geometry
         self.theme = theme
         self.regular, self.bold = fonts
         self.height_in = geometry['slide'][1]
+        #: The spec's own directory; every picture resolves inside it.
+        self.root = root
 
     def _set_fill(self, hex_colour: str) -> None:
         from reportlab.lib.colors import HexColor
@@ -212,6 +222,180 @@ class Page:
                 self.canvas.drawString((left + inset_in + indent_in) * 72.0, baseline, line)
                 baseline -= size * LINE_HEIGHT_EM
             baseline -= BULLET_SPACING_PT
+
+    def picture(self, rectangle, reference: dict, mode: str) -> None:
+        """Draw one validated picture, letterboxed or cropped to fill the box.
+
+        `cover` draws the picture larger than its box and clips to the box, so
+        the visible crop matches the crop fractions the .pptx writes. Neither
+        mode ever changes the picture's aspect ratio.
+        """
+        path = (self.root / str(reference['path'])).resolve()
+        _, width_px, height_px = measure_image(path)
+        left, top, width, height = rectangle
+
+        if mode != 'cover':
+            drawn = image_box(rectangle, (width_px, height_px), mode)
+            self._draw_image(path, drawn)
+            return
+
+        image_ratio = width_px / max(height_px, 1)
+        box_ratio = width / max(height, 0.01)
+        if image_ratio > box_ratio:
+            drawn_width, drawn_height = height * image_ratio, height
+        else:
+            drawn_width, drawn_height = width, width / image_ratio
+
+        self.canvas.saveState()
+        clip = self.canvas.beginPath()
+        clip.rect(
+            left * 72.0, to_pdf_y(top + height, self.height_in),
+            width * 72.0, height * 72.0,
+        )
+        self.canvas.clipPath(clip, stroke=0, fill=0)
+        self._draw_image(path, (
+            left + (width - drawn_width) / 2,
+            top + (height - drawn_height) / 2,
+            drawn_width,
+            drawn_height,
+        ))
+        self.canvas.restoreState()
+
+    def _draw_image(self, path: Path, rectangle) -> None:
+        left, top, width, height = rectangle
+        self.canvas.drawImage(
+            str(path),
+            left * 72.0,
+            to_pdf_y(top + height, self.height_in),
+            width * 72.0,
+            height * 72.0,
+            mask='auto',
+        )
+
+    def chart(self, rectangle, chart_spec: dict, font_size: int) -> None:
+        """A native reportlab chart, drawn from the same numbers the deck plots."""
+        from reportlab.graphics import renderPDF
+
+        left, top, width, height = rectangle
+        drawing = build_chart_drawing(
+            chart_spec, self.theme, width * 72.0, height * 72.0,
+            (self.regular, self.bold), font_size,
+        )
+        renderPDF.draw(
+            drawing, self.canvas, left * 72.0, to_pdf_y(top + height, self.height_in)
+        )
+
+
+def build_chart_drawing(chart_spec: dict, theme: dict, width_pt: float,
+                        height_pt: float, fonts: tuple[str, str], font_size: int):
+    """The chart as a reportlab Drawing, matching what python-pptx will draw.
+
+    Same kinds, same series colours, same value labels on every point, and the
+    same rule that a legend appears only when colour alone would otherwise have
+    to carry the meaning.
+    """
+    from reportlab.graphics.charts.barcharts import VerticalBarChart
+    from reportlab.graphics.charts.legends import Legend
+    from reportlab.graphics.charts.linecharts import HorizontalLineChart
+    from reportlab.graphics.charts.piecharts import Pie
+    from reportlab.graphics.shapes import Drawing
+    from reportlab.lib.colors import HexColor
+
+    regular, _ = fonts
+    palette = [HexColor(f'#{value}') for value in SERIES_COLOURS[palette_mode(theme)]]
+    ink = HexColor(f"#{theme['body']}")
+    rule = HexColor(f"#{theme['rule']}")
+
+    kind = str(chart_spec['kind'])
+    categories = [str(category) for category in chart_spec['categories']]
+    series = chart_spec['series']
+    data = [[float(value) for value in entry['values']] for entry in series]
+    multi = len(series) > 1 or kind == 'pie'
+
+    drawing = Drawing(width_pt, height_pt)
+    # The legend is one row along the foot of the plot, never a stacked block:
+    # the footnote line sits just under this box, and two legend rows reached it.
+    legend_height = font_size * 1.8 if multi else 0.0
+    plot_height = height_pt - legend_height
+
+    if kind == 'pie':
+        pie = Pie()
+        pie.width = pie.height = min(plot_height, width_pt) * 0.78
+        pie.x = (width_pt - pie.width) / 2
+        pie.y = legend_height + (plot_height - pie.height) / 2
+        pie.data = data[0]
+        pie.labels = [f'{value:g}' for value in data[0]]
+        pie.sideLabels = 1
+        pie.slices.fontName = regular
+        pie.slices.fontSize = font_size
+        pie.slices.fontColor = ink
+        pie.slices.strokeColor = rule
+        for index in range(len(data[0])):
+            pie.slices[index].fillColor = palette[index % len(palette)]
+        drawing.add(pie)
+        pairs = list(zip(palette * len(categories), categories))
+    else:
+        chart = VerticalBarChart() if kind == 'bar' else HorizontalLineChart()
+        chart.x = font_size * 3.0
+        chart.y = legend_height + font_size * 2.0
+        chart.width = width_pt - chart.x - font_size
+        chart.height = plot_height - font_size * 3.0
+        chart.data = data
+        chart.categoryAxis.categoryNames = categories
+        for axis in (chart.categoryAxis, chart.valueAxis):
+            axis.labels.fontName = regular
+            axis.labels.fontSize = font_size
+            axis.labels.fillColor = ink
+            axis.strokeColor = rule
+        chart.valueAxis.valueMin = min(0.0, min(min(row) for row in data))
+        if kind == 'bar':
+            for index in range(len(data)):
+                chart.bars[index].fillColor = palette[index % len(palette)]
+                chart.bars[index].strokeColor = None
+            chart.barLabelFormat = '%g'
+            chart.barLabels.fontName = regular
+            chart.barLabels.fontSize = font_size
+            chart.barLabels.fillColor = ink
+            chart.barLabels.dy = font_size * 0.6
+            chart.barLabels.boxAnchor = 's'
+        else:
+            for index in range(len(data)):
+                chart.lines[index].strokeColor = palette[index % len(palette)]
+                chart.lines[index].strokeWidth = 2
+            chart.lineLabelFormat = '%g'
+            chart.lineLabels.fontName = regular
+            chart.lineLabels.fontSize = font_size
+            chart.lineLabels.fillColor = ink
+            chart.lineLabelNudge = font_size * 0.7
+        drawing.add(chart)
+        pairs = [
+            (palette[index % len(palette)], str(entry['name']))
+            for index, entry in enumerate(series)
+        ]
+
+    if multi:
+        legend = Legend()
+        legend.x = font_size
+        legend.y = font_size * 0.4
+        legend.alignment = 'right'
+        legend.columnMaximum = 1
+        legend.deltax = font_size * 7
+        legend.fontName = regular
+        legend.fontSize = font_size
+        legend.fillColor = ink
+        legend.colorNamePairs = pairs
+        drawing.add(legend)
+
+    if chart_spec.get('unit') and kind != 'pie':
+        from reportlab.graphics.shapes import String
+
+        label = String(font_size, height_pt - font_size, str(chart_spec['unit']))
+        label.fontName = regular
+        label.fontSize = font_size
+        label.fillColor = ink
+        drawing.add(label)
+
+    return drawing
 
 
 def render_title(page: Page, slide: dict, sizes: dict) -> None:
@@ -295,15 +479,76 @@ def render_closing(page: Page, slide: dict, sizes: dict) -> None:
         )
 
 
+def render_title_image(page: Page, slide: dict, sizes: dict) -> None:
+    geometry, theme = page.geometry, page.theme
+    page.picture(geometry['hero_image'], slide['image'], IMAGE_FIT['title-image'])
+    page.fill_rect(geometry['hero_bar'], theme['accent'])
+    page.text_block(
+        geometry['hero_title'], [slide['title']], sizes['title'], theme['ink'], bold=True
+    )
+    if slide.get('subtitle'):
+        page.text_block(
+            geometry['hero_subtitle'], [slide['subtitle']], sizes['subtitle'],
+            theme['muted'],
+        )
+    if slide.get('meta'):
+        page.text_block(
+            geometry['hero_meta'], [slide['meta']], sizes['meta'], theme['muted']
+        )
+
+
+def render_image_content(page: Page, slide: dict, sizes: dict) -> None:
+    geometry, theme = page.geometry, page.theme
+    render_heading(page, slide['title'], sizes['title'])
+    page.picture(geometry['split_image'], slide['image'], IMAGE_FIT['image-content'])
+    page.bullets(geometry['split_body'], list(slide['bullets']), sizes['body'], theme['body'])
+    if slide.get('caption'):
+        page.text_block(
+            geometry['split_caption'], [slide['caption']], sizes['caption'], theme['muted']
+        )
+
+
+def render_image_full(page: Page, slide: dict, sizes: dict) -> None:
+    geometry, theme = page.geometry, page.theme
+    page.picture(geometry['full_image'], slide['image'], IMAGE_FIT['image-full'])
+    page.fill_rect(geometry['full_caption'], theme['surface'])
+    page.text_block(
+        geometry['full_caption'], [slide['title']], sizes['caption'], theme['ink'],
+        bold=True, inset_in=0.85,
+    )
+    if slide.get('caption'):
+        caption_rect = list(geometry['full_caption'])
+        caption_rect[1] += sizes['caption'] * LINE_HEIGHT_EM / 72.0
+        page.text_block(
+            tuple(caption_rect), [slide['caption']], sizes['caption'], theme['muted'],
+            inset_in=0.85,
+        )
+
+
+def render_chart(page: Page, slide: dict, sizes: dict) -> None:
+    geometry, theme = page.geometry, page.theme
+    render_heading(page, slide['title'], sizes['title'])
+    if slide.get('chart') is not None:
+        page.chart(geometry['plot'], slide['chart'], CHART_TEXT_PT)
+    else:
+        page.picture(geometry['plot'], slide['image'], IMAGE_FIT['chart'])
+    if slide.get('note'):
+        page.text_block(geometry['note'], [slide['note']], sizes['note'], theme['muted'])
+
+
 RENDERERS = {
     'title': render_title,
     'content': render_content,
     'comparison': render_comparison,
     'closing': render_closing,
+    'title-image': render_title_image,
+    'image-content': render_image_content,
+    'image-full': render_image_full,
+    'chart': render_chart,
 }
 
 
-def build_pdf(spec: dict, geometry: dict, output: str) -> None:
+def build_pdf(spec: dict, geometry: dict, output: str, root: Path) -> None:
     from reportlab.pdfgen import canvas as pdf_canvas
 
     theme = resolve_theme(spec)
@@ -317,7 +562,7 @@ def build_pdf(spec: dict, geometry: dict, output: str) -> None:
     document.setSubject(spec.get('subtitle') or '')
 
     for spec_slide in spec['slides']:
-        page = Page(document, geometry, theme, fonts)
+        page = Page(document, geometry, theme, fonts, root)
         page.fill_rect((0, 0, geometry['slide'][0], geometry['slide'][1]), theme['background'])
         sizes, _ = plan_slide(spec_slide, geometry)
         RENDERERS[spec_slide['layout']](page, spec_slide, sizes)
@@ -412,7 +657,8 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 1
 
-    problems.extend(validate_spec(spec))
+    root = Path(os.path.abspath(args.spec)).parent
+    problems.extend(validate_spec(spec, root))
 
     aspect = spec.get('aspect', '16:9') if isinstance(spec, dict) else None
     geometry = build_geometry(aspect) if aspect in ASPECTS else None
@@ -441,7 +687,7 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     try:
-        build_pdf(spec, geometry, args.output)
+        build_pdf(spec, geometry, args.output, root)
     except (RuntimeError, subprocess.SubprocessError) as exc:
         print(f'ERROR: renderer_runtime: {exc}', file=sys.stderr)
         return 2
