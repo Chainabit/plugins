@@ -74,6 +74,20 @@ class PdfSystemTests(unittest.TestCase):
   src=self.source/'x.md';src.write_text('<script>alert(1)</script>')
   with self.assertRaises(PdfError) as e: PdfService(self.policy).generate_markdown(src,self.output/'x.pdf')
   self.assertEqual(e.exception.code,ErrorCode.UNSAFE_INPUT)
+ def test_report_image_caption_is_visible_not_only_alt_text(self):
+  """A report image block's `caption` used to reach only the <img alt>
+  attribute -- accessibility metadata no renderer paints onto the page -- so
+  a caller-requested caption never appeared in the delivered PDF. It must
+  now show up as real body text, in a <figcaption> WeasyPrint actually
+  renders, distinct from the alt attribute it still also carries."""
+  if not production_dependencies_available():self.skipTest('production PDF dependencies/fonts not installed')
+  from PIL import Image
+  img=self.source/'photo.png';Image.new('RGB',(40,20),color=(10,20,30)).save(img)
+  src=self.source/'r.json';src.write_text(json.dumps({'title':'HQ','blocks':[{'type':'image','path':'photo.png','caption':'Our new HQ, opening 2027'}]}))
+  out=self.output/'r.pdf';PdfService(self.policy).generate_report(src,out)
+  from pypdf import PdfReader
+  text=PdfReader(str(out)).pages[0].extract_text()
+  self.assertIn('Our new HQ, opening 2027',text)
  def test_invalid_report_and_concurrent_outputs(self):
   src=self.source/'r.json';src.write_text(json.dumps({'title':'x','blocks':[{'type':'evil'}]}))
   with self.assertRaises(PdfError): PdfService(self.policy).generate_report(src,self.output/'r.pdf')
