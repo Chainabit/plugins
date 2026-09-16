@@ -23,6 +23,50 @@ class PdfSystemTests(unittest.TestCase):
  def test_landscape_and_custom_geometry_validation(self):
   self.assertGreater(PageGeometry.from_spec('A4','landscape').width,PageGeometry.from_spec('A4').width)
   with self.assertRaises(ValueError): PageGeometry.from_spec({'width':-1,'height':4})
+ def test_html_document_page_rule_reflects_the_resolved_geometry(self):
+  """The @page rule is built from the caller's geometry, not a second hardcoded default.
+
+  `_html_document` used to hardcode `@page{size:A4;margin:58pt 54pt 54pt;`, a
+  value that matched neither `PageGeometry`'s own default margin (54/50/48/50,
+  the one `references/typography.md` documents) nor anything a caller could
+  override -- a custom page size was patched in after the fact by a fragile
+  string replacement, and a custom margin was never applied at all.
+  """
+  from unittest.mock import patch
+  from pdf_system.service import DEFAULT_PALETTE
+  default_geometry=PageGeometry.from_spec('A4','portrait')
+  self.assertEqual(default_geometry.margin,(54.0,50.0,48.0,50.0))
+  custom_geometry=PageGeometry.from_spec({'width':300,'height':500},'portrait',{'top':10,'right':20,'bottom':30,'left':40})
+  service=PdfService(self.policy)
+  with patch.object(PdfService,'_font_css',return_value=''):
+   document=service._html_document('<p>x</p>','IBM Plex Sans',DEFAULT_PALETTE,True,custom_geometry)
+  self.assertIn('@page{size:300.00pt 500.00pt;margin:10.00pt 20.00pt 30.00pt 40.00pt',document)
+ def test_geometry_is_resolved_before_html_is_built_and_carries_through(self):
+  """A regression guard that needs no renderer: only string assembly and plumbing."""
+  from unittest.mock import patch
+  from types import SimpleNamespace
+  captured={}
+  def fake_html_document(self,body,font,palette,show_footer,geometry):
+   captured['geometry']=geometry
+   return f'<html><style>@page{{size:{geometry.width:.2f}pt {geometry.height:.2f}pt;margin:{geometry.margin[0]:.2f}pt {geometry.margin[1]:.2f}pt {geometry.margin[2]:.2f}pt {geometry.margin[3]:.2f}pt}}</style></html>'
+  def fake_render(document,geometry,metadata,destination,policy):
+   captured['render_geometry']=geometry; destination.write_bytes(b'%PDF-1.4 fake')
+  src=self.source/'m.md';src.write_text('Body text')
+  backend=SimpleNamespace(capabilities=SimpleNamespace(name='weasyprint'),render=fake_render)
+  service=PdfService(self.policy, resolver=SimpleNamespace(resolve=lambda *_: (backend, None)))
+  with patch.object(PdfService,'_html_document',fake_html_document), \
+       patch('pdf_system.service.verify_pdf',return_value=SimpleNamespace(bytes=1,pages=1,version='1.4',sha256='s',mime_type='application/pdf',warnings=())):
+   service.generate_markdown(src,self.output/'m.pdf',margin={'top':10,'right':20,'bottom':30,'left':40})
+  self.assertEqual(captured['geometry'].margin,(10.0,20.0,30.0,40.0))
+  self.assertIs(captured['render_geometry'],captured['geometry'])
+ def test_larger_margin_forces_more_pages(self):
+  """An end-to-end proof that a requested margin shrinks the real printable area."""
+  if not production_dependencies_available():self.skipTest('production PDF dependencies/fonts not installed')
+  body='\n\n'.join(f'Paragraph {i}. ' + 'word '*40 for i in range(24))
+  src=self.source/'m.md';src.write_text('# Report\n\n'+body)
+  narrow=PdfService(self.policy).generate_markdown(src,self.output/'narrow-margin.pdf',margin=10)
+  wide=PdfService(self.policy).generate_markdown(src,self.output/'wide-margin.pdf',margin=200)
+  self.assertGreater(wide.pages,narrow.pages)
  def test_path_traversal_and_active_html_are_rejected(self):
   outside=self.root/'outside.md';outside.write_text('x')
   with self.assertRaises(PdfError) as e: PdfService(self.policy).generate_markdown(outside,self.output/'x.pdf')
@@ -86,7 +130,7 @@ class PdfSystemTests(unittest.TestCase):
     destination.write_bytes(b'%PDF-sample')
   verified=SimpleNamespace(bytes=11,pages=1,version='1.4',sha256='sample',mime_type='application/pdf',warnings=())
   with patch('pdf_system.service.verify_pdf',return_value=verified):
-   PdfService(self.policy)._render({'title':'Structured','palette':{}},Backend(),self.output/'report.pdf',{'Title':'Structured'},'A4','portrait')
+   PdfService(self.policy)._render({'title':'Structured','palette':{}},Backend(),self.output/'report.pdf',{'Title':'Structured'},PageGeometry.from_spec('A4','portrait'))
   self.assertEqual(captured['document']['title'],'Structured')
  def test_weasyprint_object_stream_unicode_and_exact_hash(self):
   if not production_dependencies_available():self.skipTest('production PDF dependencies not installed')
