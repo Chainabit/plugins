@@ -3,7 +3,7 @@ name: static-website
 description: Static HTML/CSS implementation with servability, deterministic output, and link/asset checks; one website variation, not a universal web rule.
 license: Apache-2.0
 metadata:
-  version: 1.1.4
+  version: 1.2.0
   discovery: "static HTML/CSS implementation and servability checks"
   layer: implementation
   requires: "skill-software-engineering, skill-project-bootstrap, skill-git, skill-project-documentation, skill-web-engineering"
@@ -75,3 +75,18 @@ role (`background`, `surface`, `ink`, `body`, `muted`, `rule`, `accent`, and
 complete palette deliberately has no Chainabit fallback roles, so it cannot
 silently co-brand a customer site. Do not combine `palette` with
 `accent`/`accentDark`.
+
+## Images
+
+A `hero` section, and each item of a `features` or `cards` section, accepts an
+optional `image: {"src": "...", "alt": "..."}`. `src` is a path to a real
+image file (`.png`, `.jpg`, `.jpeg`, `.gif`, or `.webp`) sitting next to the
+spec file on disk, resolved and validated relative to it — never a URL or a
+`data:` URI, because generation has no network access. `alt` is required and
+describes the image for a screen-reader user. Stage the file next to the spec
+before running the generator (for example, copy a Chainabit-owned generated or
+uploaded asset into the sandbox by its file id first); the generator then
+copies it into the site's own `assets/images/` under a content-derived name
+and rewrites the reference, so the same source image used twice copies once
+and re-running the same spec never duplicates it. A `list` item does not
+render an image field even if one is supplied.
