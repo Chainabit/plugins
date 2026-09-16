@@ -18,8 +18,8 @@
     {
       "path": "scripts/scaffold_site.py",
       "type": "scripts",
-      "sha256": "9b5535e47876be2fb6b69614e4853d45cdc54c9eff5e6a0fbd31accab8dc1d72",
-      "bytes": 75972,
+      "sha256": "02dfeee154cb368480537b76f4830e4a1f30f75465c507c8fc03c014d4be2ce0",
+      "bytes": 77082,
       "mode": "0644"
     },
     {
@@ -39,8 +39,8 @@
     {
       "path": "tests/test_images.py",
       "type": "metadata",
-      "sha256": "f1e85e5ae9cbe495c390a4d9bec6ced708bd0b2a6ae9dd7f6ea705722487a224",
-      "bytes": 9960,
+      "sha256": "6bc2c7612c83ec33883d3267b638edd77562982a6a6b6244850d47852dac662d",
+      "bytes": 10856,
       "mode": "0644"
     },
     {

@@ -71,6 +71,23 @@ def write_picture(path: Path, size: tuple[int, int], colour: tuple[int, int, int
     image.save(path)
 
 
+def psd_bytes() -> bytes:
+    """A valid one-pixel RGB PSD, used under a deliberately false suffix."""
+    return (
+        b"8BPS"
+        + (1).to_bytes(2, "big")
+        + b"\0" * 6
+        + (3).to_bytes(2, "big")
+        + (1).to_bytes(4, "big")
+        + (1).to_bytes(4, "big")
+        + (8).to_bytes(2, "big")
+        + (3).to_bytes(2, "big")
+        + b"\0" * 12
+        + b"\0" * 2
+        + b"\0" * 3
+    )
+
+
 #: One spec that exercises every layout that can carry a figure, plus the two
 #: ways a chart slide can carry one.
 def media_spec() -> dict:
@@ -435,6 +452,27 @@ class MediaRefusalTests(MediaWorkspace):
         result = self.build(root, "--validate-only")
         self.assertEqual(result.returncode, 1, result.stdout)
         self.assertIn("is not PNG, JPEG or GIF", result.stderr)
+
+    def test_a_psd_renamed_png_never_reaches_the_psd_decoder(self) -> None:
+        root = self.workspace(
+            {
+                "title": "Disguised image",
+                "slides": [
+                    {
+                        "layout": "image-full",
+                        "title": "Picture",
+                        "image": {"path": "media/chart.png", "alt": "x"},
+                    }
+                ],
+            }
+        )
+        (root / "media/chart.png").write_bytes(psd_bytes())
+
+        result = self.build(root, "--validate-only")
+
+        self.assertEqual(result.returncode, 1, result.stdout)
+        self.assertIn("is malformed or cannot be safely decoded", result.stderr)
+        self.assertFalse((root / "deck.pptx").exists())
 
     def test_a_series_plots_one_value_per_category(self) -> None:
         stderr = self.refuse(

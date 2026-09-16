@@ -274,6 +274,35 @@ def check_link(item: object, path: str, errors: SpecErrors) -> dict[str, str]:
     }
 
 
+def resolve_local_image(source_root: str, src: str) -> str:
+    """Resolve one image without allowing a symlink to redefine the spec root.
+
+    The lexical checks in ``check_image`` make diagnostics useful, but the
+    filesystem is the Information Expert for containment.  Resolve from the
+    canonical root, reject every symlink component, and return the canonical
+    file so later hashing/copying cannot accidentally follow the submitted
+    path to a different tree.
+    """
+    root = os.path.realpath(source_root)
+    candidate = os.path.join(root, *src.split("/"))
+    current = root
+    for component in src.split("/"):
+        current = os.path.join(current, component)
+        if os.path.islink(current):
+            raise ValueError("uses a symbolic link; image paths must name regular local files")
+
+    resolved = os.path.realpath(candidate)
+    try:
+        contained = os.path.commonpath((root, resolved)) == root
+    except ValueError:
+        contained = False
+    if not contained:
+        raise ValueError("escapes the directory the spec is in")
+    if not os.path.isfile(resolved):
+        raise FileNotFoundError
+    return resolved
+
+
 def check_image(
     value: object, path: str, errors: SpecErrors, source_root: str | None
 ) -> dict | None:
@@ -336,13 +365,13 @@ def check_image(
     # --template, which never declares an image). --print-spec on a bare
     # template still validates the shape above with no filesystem check.
     if source_root is not None:
-        root = os.path.normpath(source_root)
-        absolute = os.path.normpath(os.path.join(root, src))
-        if absolute != root and not absolute.startswith(root + os.sep):
-            errors.add(f"{path}.src", f"{src!r} escapes the directory the spec is in")
-            return None
-        if not os.path.isfile(absolute):
+        try:
+            absolute = resolve_local_image(source_root, src)
+        except FileNotFoundError:
             errors.add(f"{path}.src", f"{src!r} does not exist next to the spec")
+            return None
+        except (OSError, ValueError) as exc:
+            errors.add(f"{path}.src", f"{src!r} {exc}")
             return None
         try:
             size = os.path.getsize(absolute)
@@ -1531,7 +1560,7 @@ def _declared_images(spec: dict) -> list[dict]:
     return found
 
 
-def resolve_image_assets(spec: dict, source_root: str | None) -> dict[str, str]:
+def resolve_image_assets(spec: dict, source_root: str | None) -> dict[str, tuple[str, bytes]]:
     """Maps each declared image's spec-relative `src` to a content-addressed
     `assets/images/...` path, and writes that path back onto the image dict
     as `resolvedSrc` for the renderer to read.
@@ -1542,19 +1571,19 @@ def resolve_image_assets(spec: dict, source_root: str | None) -> dict[str, str]:
     never grows the output: the digest is the name, and copying the same
     bytes to the same name a second time is a no-op.
     """
-    mapping: dict[str, str] = {}
+    mapping: dict[str, tuple[str, bytes]] = {}
     if source_root is None:
         return mapping
     for image in _declared_images(spec):
         src = image["src"]
         if src not in mapping:
-            absolute = os.path.join(source_root, *src.split("/"))
+            absolute = resolve_local_image(source_root, src)
             with open(absolute, "rb") as handle:
                 data = handle.read()
             digest = hashlib.sha256(data).hexdigest()[:16]
             basename = re.sub(r"[^A-Za-z0-9._-]", "_", os.path.basename(src))
-            mapping[src] = f"assets/images/{digest}-{basename}"
-        image["resolvedSrc"] = mapping[src]
+            mapping[src] = (f"assets/images/{digest}-{basename}", data)
+        image["resolvedSrc"] = mapping[src][0]
     return mapping
 
 
@@ -1585,10 +1614,11 @@ def write_site(
     if image_assets:
         images_dir = os.path.join(destination, "assets", "images")
         os.makedirs(images_dir, exist_ok=True)
-        for src, dest_relative in image_assets.items():
+        for _src, (dest_relative, data) in image_assets.items():
             dest_path = os.path.join(destination, *dest_relative.split("/"))
             if not os.path.isfile(dest_path):
-                shutil.copyfile(os.path.join(source_root, *src.split("/")), dest_path)
+                with open(dest_path, "wb") as handle:
+                    handle.write(data)
             written.append(dest_relative)
 
     assets = os.path.join(destination, "assets")

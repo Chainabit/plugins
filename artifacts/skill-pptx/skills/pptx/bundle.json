@@ -25,8 +25,8 @@
     {
       "path": "scripts/deck_pptx.py",
       "type": "scripts",
-      "sha256": "e4c532b0b3e9852ca26a5f99083a22673341269a294fd2d2f8a44431fc5d0ec9",
-      "bytes": 62968,
+      "sha256": "739ee6b4c5a348dc8de90705bf0e9e6e9d7b09739fd06dba5aab7fc2848f7537",
+      "bytes": 63447,
       "mode": "0644"
     },
     {
@@ -53,8 +53,8 @@
     {
       "path": "tests/test_media_layouts.py",
       "type": "metadata",
-      "sha256": "6780c6255ea4d46fb4c29e69e8c004f6fd998d13f15c96f28ff4c6b84edecec7",
-      "bytes": 20756,
+      "sha256": "83867ac86107d8fb0cfc64b4096b0e16ae4e6a076ca94f65c3421172817aeb43",
+      "bytes": 21936,
       "mode": "0644"
     }
   ]

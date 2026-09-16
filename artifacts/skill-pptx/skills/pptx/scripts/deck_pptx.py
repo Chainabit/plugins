@@ -182,6 +182,7 @@ MAX_IMAGE_PIXELS = 40_000_000
 #: unsupported here rather than failing inside python-pptx.
 IMAGE_MIME_TYPES = {"image/png", "image/jpeg", "image/gif"}
 IMAGE_FILE_FORMATS = "PNG, JPEG or GIF"
+IMAGE_DECODER_FORMATS = ("PNG", "JPEG", "GIF")
 MIN_IMAGE_EDGE_PX = 8
 
 # --- charts. A native chart is data the delivered file still owns: it can be
@@ -285,10 +286,15 @@ def measure_image(path: Path) -> tuple[str, int, int]:
             "cannot be checked because the image decoder is unavailable in this "
             "container; call the workspace.env tool to see what it has"
         ) from exc
+    # Keep the public diagnostic for a real WebP without enabling Pillow's
+    # WebP (or every installed) decoder.  Other formats stay deliberately
+    # indistinguishable from malformed input at this boundary.
+    if len(raw) >= 12 and raw[:4] == b"RIFF" and raw[8:12] == b"WEBP":
+        raise ValueError(f"is not {IMAGE_FILE_FORMATS}; a slide can only embed those")
     try:
-        with Image.open(BytesIO(raw)) as image:
+        with Image.open(BytesIO(raw), formats=IMAGE_DECODER_FORMATS) as image:
             image.verify()
-        with Image.open(BytesIO(raw)) as image:
+        with Image.open(BytesIO(raw), formats=IMAGE_DECODER_FORMATS) as image:
             width, height = image.size
             mime = Image.MIME.get(image.format or "")
     except ValueError:

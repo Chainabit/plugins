@@ -203,6 +203,24 @@ class StaticWebsiteImageTests(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertIn("escapes the directory", result.stderr)
 
+    @unittest.skipUnless(hasattr(os, "symlink"), "symbolic links are unavailable")
+    def test_a_symlink_cannot_publish_a_file_outside_the_spec_directory(self) -> None:
+        with tempfile.TemporaryDirectory() as outside:
+            secret = Path(outside) / "secret.png"
+            secret.write_bytes(b"not public")
+            (self.root / "leak.png").symlink_to(secret)
+            spec = self._base_spec()
+            spec["pages"][0]["sections"][0]["image"] = {"src": "leak.png", "alt": "x"}
+            spec_path = self.root / "spec.json"
+            spec_path.write_text(json.dumps(spec), encoding="utf-8")
+            destination = self.root / "site"
+
+            result = self._run("--spec", str(spec_path), str(destination))
+
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("uses a symbolic link", result.stderr)
+        self.assertFalse(destination.exists())
+
     def test_an_absolute_path_is_refused(self) -> None:
         result = self._rejected({"src": "/etc/passwd", "alt": "x"})
         self.assertEqual(result.returncode, 1)
