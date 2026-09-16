@@ -201,7 +201,15 @@ class PdfService:
             elif kind=="paragraph": chunks.append(f"<p>{html.escape(b['text'])}</p>")
             elif kind in {"bullets","numbered"}: chunks.append("<ul>"+"".join("<li>"+html.escape(x)+"</li>" for x in b["items"])+"</ul>")
             elif kind=="table": chunks.append("<table><thead><tr>"+"".join("<th>"+html.escape(str(x))+"</th>" for x in b["columns"])+"</tr></thead><tbody>"+"".join("<tr>"+"".join("<td>"+html.escape(str(x))+"</td>" for x in row)+"</tr>" for row in b["rows"])+"</tbody></table>")
-            elif kind=="image": chunks.append(self._image_tag(str(b.get("caption", "")), str(b["path"])))
+            elif kind=="image":
+                caption=str(b.get("caption",""))
+                tag=self._image_tag(caption, str(b["path"]))
+                # A report `caption` used to reach only the <img alt>
+                # attribute -- accessibility metadata a renderer never paints
+                # -- so a caption a caller asked to be visible silently never
+                # was. <figcaption> is the element WeasyPrint actually
+                # renders as body text.
+                chunks.append(f'<figure>{tag}<figcaption>{html.escape(caption)}</figcaption></figure>' if caption else tag)
             elif kind=="pagebreak": chunks.append('<div class="page-break"></div>')
             elif kind=="spacer": chunks.append(f'<div style="height:{int(b.get("height",12))}pt"></div>')
         header = html.escape(str(spec.get("header", ""))); footer = html.escape(str(spec.get("footer", "")))
@@ -277,6 +285,8 @@ code{{font-family:"Fira Code","Noto Sans Mono",monospace;background:{palette["su
 blockquote{{margin:14pt 0;padding:10pt 14pt;background:{palette["surface"]};border-left:4pt solid {palette["accent"]};color:{palette["body"]}}}blockquote>:last-child{{margin-bottom:0}}
 hr{{border:0;border-top:1pt solid {palette["rule"]};margin:18pt 0}}li>ul,li>ol{{margin:4pt 0 0}}li>p{{margin:0 0 5pt}}
 .page-break{{break-before:page}}img{{display:block;max-width:100%;height:auto;margin:14pt auto;border-radius:5pt}}
+figure{{margin:14pt 0;text-align:center;page-break-inside:avoid}}figure img{{margin:0 auto 6pt}}
+figcaption{{font-size:8.5pt;color:{palette["muted"]};text-align:center}}
 '''
         return '<!doctype html><html><head><meta charset="utf-8"><style>'+style+'</style></head><body>'+body+'</body></html>'
     @staticmethod
