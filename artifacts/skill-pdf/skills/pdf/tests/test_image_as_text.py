@@ -25,6 +25,7 @@ sys.path.insert(0, str(ROOT))
 
 from pdf_system import PdfService, SecurityPolicy  # noqa: E402
 from pdf_system.errors import ErrorCode, PdfError  # noqa: E402
+from pdf_system.models import PageGeometry  # noqa: E402
 from pdf_system.safety import image_as_text, image_payload_page  # noqa: E402
 
 
@@ -284,7 +285,7 @@ class ValidatorTests(unittest.TestCase):
         target = self.root / "delivered.pdf"
         with self.assertRaises(PdfError) as caught:
             PdfService(SecurityPolicy(self.root, self.root))._render(
-                {}, Backend(), target, {"Title": "Revenue"}, "A4", "portrait"
+                {}, Backend(), target, {"Title": "Revenue"}, PageGeometry.from_spec("A4", "portrait")
             )
         self.assertEqual(caught.exception.code, ErrorCode.VALIDATION_FAILURE)
         self.assertFalse(target.exists())

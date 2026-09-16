@@ -37,12 +37,15 @@ and reading the glyphs back out of the PDF, not by trusting exit code 0.
 ## Page geometry
 
 `md_to_pdf.py` uses a print-first `@page` rule and supports the documented
-`--page-size`, `--orientation`, and `--font` inputs. It deliberately rejects
-arbitrary `--css`: CSS is not a public styling boundary and accepting it would
-allow a prompt to bypass the audited document system.
+`--page-size`, `--orientation`, `--font`, and `--margin` inputs. `--margin`
+takes either a single number of points (applied to all four sides) or a JSON
+object with `top`/`right`/`bottom`/`left`. It deliberately rejects arbitrary
+`--css`: CSS is not a public styling boundary and accepting it would allow a
+prompt to bypass the audited document system.
 
-`report_pdf.py` uses a 50pt left/right margin, 54pt top, 48pt bottom, and honours
-`"pageSize": "A4" | "letter"` from the spec. Table column widths are given as
+`report_pdf.py` defaults to a 50pt left/right margin, 54pt top, 48pt bottom,
+and honours `"pageSize": "A4" | "letter"` and an optional `"margin"` (the same
+number-or-object shape) from the spec. Table column widths are given as
 relative numbers in `widths` and normalised to the frame width, so they do not
 have to add up to 100.
 

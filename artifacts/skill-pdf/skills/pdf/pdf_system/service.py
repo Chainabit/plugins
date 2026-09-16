@@ -119,7 +119,7 @@ class PdfService:
         req = DocumentRequirements.infer(kind, content, intent); reports = []
         for c in capability_registry(): reports.append({"backend": c.name, "available": c.available, "version": c.version, "required": sorted(req.required), "missing": sorted(c.missing(req.required)), "reason": c.detail or ("available" if c.available else "dependency unavailable")})
         return {"requirements": sorted(req.required), "reasons": req.reasons, "intent": intent, "backends": reports}
-    def generate_markdown(self, source: Path, destination: Path, title: str | None = None, lang: str = "und", page_size: object = "A4", orientation: str = "portrait", deterministic: bool = False, quality_profile: str = "quality", font: str | None = None, palette: object = None) -> Verification:
+    def generate_markdown(self, source: Path, destination: Path, title: str | None = None, lang: str = "und", page_size: object = "A4", orientation: str = "portrait", deterministic: bool = False, quality_profile: str = "quality", font: str | None = None, palette: object = None, margin: object = None) -> Verification:
         raw = bounded_read(source, self.policy)
         try: text = raw.decode("utf-8")
         except UnicodeDecodeError as exc: raise PdfError(ErrorCode.INVALID_INPUT, "Markdown must be UTF-8") from exc
@@ -133,8 +133,9 @@ class PdfService:
             raise PdfError(ErrorCode.UNSAFE_INPUT, f"Markdown contains {written}, which prints as characters rather than an image; save the image as a {IMAGE_FILE_FORMATS} file in the Markdown file's directory and reference it as ![description](relative/path.png)")
         reject_active_markup(text); req = DocumentRequirements.infer("markdown", text, "basic" if deterministic else quality_profile)
         backend, self.last_decision = self.resolver.resolve(req)
-        document = self._markdown_html(text, self.policy, self._font_family(font), resolve_palette(palette), palette is None and font is None); metadata = {"Title": title or source.stem, "Lang": lang, "Creator": "chainabit-pdf"}
-        return self._render(document, backend, destination, metadata, page_size, orientation)
+        geometry = self._resolve_geometry(page_size, orientation, margin)
+        document = self._markdown_html(text, self.policy, self._font_family(font), resolve_palette(palette), palette is None and font is None, geometry); metadata = {"Title": title or source.stem, "Lang": lang, "Creator": "chainabit-pdf"}
+        return self._render(document, backend, destination, metadata, geometry)
     def generate_report(self, source: Path, destination: Path, quality_profile: str = "quality") -> Verification:
         raw = bounded_read(source, self.policy)
         try: spec = json.loads(raw)
@@ -142,33 +143,35 @@ class PdfService:
         problems = self.validate_report(spec)
         if problems: raise PdfError(ErrorCode.INVALID_INPUT, "; ".join(problems))
         req = DocumentRequirements.infer("report", spec, quality_profile); backend, self.last_decision = self.resolver.resolve(req)
+        geometry = self._resolve_geometry(spec.get("pageSize", "A4"), spec.get("orientation", "portrait"), spec.get("margin"))
         palette = resolve_palette(spec.get("palette"))
         # The controller resolves the complete palette once.  Both adapters
         # receive that same immutable result: ReportLab is a structured
         # renderer, while WeasyPrint receives its HTML projection.  This keeps
         # a user palette from silently mixing with renderer-local defaults.
-        document = {**spec, "palette": palette} if backend.capabilities.name == "reportlab" else self._report_html(spec, self.policy, self._font_family(spec.get("font")), palette, spec.get("palette") is None and spec.get("font") is None); metadata = {"Title": spec["title"], "Author": spec.get("author", ""), "Subject": spec.get("subject", ""), "Lang": spec.get("language", "und"), "Creator": "chainabit-pdf"}
-        return self._render(document, backend, destination, metadata, spec.get("pageSize", "A4"), spec.get("orientation", "portrait"), spec.get("margin"))
+        document = {**spec, "palette": palette} if backend.capabilities.name == "reportlab" else self._report_html(spec, self.policy, self._font_family(spec.get("font")), palette, spec.get("palette") is None and spec.get("font") is None, geometry); metadata = {"Title": spec["title"], "Author": spec.get("author", ""), "Subject": spec.get("subject", ""), "Lang": spec.get("language", "und"), "Creator": "chainabit-pdf"}
+        return self._render(document, backend, destination, metadata, geometry)
     def manipulate(self, operation: str, sources: list[Path], destination: Path, options: dict) -> Verification:
         target = safe_output(destination, self.policy)
         for source in sources: bounded_read(source, self.policy)
         with TemporaryArtifact(self.policy) as temp:
             staged = temp / "result.pdf"; PypdfManipulator().manipulate(operation, sources, staged, options); result = verify_pdf(staged, self.policy.limits); os.replace(staged, target); return result
-    def _render(self, document: Any, backend: Any, destination: Path, metadata: dict[str, str], page_size: object, orientation: str, margin: object = None) -> Verification:
-        try: geometry = PageGeometry.from_spec(page_size, orientation, margin)
+    def _resolve_geometry(self, page_size: object, orientation: str, margin: object) -> PageGeometry:
+        try: return PageGeometry.from_spec(page_size, orientation, margin)
         except ValueError as exc: raise PdfError(ErrorCode.INVALID_INPUT, str(exc)) from exc
+    def _render(self, document: Any, backend: Any, destination: Path, metadata: dict[str, str], geometry: PageGeometry) -> Verification:
         target = safe_output(destination, self.policy); started = time.monotonic()
         with TemporaryArtifact(self.policy) as temp:
             staged = temp / "result.pdf"
-            # HTML owns the @page declaration; the ReportLab adapter receives
-            # a structured report dict. Applying an HTML-only replacement at
-            # this shared persistence boundary used to crash every ReportLab
-            # report before its renderer was invoked.
-            if isinstance(document, str):
-                document = document.replace("@page{size:A4;", f"@page{{size:{geometry.width:.2f}pt {geometry.height:.2f}pt;")
+            # The HTML document already carries its own @page rule, built from
+            # this same geometry by _html_document -- there is nothing left to
+            # patch here. A post-hoc string replacement previously stood in
+            # for that (and only ever touched page size, never margin, so a
+            # caller's margin request was silently dropped for every WeasyPrint
+            # document; see the fix that added this comment).
             backend.render(document, geometry, {k:v for k,v in metadata.items() if v}, staged, self.policy)
             result = verify_pdf(staged, self.policy.limits); os.replace(staged, target); return Verification(result.bytes, result.pages, result.version, result.sha256, result.mime_type, result.warnings + (f"backend={backend.capabilities.name}", f"duration_ms={(time.monotonic()-started)*1000:.1f}"))
-    def _markdown_html(self, text: str, policy: SecurityPolicy, font: str, palette: dict[str, str], show_chainabit_footer: bool) -> str:
+    def _markdown_html(self, text: str, policy: SecurityPolicy, font: str, palette: dict[str, str], show_chainabit_footer: bool, geometry: PageGeometry) -> str:
         # A form feed is the explicit page break this system already claims to
         # understand: models.py raises the `page_breaks` requirement when it
         # sees one, which constrains backend selection. It was then destroyed
@@ -181,7 +184,7 @@ class PdfService:
             '<div class="page-break"></div>'.join(
                 self._markdown_blocks(page) for page in text.split("\f")
             ),
-            font, palette, show_chainabit_footer,
+            font, palette, show_chainabit_footer, geometry,
         )
     def _markdown_blocks(self, text: str) -> str:
         # One page of Markdown. The Markdown dialect (CommonMark blocks plus
@@ -190,7 +193,7 @@ class PdfService:
         return render_markdown(text, self.policy)
     def _image_tag(self, alt: str, uri: str) -> str:
         return f'<img alt="{html.escape(alt,quote=True)}" src="{image_data_uri((self.policy.input_root / uri).resolve(), self.policy)}">'
-    def _report_html(self, spec: dict, policy: SecurityPolicy, font: str, palette: dict[str, str], show_chainabit_footer: bool) -> str:
+    def _report_html(self, spec: dict, policy: SecurityPolicy, font: str, palette: dict[str, str], show_chainabit_footer: bool, geometry: PageGeometry) -> str:
         chunks=[f"<h1>{html.escape(spec['title'])}</h1>"]
         for b in spec["blocks"]:
             kind=b["type"]
@@ -203,7 +206,7 @@ class PdfService:
             elif kind=="spacer": chunks.append(f'<div style="height:{int(b.get("height",12))}pt"></div>')
         header = html.escape(str(spec.get("header", ""))); footer = html.escape(str(spec.get("footer", "")))
         prefix = (f'<div class="running-header">{header}</div>' if header else "") + (f'<div class="running-footer">{footer}</div>' if footer else "")
-        return self._html_document(prefix + "".join(chunks), font, palette, show_chainabit_footer).replace("</style>", ".running-header{position:running(header)}.running-footer{position:running(footer)}@page{@top-center{content:element(header)}@bottom-center{content:element(footer)}};</style>")
+        return self._html_document(prefix + "".join(chunks), font, palette, show_chainabit_footer, geometry).replace("</style>", ".running-header{position:running(header)}.running-footer{position:running(footer)}@page{@top-center{content:element(header)}@bottom-center{content:element(footer)}};</style>")
     def _font_family(self, requested: object) -> str:
         if requested is None:
             return DEFAULT_FONT_FAMILY
@@ -246,14 +249,17 @@ class PdfService:
             encoded=base64.b64encode(path.read_bytes()).decode("ascii")
             faces.append(f'@font-face{{font-family:"ChainabitArtifactArabic";font-style:normal;font-weight:{weight};src:url(data:font/ttf;base64,{encoded}) format("truetype")}}')
         return "".join(faces)
-    def _html_document(self, body: str, font: str, palette: dict[str, str], show_chainabit_footer: bool) -> str:
+    def _html_document(self, body: str, font: str, palette: dict[str, str], show_chainabit_footer: bool, geometry: PageGeometry) -> str:
         # One audited, print-first design system.  Callers choose content and
         # page geometry, not arbitrary CSS; that keeps professional output
         # deterministic and prevents a prompt from becoming a styling/security
-        # boundary.
+        # boundary. The @page rule is built from the caller's resolved
+        # geometry directly -- there is no later size/margin patch, and no
+        # second hardcoded default to drift from PageGeometry's own.
         brand_footer = 'content:"CHAINABIT";font:600 7pt "ChainabitArtifact";letter-spacing:1.5pt;' if show_chainabit_footer else 'content:"";'
+        top, right, bottom, left = (f"{value:.2f}pt" for value in geometry.margin)
         style = self._font_css(font) + f'''
-@page{{size:A4;margin:58pt 54pt 54pt;background:{palette["background"]};
+@page{{size:{geometry.width:.2f}pt {geometry.height:.2f}pt;margin:{top} {right} {bottom} {left};background:{palette["background"]};
  @bottom-left{{{brand_footer}color:{palette["muted"]}}}
  @bottom-right{{content:counter(page) " / " counter(pages);font:8pt "ChainabitArtifact";color:{palette["muted"]}}}}}
 *{{box-sizing:border-box}}body{{font-family:"ChainabitArtifact","ChainabitArtifactArabic",sans-serif;color:{palette["body"]};font-size:10.5pt;line-height:1.58;margin:0}}
