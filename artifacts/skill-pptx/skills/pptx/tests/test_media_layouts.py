@@ -15,6 +15,7 @@ all.
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import os
 import shutil
@@ -28,6 +29,13 @@ ROOT = Path(__file__).resolve().parents[1]
 DECK = str(ROOT / "scripts/deck_pptx.py")
 DECK_PDF = str(ROOT / "scripts/deck_pdf.py")
 VALIDATOR = str(ROOT / "scripts/validate_pptx.py")
+MODULE_SPEC = importlib.util.spec_from_file_location(
+    "deck_pptx_under_test", ROOT / "scripts/deck_pptx.py"
+)
+assert MODULE_SPEC is not None and MODULE_SPEC.loader is not None
+DECK_MODULE = importlib.util.module_from_spec(MODULE_SPEC)
+sys.modules[MODULE_SPEC.name] = DECK_MODULE
+MODULE_SPEC.loader.exec_module(DECK_MODULE)
 
 
 def pptx_available() -> bool:
@@ -472,6 +480,136 @@ class MediaRefusalTests(MediaWorkspace):
 
         self.assertEqual(result.returncode, 1, result.stdout)
         self.assertIn("is malformed or cannot be safely decoded", result.stderr)
+        self.assertFalse((root / "deck.pptx").exists())
+
+    @unittest.skipUnless(hasattr(os, "symlink"), "symbolic links are unavailable")
+    def test_a_symlink_is_refused_at_the_media_input_boundary(self) -> None:
+        root = self.workspace(
+            {
+                "title": "Linked image",
+                "slides": [
+                    {
+                        "layout": "image-full",
+                        "title": "Picture",
+                        "image": {"path": "media/link.png", "alt": "x"},
+                    }
+                ],
+            }
+        )
+        (root / "media/link.png").symlink_to(root / "media/hero.png")
+
+        result = self.build(root, "--validate-only")
+
+        self.assertEqual(result.returncode, 1, result.stdout)
+        self.assertIn("uses a symbolic link", result.stderr)
+        self.assertFalse((root / "deck.pptx").exists())
+
+    @unittest.skipUnless(hasattr(os, "symlink"), "symbolic links are unavailable")
+    def test_a_path_swapped_after_validation_is_never_reopened_by_the_renderer(self) -> None:
+        from pptx import Presentation
+        from pptx.enum.shapes import MSO_SHAPE_TYPE
+
+        spec = {
+            "title": "Stable bytes",
+            "slides": [
+                {
+                    "layout": "image-full",
+                    "title": "Picture",
+                    "image": {"path": "media/hero.png", "alt": "x"},
+                }
+            ],
+        }
+        root = self.workspace(spec)
+        approved = (root / "media/hero.png").read_bytes()
+        image_assets = {}
+        self.assertEqual(DECK_MODULE.validate_spec(spec, root, image_assets), [])
+
+        with tempfile.TemporaryDirectory() as outside:
+            secret = Path(outside) / "secret.png"
+            secret.write_bytes(b"not public and not an image")
+            (root / "media/hero.png").unlink()
+            (root / "media/hero.png").symlink_to(secret)
+
+            output = root / "deck.pptx"
+            DECK_MODULE.build_deck(
+                spec,
+                DECK_MODULE.build_geometry("16:9"),
+                str(output),
+                image_assets,
+            )
+
+        presentation = Presentation(str(output))
+        picture = next(
+            shape
+            for shape in presentation.slides[0].shapes
+            if shape.shape_type == MSO_SHAPE_TYPE.PICTURE
+        )
+        self.assertEqual(picture.image.blob, approved)
+
+    def test_too_many_distinct_images_are_refused_before_output(self) -> None:
+        slides = []
+        root = self.workspace({"title": "Too many images", "slides": slides})
+        for index in range(31):
+            name = f"media/distinct-{index}.png"
+            write_picture(root / name, (32, 32), (index, 20, 40))
+            slides.append(
+                {
+                    "layout": "image-full",
+                    "title": f"Picture {index}",
+                    "image": {"path": name, "alt": "x"},
+                }
+            )
+        (root / "spec.json").write_text(json.dumps({"title": "Too many images", "slides": slides}))
+
+        result = self.build(root, "--validate-only")
+
+        self.assertEqual(result.returncode, 1, result.stdout)
+        self.assertIn("31 distinct local files, over the 30-image cap", result.stderr)
+        self.assertFalse((root / "deck.pptx").exists())
+
+    def test_aggregate_image_bytes_are_refused_before_output(self) -> None:
+        slides = []
+        root = self.workspace({"title": "Too many bytes", "slides": slides})
+        for index in range(3):
+            name = f"media/large-{index}.png"
+            path = root / name
+            write_picture(path, (32, 32), (index, 20, 40))
+            with path.open("r+b") as handle:
+                handle.truncate(23 * 1024 * 1024)
+            slides.append(
+                {
+                    "layout": "image-full",
+                    "title": f"Picture {index}",
+                    "image": {"path": name, "alt": "x"},
+                }
+            )
+        (root / "spec.json").write_text(json.dumps({"title": "Too many bytes", "slides": slides}))
+
+        result = self.build(root, "--validate-only")
+
+        self.assertEqual(result.returncode, 1, result.stdout)
+        self.assertIn("bytes across distinct local files", result.stderr)
+        self.assertIn("67108864-byte aggregate image limit", result.stderr)
+        self.assertFalse((root / "deck.pptx").exists())
+
+    def test_repeated_image_is_counted_once_by_the_aggregate_limit(self) -> None:
+        slides = [
+            {
+                "layout": "image-full",
+                "title": f"Picture {index}",
+                "image": {"path": "media/large.png", "alt": "x"},
+            }
+            for index in range(3)
+        ]
+        root = self.workspace({"title": "One source", "slides": slides})
+        image = root / "media/large.png"
+        write_picture(image, (32, 32), (20, 30, 40))
+        with image.open("r+b") as handle:
+            handle.truncate(23 * 1024 * 1024)
+
+        result = self.build(root, "--validate-only")
+
+        self.assertEqual(result.returncode, 0, result.stderr)
         self.assertFalse((root / "deck.pptx").exists())
 
     def test_a_series_plots_one_value_per_category(self) -> None:

@@ -3,7 +3,7 @@ name: pptx
 description: Builds real .pptx presentations inside the sandbox from a JSON spec, using eight brand-safe layouts with a checked palette and type scale - four text layouts, three that embed a picture, and one that plots a chart - renders that same spec as a matching PDF, and verifies the result is presentable before it is handed back. Use when the requested deliverable is a slide deck: the request mentions PowerPoint, pptx, .pptx, slides, a deck, a presentation, a pitch, "sunum", "slayt", a board update or a talk - including when it also asks for a PDF of that deck, for a picture or chart on the slides, or for the deck in several formats at once. Also use to check whether an existing .pptx is valid, or whether its slides are empty, overflowing, unreadably small, or too dense, and how many pictures and charts it embeds. Do NOT use when the deliverable is a document or report meant to be read rather than shown - use the pdf skill; do NOT use for a spreadsheet (.xlsx), a Markdown outline, or a web page. Renders Turkish and other Latin Extended-A characters correctly.
 license: Apache-2.0
 metadata:
-  version: 1.4.1
+  version: 1.4.2
 ---
 
 # Presentation generation

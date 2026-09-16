@@ -70,15 +70,19 @@ belongs when the bullet has to stay a phrase.
 from __future__ import annotations
 
 import argparse
+import errno
 import hashlib
 import json
 import math
 import os
 import re
+import stat
 import sys
 import tempfile
 import xml.etree.ElementTree as ET
 import zipfile
+from dataclasses import dataclass
+from io import BytesIO
 from pathlib import Path
 
 
@@ -177,6 +181,11 @@ ASPECTS = {"16:9": (13.333, 7.5), "4:3": (10.0, 7.5)}
 # refused at the boundary and named, rather than left to fail at draw time.
 MAX_IMAGE_BYTES = 25 * 1024 * 1024
 MAX_IMAGE_PIXELS = 40_000_000
+# The API publication boundary accepts at most 64 MiB for the complete artifact.
+# Bound the raw picture set at the input Information Expert so a valid slide count
+# cannot amplify into hundreds of MiB of decoder and package work.
+MAX_TOTAL_IMAGE_BYTES = 64 * 1024 * 1024
+MAX_DISTINCT_IMAGES = MAX_SLIDES
 #: The intersection of what the pdf capability accepts and what an OOXML package
 #: can carry. WebP is in the first set and not the second, so it is named as
 #: unsupported here rather than failing inside python-pptx.
@@ -184,6 +193,16 @@ IMAGE_MIME_TYPES = {"image/png", "image/jpeg", "image/gif"}
 IMAGE_FILE_FORMATS = "PNG, JPEG or GIF"
 IMAGE_DECODER_FORMATS = ("PNG", "JPEG", "GIF")
 MIN_IMAGE_EDGE_PX = 8
+
+
+@dataclass(frozen=True)
+class ValidatedImage:
+    """Image bytes and dimensions established by the input boundary once."""
+
+    data: bytes
+    mime: str
+    width: int
+    height: int
 
 # --- charts. A native chart is data the delivered file still owns: it can be
 # recoloured, corrected and re-pointed by whoever opens it. A picture of a chart
@@ -266,20 +285,17 @@ def validate_column(column: object, where: str) -> list[str]:
     return problems
 
 
-def measure_image(path: Path) -> tuple[str, int, int]:
-    """Decode and bound one picture before it crosses into a renderer.
+def measure_image_bytes(raw: bytes) -> tuple[str, int, int]:
+    """Decode and bound exact picture bytes before they cross into a renderer.
 
     Raises ValueError with the reason. The caller turns that into an `ERROR:`
     line; nothing here writes to stderr or exits, so one bad picture is reported
     beside every other problem in the spec rather than ending the run early.
     """
-    size = path.stat().st_size
+    size = len(raw)
     if size > MAX_IMAGE_BYTES:
         raise ValueError(f"is {size} bytes, over the {MAX_IMAGE_BYTES}-byte image limit")
-    raw = path.read_bytes()
     try:
-        from io import BytesIO
-
         from PIL import Image
     except ImportError as exc:  # pragma: no cover - environment, not input
         raise ValueError(
@@ -316,7 +332,86 @@ def measure_image(path: Path) -> tuple[str, int, int]:
     return mime, width, height
 
 
-def validate_image(image: object, where: str, root: Path | None) -> list[str]:
+def measure_image(path: Path) -> tuple[str, int, int]:
+    """Compatibility helper for callers that already own a trusted path."""
+    return measure_image_bytes(path.read_bytes())
+
+
+def open_local_image(root: Path, reference: str) -> tuple[int, os.stat_result]:
+    """Open a regular file below ``root`` without following any symlink.
+
+    Directory descriptors pin each component while ``O_NOFOLLOW`` applies at
+    the actual open, closing the check/open race a ``Path.resolve`` guard leaves.
+    The caller owns the returned file descriptor.
+    """
+    required_flags = ("O_DIRECTORY", "O_NOFOLLOW")
+    if any(not hasattr(os, name) for name in required_flags):
+        raise RuntimeError("this platform cannot securely open local image paths")
+
+    components = reference.split("/")
+    if not components or any(component in ("", ".", "..") for component in components):
+        raise ValueError("is not a normalized relative image path")
+
+    close_on_exec = getattr(os, "O_CLOEXEC", 0)
+    directory_flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | close_on_exec
+    file_flags = (
+        os.O_RDONLY
+        | os.O_NOFOLLOW
+        | getattr(os, "O_NONBLOCK", 0)
+        | close_on_exec
+    )
+    directory_fd = os.open(root, directory_flags)
+    try:
+        for component in components[:-1]:
+            next_fd = os.open(component, directory_flags, dir_fd=directory_fd)
+            os.close(directory_fd)
+            directory_fd = next_fd
+        file_fd = os.open(components[-1], file_flags, dir_fd=directory_fd)
+    except OSError as exc:
+        if exc.errno in (errno.ELOOP, errno.ENOTDIR):
+            raise ValueError(
+                "uses a symbolic link or non-directory path component; image paths "
+                "must name regular local files"
+            ) from exc
+        raise
+    finally:
+        os.close(directory_fd)
+
+    metadata = os.fstat(file_fd)
+    if not stat.S_ISREG(metadata.st_mode):
+        os.close(file_fd)
+        raise ValueError("does not name a regular local file")
+    return file_fd, metadata
+
+
+def read_local_image(root: Path, reference: str) -> tuple[tuple[int, int], ValidatedImage]:
+    file_fd, metadata = open_local_image(root, reference)
+    try:
+        chunks: list[bytes] = []
+        remaining = MAX_IMAGE_BYTES + 1
+        while remaining:
+            chunk = os.read(file_fd, min(1024 * 1024, remaining))
+            if not chunk:
+                break
+            chunks.append(chunk)
+            remaining -= len(chunk)
+        data = b"".join(chunks)
+    finally:
+        os.close(file_fd)
+    mime, width, height = measure_image_bytes(data)
+    return (
+        (metadata.st_dev, metadata.st_ino),
+        ValidatedImage(data=data, mime=mime, width=width, height=height),
+    )
+
+
+def validate_image(
+    image: object,
+    where: str,
+    root: Path | None,
+    image_inventory: dict[tuple[int, int], ValidatedImage] | None = None,
+    resolved_images: dict[str, ValidatedImage] | None = None,
+) -> list[str]:
     """Check one `image` block: its fields, then the file it names.
 
     `root` is the directory the spec itself sits in, and a picture must resolve
@@ -354,22 +449,24 @@ def validate_image(image: object, where: str, root: Path | None) -> list[str]:
     if root is None:
         return []
 
+    if resolved_images is not None and reference in resolved_images:
+        return []
     try:
-        resolved = (root / reference).resolve(strict=True)
-    except OSError:
+        identity, asset = read_local_image(root, reference)
+    except FileNotFoundError:
         return [
             f"{where}.path: {reference!r} does not exist next to the spec. Name the "
             "path the file actually landed at."
         ]
-    if not resolved.is_relative_to(root.resolve()) or not resolved.is_file():
+    except (OSError, RuntimeError, ValueError) as exc:
         return [
-            f"{where}.path: {reference!r} is outside the spec's own directory, or is "
-            "not a regular file"
+            f"{where}.path: {reference!r} is outside the spec's own directory, is not "
+            f"a regular file, or {exc}"
         ]
-    try:
-        measure_image(resolved)
-    except ValueError as exc:
-        return [f"{where}.path: {reference!r} {exc}"]
+    if image_inventory is not None:
+        asset = image_inventory.setdefault(identity, asset)
+    if resolved_images is not None:
+        resolved_images[reference] = asset
     return []
 
 
@@ -482,7 +579,13 @@ def validate_no_placeholders(spec: object) -> list[str]:
     return problems
 
 
-def validate_slide(slide: object, where: str, root: Path | None = None) -> list[str]:
+def validate_slide(
+    slide: object,
+    where: str,
+    root: Path | None = None,
+    image_inventory: dict[tuple[int, int], ValidatedImage] | None = None,
+    resolved_images: dict[str, ValidatedImage] | None = None,
+) -> list[str]:
     if not isinstance(slide, dict):
         return [f"{where}: must be an object"]
 
@@ -504,7 +607,15 @@ def validate_slide(slide: object, where: str, root: Path | None = None) -> list[
                 "shows a picture is not usable without one."
             )
         else:
-            problems.extend(validate_image(slide.get("image"), f"{where}.image", root))
+            problems.extend(
+                validate_image(
+                    slide.get("image"),
+                    f"{where}.image",
+                    root,
+                    image_inventory,
+                    resolved_images,
+                )
+            )
 
     if layout == "title":
         problems.extend(text_field(slide.get("subtitle"), f"{where}.subtitle", required=False))
@@ -547,7 +658,15 @@ def validate_slide(slide: object, where: str, root: Path | None = None) -> list[
         elif has_data:
             problems.extend(validate_chart(slide.get("chart"), f"{where}.chart"))
         elif has_picture:
-            problems.extend(validate_image(slide.get("image"), f"{where}.image", root))
+            problems.extend(
+                validate_image(
+                    slide.get("image"),
+                    f"{where}.image",
+                    root,
+                    image_inventory,
+                    resolved_images,
+                )
+            )
         else:
             problems.append(
                 f"{where}.chart: required for a chart slide — "
@@ -561,7 +680,11 @@ def validate_slide(slide: object, where: str, root: Path | None = None) -> list[
     return problems
 
 
-def validate_spec(spec: object, root: Path | None = None) -> list[str]:
+def validate_spec(
+    spec: object,
+    root: Path | None = None,
+    resolved_images: dict[str, ValidatedImage] | None = None,
+) -> list[str]:
     """One `<field>: <reason>` string per problem; empty means the spec is usable.
 
     `root` is the directory the spec file itself sits in. Every picture the spec
@@ -623,8 +746,30 @@ def validate_spec(spec: object, root: Path | None = None) -> list[str]:
             "longer than this is a document; write it as one."
         )
 
+    image_inventory: dict[tuple[int, int], ValidatedImage] = {}
+    image_assets = resolved_images if resolved_images is not None else {}
     for index, slide in enumerate(slides):
-        problems.extend(validate_slide(slide, f"slides[{index}]", root))
+        problems.extend(
+            validate_slide(
+                slide,
+                f"slides[{index}]",
+                root,
+                image_inventory,
+                image_assets,
+            )
+        )
+
+    if len(image_inventory) > MAX_DISTINCT_IMAGES:
+        problems.append(
+            f"images: {len(image_inventory)} distinct local files, over the "
+            f"{MAX_DISTINCT_IMAGES}-image cap"
+        )
+    total_image_bytes = sum(len(asset.data) for asset in image_inventory.values())
+    if total_image_bytes > MAX_TOTAL_IMAGE_BYTES:
+        problems.append(
+            f"images: {total_image_bytes} bytes across distinct local files, over the "
+            f"{MAX_TOTAL_IMAGE_BYTES}-byte aggregate image limit"
+        )
 
     return problems
 
@@ -1003,7 +1148,7 @@ def new_slide(presentation, palette: str):
     return slide
 
 
-def render_title(slide, spec_slide, theme, geometry, font, sizes, root) -> None:
+def render_title(slide, spec_slide, theme, geometry, font, sizes, _image_assets) -> None:
     add_rule(slide, geometry["cover_bar"], theme["accent"])
 
     box = add_textbox(slide, geometry["cover_title"])
@@ -1033,7 +1178,7 @@ def render_heading(slide, text, theme, geometry, font, size) -> None:
     add_rule(slide, geometry["rule"], theme["rule"])
 
 
-def render_content(slide, spec_slide, theme, geometry, font, sizes, root) -> None:
+def render_content(slide, spec_slide, theme, geometry, font, sizes, _image_assets) -> None:
     render_heading(slide, spec_slide["title"], theme, geometry, font, sizes["title"])
 
     box = add_textbox(slide, geometry["body"])
@@ -1047,7 +1192,7 @@ def render_content(slide, spec_slide, theme, geometry, font, sizes, root) -> Non
         )
 
 
-def render_comparison(slide, spec_slide, theme, geometry, font, sizes, root) -> None:
+def render_comparison(slide, spec_slide, theme, geometry, font, sizes, _image_assets) -> None:
     render_heading(slide, spec_slide["title"], theme, geometry, font, sizes["title"])
 
     for index, side in enumerate(("left", "right")):
@@ -1068,22 +1213,28 @@ def render_comparison(slide, spec_slide, theme, geometry, font, sizes, root) -> 
         fill_bullets(box, list(column["bullets"]), font, sizes[f"{side}_body"], theme["body"])
 
 
-def place_picture(slide, reference: dict, box, mode: str, root):
+def place_picture(
+    slide,
+    reference: dict,
+    box,
+    mode: str,
+    image_assets: dict[str, ValidatedImage],
+):
     """Draw one validated picture into `box`, letterboxed or cropped to fill.
 
-    The file was opened and bounded by `validate_image` before anything was
-    written; this reads its size again to place it, and lets python-pptx embed
-    the bytes. `alt` becomes the shape's descriptive text, which is what a
-    screen reader and PowerPoint's own accessibility check read.
+    The input owner opened, decoded and bounded the bytes before anything was
+    written. Rendering consumes those exact bytes and never reopens a
+    client-controlled path. `alt` becomes the shape's descriptive text, which
+    is what a screen reader and PowerPoint's accessibility check read.
     """
-    path = (root / str(reference["path"])).resolve()
-    _, width_px, height_px = measure_image(path)
+    asset = image_assets[str(reference["path"])]
+    width_px, height_px = asset.width, asset.height
     from pptx.util import Inches
 
     if mode == "cover":
         left, top, width, height = box
         picture = slide.shapes.add_picture(
-            str(path), Inches(left), Inches(top), Inches(width), Inches(height)
+            BytesIO(asset.data), Inches(left), Inches(top), Inches(width), Inches(height)
         )
         horizontal, vertical = image_crop(box, (width_px, height_px))
         picture.crop_left = horizontal
@@ -1093,7 +1244,7 @@ def place_picture(slide, reference: dict, box, mode: str, root):
     else:
         left, top, width, height = image_box(box, (width_px, height_px), mode)
         picture = slide.shapes.add_picture(
-            str(path), Inches(left), Inches(top), Inches(width), Inches(height)
+            BytesIO(asset.data), Inches(left), Inches(top), Inches(width), Inches(height)
         )
 
     element = picture._element._nvXxPr.cNvPr
@@ -1101,8 +1252,10 @@ def place_picture(slide, reference: dict, box, mode: str, root):
     return picture
 
 
-def render_title_image(slide, spec_slide, theme, geometry, font, sizes, root) -> None:
-    place_picture(slide, spec_slide["image"], geometry["hero_image"], "cover", root)
+def render_title_image(slide, spec_slide, theme, geometry, font, sizes, image_assets) -> None:
+    place_picture(
+        slide, spec_slide["image"], geometry["hero_image"], "cover", image_assets
+    )
     add_rule(slide, geometry["hero_bar"], theme["accent"])
 
     box = add_textbox(slide, geometry["hero_title"])
@@ -1126,9 +1279,11 @@ def render_title_image(slide, spec_slide, theme, geometry, font, sizes, root) ->
         )
 
 
-def render_image_content(slide, spec_slide, theme, geometry, font, sizes, root) -> None:
+def render_image_content(slide, spec_slide, theme, geometry, font, sizes, image_assets) -> None:
     render_heading(slide, spec_slide["title"], theme, geometry, font, sizes["title"])
-    place_picture(slide, spec_slide["image"], geometry["split_image"], "contain", root)
+    place_picture(
+        slide, spec_slide["image"], geometry["split_image"], "contain", image_assets
+    )
 
     box = add_textbox(slide, geometry["split_body"])
     fill_bullets(box, list(spec_slide["bullets"]), font, sizes["body"], theme["body"])
@@ -1141,10 +1296,12 @@ def render_image_content(slide, spec_slide, theme, geometry, font, sizes, root) 
         )
 
 
-def render_image_full(slide, spec_slide, theme, geometry, font, sizes, root) -> None:
+def render_image_full(slide, spec_slide, theme, geometry, font, sizes, image_assets) -> None:
     from pptx.util import Pt
 
-    place_picture(slide, spec_slide["image"], geometry["full_image"], "cover", root)
+    place_picture(
+        slide, spec_slide["image"], geometry["full_image"], "cover", image_assets
+    )
 
     # The band is a solid fill, not a translucent overlay: text set over a
     # picture has no computable contrast, and "check it by eye" is not a floor.
@@ -1159,13 +1316,15 @@ def render_image_full(slide, spec_slide, theme, geometry, font, sizes, root) -> 
         style_run(paragraph, spec_slide["caption"], font, sizes["caption"], theme["muted"])
 
 
-def render_chart(slide, spec_slide, theme, geometry, font, sizes, root) -> None:
+def render_chart(slide, spec_slide, theme, geometry, font, sizes, image_assets) -> None:
     render_heading(slide, spec_slide["title"], theme, geometry, font, sizes["title"])
 
     if spec_slide.get("chart") is not None:
         add_native_chart(slide, spec_slide["chart"], theme, geometry["plot"], font)
     else:
-        place_picture(slide, spec_slide["image"], geometry["plot"], "contain", root)
+        place_picture(
+            slide, spec_slide["image"], geometry["plot"], "contain", image_assets
+        )
 
     if spec_slide.get("note"):
         box = add_textbox(slide, geometry["note"])
@@ -1241,7 +1400,7 @@ def add_native_chart(slide, chart_spec: dict, theme, box, font) -> None:
             chart.value_axis.axis_title.text_frame.text = str(chart_spec["unit"])
 
 
-def render_closing(slide, spec_slide, theme, geometry, font, sizes, root) -> None:
+def render_closing(slide, spec_slide, theme, geometry, font, sizes, _image_assets) -> None:
     from pptx.enum.text import PP_ALIGN
 
     box = add_textbox(slide, geometry["closing_title"])
@@ -1279,7 +1438,12 @@ RENDERERS = {
 }
 
 
-def build_deck(spec: dict, geometry: dict, output: str, root: Path) -> None:
+def build_deck(
+    spec: dict,
+    geometry: dict,
+    output: str,
+    image_assets: dict[str, ValidatedImage],
+) -> None:
     from pptx import Presentation
     from pptx.util import Inches
 
@@ -1296,7 +1460,7 @@ def build_deck(spec: dict, geometry: dict, output: str, root: Path) -> None:
         slide = new_slide(presentation, theme["background"])
         sizes, _ = plan_slide(spec_slide, geometry)
         RENDERERS[spec_slide["layout"]](
-            slide, spec_slide, theme, geometry, font, sizes, root
+            slide, spec_slide, theme, geometry, font, sizes, image_assets
         )
         if spec_slide.get("notes"):
             slide.notes_slide.notes_text_frame.text = spec_slide["notes"]
@@ -1451,7 +1615,8 @@ def main(argv: list[str] | None = None) -> int:
     # spec's own directory. That is the same containment the pdf capability
     # applies, so one file is either safe to embed in both or in neither.
     root = Path(os.path.abspath(args.spec)).parent
-    problems.extend(validate_spec(spec, root))
+    image_assets: dict[str, ValidatedImage] = {}
+    problems.extend(validate_spec(spec, root, image_assets))
 
     aspect = spec.get("aspect", "16:9") if isinstance(spec, dict) else None
     geometry = build_geometry(aspect) if aspect in ASPECTS else None
@@ -1480,7 +1645,7 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     try:
-        build_deck(spec, geometry, args.output, root)
+        build_deck(spec, geometry, args.output, image_assets)
     except PermissionError:
         print(f"ERROR: output: no permission to write {args.output}", file=sys.stderr)
         return 2

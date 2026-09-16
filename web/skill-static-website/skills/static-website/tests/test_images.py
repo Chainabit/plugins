@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib.util
 import json
 import os
 import struct
@@ -11,6 +12,12 @@ import zlib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+MODULE_SPEC = importlib.util.spec_from_file_location(
+    "static_website_scaffold", ROOT / "scripts/scaffold_site.py"
+)
+assert MODULE_SPEC is not None and MODULE_SPEC.loader is not None
+SCAFFOLD = importlib.util.module_from_spec(MODULE_SPEC)
+MODULE_SPEC.loader.exec_module(SCAFFOLD)
 FONT_FILES = (
     "IBMPlexSans-Regular.woff2",
     "IBMPlexSans-SemiBold.woff2",
@@ -124,9 +131,8 @@ class StaticWebsiteImageTests(unittest.TestCase):
         self.assertEqual(html.count("<img"), 2)
 
         images = sorted(p.name for p in (site / "assets" / "images").glob("*"))
-        self.assertEqual(len(images), 2)
-        for name in images:
-            self.assertIn(name.split("-", 1)[1], ("hero.png", "card.png"))
+        self.assertEqual(len(images), 1, "identical bytes must materialize once")
+        self.assertTrue(images[0].endswith("-hero.png"))
 
         checked = self._validate(site)
         self.assertEqual(checked.returncode, 0, checked.stderr)
@@ -221,6 +227,26 @@ class StaticWebsiteImageTests(unittest.TestCase):
         self.assertIn("uses a symbolic link", result.stderr)
         self.assertFalse(destination.exists())
 
+    @unittest.skipUnless(hasattr(os, "symlink"), "symbolic links are unavailable")
+    def test_a_path_swapped_after_validation_is_rejected_by_the_secure_open(self) -> None:
+        image = _tiny_png(self.root, "hero.png")
+        spec = self._base_spec()
+        spec["pages"][0]["sections"][0]["image"] = {
+            "src": image.name,
+            "alt": "x",
+        }
+        checked, errors = SCAFFOLD.validate_spec(spec, str(self.root))
+        self.assertFalse(errors, errors.messages)
+
+        with tempfile.TemporaryDirectory() as outside:
+            secret = Path(outside) / "secret.png"
+            secret.write_bytes(b"not public")
+            image.unlink()
+            image.symlink_to(secret)
+
+            with self.assertRaisesRegex(ValueError, "symbolic link"):
+                SCAFFOLD.resolve_image_assets(checked, str(self.root))
+
     def test_an_absolute_path_is_refused(self) -> None:
         result = self._rejected({"src": "/etc/passwd", "alt": "x"})
         self.assertEqual(result.returncode, 1)
@@ -238,6 +264,84 @@ class StaticWebsiteImageTests(unittest.TestCase):
         result = self._rejected({"src": "huge.png", "alt": "x"})
         self.assertEqual(result.returncode, 1)
         self.assertIn("the limit is", result.stderr)
+
+    def test_too_many_canonical_image_sources_are_refused_before_output(self) -> None:
+        spec = self._base_spec()
+        pages = []
+        image_index = 0
+        for page_index in range(2):
+            hero_name = f"image-{image_index}.png"
+            _tiny_png(self.root, hero_name)
+            image_index += 1
+            sections = [
+                {
+                    "type": "hero",
+                    "heading": f"Gallery {page_index}",
+                    "image": {"src": hero_name, "alt": "x"},
+                }
+            ]
+            for _ in range(11):
+                items = []
+                for _ in range(9):
+                    if image_index >= 129:
+                        break
+                    name = f"image-{image_index}.png"
+                    _tiny_png(self.root, name)
+                    image_index += 1
+                    items.append(
+                        {"title": name, "image": {"src": name, "alt": "x"}}
+                    )
+                if items:
+                    sections.append({"type": "cards", "items": items})
+            pages.append(
+                {
+                    "path": "index.html" if page_index == 0 else "gallery.html",
+                    "title": f"Gallery {page_index}",
+                    "sections": sections,
+                }
+            )
+        self.assertEqual(image_index, 129)
+        spec["pages"] = pages
+        spec_path = self.root / "spec.json"
+        spec_path.write_text(json.dumps(spec), encoding="utf-8")
+        destination = self.root / "site"
+
+        result = self._run("--spec", str(spec_path), str(destination))
+
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("129 distinct local files, the limit is 128", result.stderr)
+        self.assertFalse(destination.exists())
+
+    def test_aggregate_image_bytes_are_refused_before_output(self) -> None:
+        names = []
+        for index in range(7):
+            path = _tiny_png(self.root, f"large-{index}.png")
+            with path.open("r+b") as handle:
+                handle.truncate(9 * 1024 * 1024)
+            names.append(path.name)
+        spec = self._base_spec()
+        spec["pages"][0]["sections"][0]["image"] = {
+            "src": names[0],
+            "alt": "x",
+        }
+        spec["pages"][0]["sections"].append(
+            {
+                "type": "cards",
+                "items": [
+                    {"title": name, "image": {"src": name, "alt": "x"}}
+                    for name in names[1:]
+                ],
+            }
+        )
+        spec_path = self.root / "spec.json"
+        spec_path.write_text(json.dumps(spec), encoding="utf-8")
+        destination = self.root / "site"
+
+        result = self._run("--spec", str(spec_path), str(destination))
+
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("bytes across distinct local files, the limit is", result.stderr)
+        self.assertFalse(destination.exists())
 
     def test_a_list_item_ignores_an_image_field_by_design(self) -> None:
         """`list` sections stay text-only (render_section never reads a list
