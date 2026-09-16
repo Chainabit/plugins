@@ -11,8 +11,8 @@
     {
       "path": "pdf_system/__init__.py",
       "type": "metadata",
-      "sha256": "351aa328d8da03feb8d95802bf6b40c962d511baf9ae35a960a78f46b252d823",
-      "bytes": 231,
+      "sha256": "b734a59326ab74d8d929da040aca0240b80210916f3949306aa90008fa27bec5",
+      "bytes": 1305,
       "mode": "0644"
     },
     {
@@ -123,8 +123,8 @@
     {
       "path": "tests/test_image_as_text.py",
       "type": "metadata",
-      "sha256": "a1401e953fb6d652c339430510c9a8e285a0d51d41ed37a120599f88ae8d444e",
-      "bytes": 12992,
+      "sha256": "fba7eb688b38fe67caf5c5027312f92e615e2462584bb643ed06ad33d98630b3",
+      "bytes": 14091,
       "mode": "0644"
     },
     {
