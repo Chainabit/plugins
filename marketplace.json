@@ -52,11 +52,11 @@
     {
       "id": "skill-pdf",
       "source": "https://github.com/chainabit/plugins.git#artifacts/skill-pdf",
-      "version": "5.2.11",
-      "revision": "2e753bb907c5f138e3ed8aa37074d5b2b1ec9430",
+      "version": "5.3.0",
+      "revision": "ee99401853d70f498ff0bc52b5f01314a0c2df49",
       "integrity": {
         "algorithm": "sha256",
-        "packageSha256": "228169820c16d15e461bcf496c2d46b31322f0d78e789171b87c30fa0551c95d"
+        "packageSha256": "770080bd2363abed6b968d082e910dd5b184487baafd9066b9ed90a242768eed"
       }
     },
     {
@@ -72,11 +72,11 @@
     {
       "id": "skill-pptx",
       "source": "https://github.com/chainabit/plugins.git#artifacts/skill-pptx",
-      "version": "1.3.0",
-      "revision": "2e753bb907c5f138e3ed8aa37074d5b2b1ec9430",
+      "version": "1.4.0",
+      "revision": "ee99401853d70f498ff0bc52b5f01314a0c2df49",
       "integrity": {
         "algorithm": "sha256",
-        "packageSha256": "b9dfc9d41345724eefd584386c8e933660539465fae3b75ae6caa7b891e90034"
+        "packageSha256": "2db42a30530bf98aa24a438760bcc09b736d5778c25b8d36d15c0ab7783c22f3"
       }
     },
     {
@@ -182,11 +182,11 @@
     {
       "id": "skill-static-website",
       "source": "https://github.com/chainabit/plugins.git#web/skill-static-website",
-      "version": "1.2.0",
-      "revision": "2e753bb907c5f138e3ed8aa37074d5b2b1ec9430",
+      "version": "1.3.0",
+      "revision": "ee99401853d70f498ff0bc52b5f01314a0c2df49",
       "integrity": {
         "algorithm": "sha256",
-        "packageSha256": "c99aab8e28da422fefcf99c90ac0f6b291904654d1585d462f1234fa161759e8"
+        "packageSha256": "06dc0528c8ba0a317a5cd3fb3b37fa54dfdd1dc8c703469650c3e8085ab289be"
       }
     },
     {
