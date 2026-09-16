@@ -79,6 +79,46 @@ class PageGeometry:
         return cls(width, height, margins)  # type: ignore[arg-type]
 
 
+# Hebrew + Arabic (and their extension blocks). The one range this package
+# uses everywhere it needs to know "is this text right-to-left" -- the
+# capability probe below, and direction resolution in service.py. A second,
+# independently maintained copy of this range in service.py is exactly the
+# kind of drift that made two call sites disagree silently; there is one
+# constant now.
+RTL_RANGE = ("֐", "ࣿ")
+# Hiragana/Katakana through the core CJK Unified Ideographs block. Used only
+# to INFER that a document needs `cjk` handling; whether any registered
+# backend can actually satisfy that requirement is a separate, honest
+# question the capability registry answers on its own (see backends.py).
+CJK_RANGE = ("぀", "鿿")
+
+
+def is_rtl_char(char: str) -> bool:
+    return RTL_RANGE[0] <= char <= RTL_RANGE[1]
+
+
+def resolve_direction(text: str) -> str:
+    """The document's dominant writing direction, from its own content.
+
+    Counts strong-RTL characters against strong-LTR (Latin) characters in the
+    same text `DocumentRequirements.infer` already scans for the `rtl`
+    capability flag below -- the same signal, reused rather than re-detected
+    from a language tag that may be absent, stale, or simply not the field a
+    caller happened to set (a Markdown `--lang` and a report's `language` are
+    both optional and often left at "und"). A ratio, not raw presence,
+    decides: a handful of embedded numbers, a URL, or a quoted English term
+    inside an otherwise Arabic document must not flip the whole page to
+    `ltr` -- and once the page's base direction is set, the Unicode
+    Bidirectional Algorithm (implemented by the renderer, not by this
+    function) places those embedded runs correctly on its own. This function
+    decides ONE thing: the paragraph-level base direction. It never reorders
+    or rewrites a single character.
+    """
+    rtl = sum(1 for c in text if is_rtl_char(c))
+    latin = sum(1 for c in text if c.isascii() and c.isalpha())
+    return "rtl" if rtl > latin else "ltr"
+
+
 @dataclass(frozen=True)
 class DocumentRequirements:
     """Capabilities inferred from semantics, not from the chosen backend."""
@@ -95,8 +135,8 @@ class DocumentRequirements:
         if any(ord(c) > 126 for c in text):
             need("unicode", "non-ASCII characters detected")
             if any(c in text for c in "ğĞşŞıİçÇöÖüÜ"): need("turkish", "Turkish characters detected")
-            if any("\u0590" <= c <= "\u08ff" for c in text): need("rtl", "RTL characters detected")
-            if any("\u3040" <= c <= "\u9fff" for c in text): need("cjk", "CJK characters detected")
+            if any(is_rtl_char(c) for c in text): need("rtl", "RTL characters detected")
+            if any(CJK_RANGE[0] <= c <= CJK_RANGE[1] for c in text): need("cjk", "CJK characters detected")
             need("font_embedding", "Unicode requires a verified embedded font")
         if kind == "markdown":
             if re_search(r"^\s*(\||[-*+]\s|\d+[.)]\s|#{1,6}\s|>|```|~~~)", text): need("rich_markdown", "Markdown structure requires semantic layout")

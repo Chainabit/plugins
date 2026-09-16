@@ -46,9 +46,9 @@ class PdfSystemTests(unittest.TestCase):
   from unittest.mock import patch
   from types import SimpleNamespace
   captured={}
-  def fake_html_document(self,body,font,palette,show_footer,geometry):
+  def fake_html_document(self,body,font,palette,show_footer,geometry,direction="ltr"):
    captured['geometry']=geometry
-   return f'<html><style>@page{{size:{geometry.width:.2f}pt {geometry.height:.2f}pt;margin:{geometry.margin[0]:.2f}pt {geometry.margin[1]:.2f}pt {geometry.margin[2]:.2f}pt {geometry.margin[3]:.2f}pt}}</style></html>'
+   return f'<html dir="{direction}"><style>@page{{size:{geometry.width:.2f}pt {geometry.height:.2f}pt;margin:{geometry.margin[0]:.2f}pt {geometry.margin[1]:.2f}pt {geometry.margin[2]:.2f}pt {geometry.margin[3]:.2f}pt}}</style></html>'
   def fake_render(document,geometry,metadata,destination,policy):
    captured['render_geometry']=geometry; destination.write_bytes(b'%PDF-1.4 fake')
   src=self.source/'m.md';src.write_text('Body text')
@@ -186,6 +186,88 @@ class PdfSystemTests(unittest.TestCase):
   PdfService(self.policy).generate_markdown(src,out,lang='ar',deterministic=False,quality_profile='professional')
   verification=verify_pdf(out,self.policy.limits)
   self.assertTrue(any('ArtifactArabic' in font.replace(' ','') for font in verification.fonts),verification.fonts)
+ def test_resolve_direction_is_a_ratio_not_mere_presence(self):
+  """Direction is a whole-document layout decision, not per-character.
+
+  A handful of embedded Latin (a URL, a brand name) inside a majority-Arabic
+  document must not flip the page to `ltr`, and a stray Arabic quote inside a
+  majority-English document must not flip it to `rtl`. The Unicode
+  Bidirectional Algorithm -- implemented by the renderer, never here --
+  places each embedded run correctly once the page's base direction is
+  right.
+  """
+  from pdf_system.models import is_rtl_char, resolve_direction
+  self.assertEqual(resolve_direction('Quarterly Operations Report'),'ltr')
+  self.assertEqual(resolve_direction('تقرير الأداء الفصلي لهذا العام'),'rtl')
+  self.assertEqual(resolve_direction('مرحبا بكم في موقعنا الرسمي، انظر https://example.com للمزيد'),'rtl')
+  self.assertEqual(resolve_direction('See the report; one Arabic word: مرحبا'),'ltr')
+  self.assertTrue(is_rtl_char('ا'));self.assertFalse(is_rtl_char('a'))
+ def test_markdown_html_sets_dir_and_logical_properties_from_content(self):
+  """Direction is a LAYOUT property resolved from content, threaded into the
+  HTML the WeasyPrint adapter renders -- not a second, independent field a
+  caller must remember to pass, and not a naive per-character rewrite."""
+  if not production_dependencies_available():self.skipTest('production PDF dependencies/fonts not installed')
+  from pdf_system.service import DEFAULT_PALETTE
+  service=PdfService(self.policy)
+  geometry=PageGeometry.from_spec('A4','portrait')
+  rtl_document=service._markdown_html('مرحبا بكم في التقرير الفصلي لهذا العام',self.policy,'IBM Plex Sans',DEFAULT_PALETTE,True,geometry)
+  self.assertIn('<html dir="rtl">',rtl_document)
+  self.assertIn('direction:rtl',rtl_document)
+  self.assertIn('text-align:start',rtl_document)
+  self.assertIn('border-inline-start',rtl_document)
+  self.assertNotIn('border-left:4pt',rtl_document)
+  ltr_document=service._markdown_html('Quarterly report body, in English.',self.policy,'IBM Plex Sans',DEFAULT_PALETTE,True,geometry)
+  self.assertIn('<html dir="ltr">',ltr_document)
+  self.assertIn('direction:ltr',ltr_document)
+ def test_report_html_direction_ignores_json_structural_keys(self):
+  """Direction for a report spec comes from its STRING VALUES, walked the
+  same way `validate_report` already walks them for image-as-text -- not
+  from `str(spec)`, which would count the English JSON keys ('title',
+  'blocks', 'paragraph', ...) as Latin filler and could understate a short
+  Arabic report."""
+  if not production_dependencies_available():self.skipTest('production PDF dependencies/fonts not installed')
+  from pdf_system.service import DEFAULT_PALETTE
+  service=PdfService(self.policy)
+  geometry=PageGeometry.from_spec('A4','portrait')
+  spec={'title':'تقرير الأداء الفصلي','blocks':[{'type':'paragraph','text':'مرحبا بكم في هذا التقرير'}]}
+  self.assertIn('<html dir="rtl">',service._report_html(spec,self.policy,'IBM Plex Sans',DEFAULT_PALETTE,True,geometry))
+ def test_with_metadata_inserts_lang_alongside_an_existing_dir_attribute(self):
+  """`_html_document` now always emits `<html dir="...">`; the metadata step
+  that adds `lang` afterwards must not assume a bare `<html>` it can no
+  longer find. A literal-string replace on that stale assumption would
+  silently stop matching, and every PDF would lose its `lang` metadata with
+  no error -- exactly the kind of regression a test at the seam catches
+  before a runtime one does."""
+  from pdf_system.backends import WeasyPrintRenderer
+  document='<!doctype html><html dir="rtl"><head><meta charset="utf-8"></head><body>x</body></html>'
+  result=WeasyPrintRenderer()._with_metadata(document,{'Lang':'ar'})
+  self.assertIn('dir="rtl"',result);self.assertIn('lang="ar"',result)
+ def test_cjk_is_not_advertised_as_a_weasyprint_capability(self):
+  """A capability report is a promise about what a caller can ask for (see
+  the block comment above capability_registry in backends.py). Neither
+  runtime font family this skill provisions -- IBM Plex Sans or its Arabic
+  companion -- carries a single CJK glyph, and the container that installs
+  this skill's font directory installs no third family either (verified
+  against cloudflare-sandbox-bridge/Dockerfile, not assumed). `cjk` must
+  stay off the advertised set until a real font backs it."""
+  if not production_dependencies_available():self.skipTest('production PDF dependencies not installed')
+  from pdf_system.backends import capability_registry
+  weasyprint=next(c for c in capability_registry() if c.name=='weasyprint')
+  self.assertTrue(weasyprint.available)
+  self.assertNotIn('cjk',weasyprint.supports)
+  self.assertIn('rtl',weasyprint.supports)  # RTL stays fully supported: the font and the shaping engine both cover it.
+ def test_cjk_document_is_refused_rather_than_rendered_with_missing_glyphs(self):
+  """The exact failure this whole change turns from silent to honest: a
+  Chinese/Japanese/Korean document used to render at exit 0 with every CJK
+  character replaced by a missing-glyph box wherever the production image's
+  fontconfig fell through to `sans-serif` and found nothing that covers CJK.
+  The resolver must now refuse it by name instead."""
+  if not production_dependencies_available():self.skipTest('production PDF dependencies not installed')
+  src=self.source/'cjk.md';src.write_text('# 季度报告\n\n这是一份中文报告。',encoding='utf-8');out=self.output/'cjk.pdf'
+  with self.assertRaises(PdfError) as error:
+   PdfService(self.policy).generate_markdown(src,out,lang='zh',deterministic=False,quality_profile='professional')
+  self.assertEqual(error.exception.code,ErrorCode.UNSUPPORTED_CAPABILITY)
+  self.assertIn('cjk',(error.exception.context or {}).get('required',''))
  def test_long_document_and_page_breaks(self):
   if not production_dependencies_available():self.skipTest('production PDF dependencies not installed')
   src=self.source/'long.md';src.write_text('# Long Report\n\n'+('\n\n'.join(f'## Section {i}\n'+('ğüşöçıİĞÜŞÖÇ sample content. '*80) for i in range(40))),encoding='utf-8');out=self.output/'long.pdf'
