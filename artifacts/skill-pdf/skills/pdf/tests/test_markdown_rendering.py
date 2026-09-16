@@ -37,6 +37,14 @@ def markdown_available() -> bool:
     return True
 
 
+def pillow_available() -> bool:
+    try:
+        import PIL  # noqa: F401
+    except ImportError:
+        return False
+    return True
+
+
 def production_available() -> bool:
     try:
         import pypdf  # noqa: F401
@@ -59,6 +67,42 @@ def png_bytes(width: int = 160, height: int = 80) -> bytes:
 
     header = struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0)
     return b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", header) + chunk(b"IDAT", zlib.compress(rows)) + chunk(b"IEND", b"")
+
+
+def psd_bytes() -> bytes:
+    """A valid one-pixel RGB PSD, used under a deliberately false suffix."""
+    return (
+        b"8BPS"
+        + (1).to_bytes(2, "big")
+        + b"\0" * 6
+        + (3).to_bytes(2, "big")
+        + (1).to_bytes(4, "big")
+        + (1).to_bytes(4, "big")
+        + (8).to_bytes(2, "big")
+        + (3).to_bytes(2, "big")
+        + b"\0" * 12
+        + b"\0" * 2
+        + b"\0" * 3
+    )
+
+
+@unittest.skipUnless(pillow_available(), "Pillow is not installed")
+class ImageDecoderBoundaryTests(unittest.TestCase):
+    def test_a_psd_renamed_png_never_reaches_the_psd_decoder(self):
+        from PIL import Image
+        from pdf_system.safety import validate_image
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            disguised = root / "disguised.png"
+            disguised.write_bytes(psd_bytes())
+            with Image.open(disguised) as image:
+                self.assertEqual(image.format, "PSD", "fixture must exercise content detection")
+
+            with self.assertRaises(PdfError) as rejected:
+                validate_image(disguised, SecurityPolicy(root, root))
+
+        self.assertEqual(rejected.exception.code, ErrorCode.INVALID_INPUT)
 
 
 # Every construct the dialect covers, written the way a model writes it:

@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import argparse
 import datetime
+import errno
 import hashlib
 import html
 import json
@@ -38,6 +39,7 @@ import os
 import posixpath
 import re
 import shutil
+import stat
 import sys
 
 HEX_COLOUR = re.compile(r"^#[0-9A-Fa-f]{6}$")
@@ -117,6 +119,14 @@ MAX_SECTIONS = 12
 # contract (.chainabit-site.json runtime.javascript) promises none.
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
 MAX_IMAGE_BYTES = 10 * 1024 * 1024
+# The product accepts at most 64 MiB for a published artifact tree. Reserve
+# 4 MiB for bounded HTML, CSS, the contract file, and the runtime-provided font
+# set; image inputs cannot consume the entire publication envelope themselves.
+MAX_TOTAL_IMAGE_BYTES = 60 * 1024 * 1024
+# Two fully populated 12-page specs can still carry a broad visual set without
+# allowing the structural maximum (more than a thousand paths) to become a
+# filesystem/memory amplification vector.
+MAX_DISTINCT_IMAGES = 128
 
 
 # --- contrast ---------------------------------------------------------------------
@@ -274,6 +284,78 @@ def check_link(item: object, path: str, errors: SpecErrors) -> dict[str, str]:
     }
 
 
+def open_local_image(source_root: str, src: str) -> tuple[int, os.stat_result]:
+    """Open a regular image beneath ``source_root`` without following links.
+
+    A prior ``realpath``/``islink`` check is not an access boundary: a client
+    can swap a checked component before the later ``open``. Directory file
+    descriptors pin every component while ``O_NOFOLLOW`` rejects a link at the
+    instant it is opened. The caller owns the returned descriptor.
+    """
+    required_flags = ("O_DIRECTORY", "O_NOFOLLOW")
+    if any(not hasattr(os, name) for name in required_flags):
+        raise RuntimeError("this platform cannot securely open local image paths")
+
+    components = src.split("/")
+    if not components or any(component in ("", ".", "..") for component in components):
+        raise ValueError("is not a normalized relative image path")
+
+    close_on_exec = getattr(os, "O_CLOEXEC", 0)
+    directory_flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | close_on_exec
+    file_flags = (
+        os.O_RDONLY
+        | os.O_NOFOLLOW
+        | getattr(os, "O_NONBLOCK", 0)
+        | close_on_exec
+    )
+
+    directory_fd = os.open(source_root, directory_flags)
+    try:
+        for component in components[:-1]:
+            next_fd = os.open(component, directory_flags, dir_fd=directory_fd)
+            os.close(directory_fd)
+            directory_fd = next_fd
+        file_fd = os.open(components[-1], file_flags, dir_fd=directory_fd)
+    except OSError as exc:
+        if exc.errno in (errno.ELOOP, errno.ENOTDIR):
+            raise ValueError(
+                "uses a symbolic link or non-directory path component; image paths "
+                "must name regular local files"
+            ) from exc
+        raise
+    finally:
+        os.close(directory_fd)
+
+    metadata = os.fstat(file_fd)
+    if not stat.S_ISREG(metadata.st_mode):
+        os.close(file_fd)
+        raise ValueError("does not name a regular local file")
+    return file_fd, metadata
+
+
+def inspect_local_image(source_root: str, src: str) -> tuple[tuple[int, int], int]:
+    file_fd, metadata = open_local_image(source_root, src)
+    os.close(file_fd)
+    return (metadata.st_dev, metadata.st_ino), metadata.st_size
+
+
+def read_open_image(file_fd: int) -> bytes:
+    """Read one already-pinned descriptor within the per-file ceiling."""
+    try:
+        chunks: list[bytes] = []
+        remaining = MAX_IMAGE_BYTES + 1
+        while remaining:
+            chunk = os.read(file_fd, min(1024 * 1024, remaining))
+            if not chunk:
+                break
+            chunks.append(chunk)
+            remaining -= len(chunk)
+        data = b"".join(chunks)
+    finally:
+        os.close(file_fd)
+    return data
+
+
 def check_image(
     value: object, path: str, errors: SpecErrors, source_root: str | None
 ) -> dict | None:
@@ -336,18 +418,13 @@ def check_image(
     # --template, which never declares an image). --print-spec on a bare
     # template still validates the shape above with no filesystem check.
     if source_root is not None:
-        root = os.path.normpath(source_root)
-        absolute = os.path.normpath(os.path.join(root, src))
-        if absolute != root and not absolute.startswith(root + os.sep):
-            errors.add(f"{path}.src", f"{src!r} escapes the directory the spec is in")
-            return None
-        if not os.path.isfile(absolute):
+        try:
+            _, size = inspect_local_image(source_root, src)
+        except FileNotFoundError:
             errors.add(f"{path}.src", f"{src!r} does not exist next to the spec")
             return None
-        try:
-            size = os.path.getsize(absolute)
-        except OSError as exc:
-            errors.add(f"{path}.src", f"could not read {src!r}: {exc}")
+        except (OSError, ValueError) as exc:
+            errors.add(f"{path}.src", f"{src!r} {exc}")
             return None
         if size > MAX_IMAGE_BYTES:
             errors.add(
@@ -460,6 +537,19 @@ def check_section(section: object, path: str, errors: SpecErrors, source_root: s
         ]
 
     return checked
+
+
+def _declared_images(spec: dict) -> list[dict]:
+    """Every image dict in the spec, hero and item images alike, in one list."""
+    found: list[dict] = []
+    for page in spec["pages"]:
+        for section in page["sections"]:
+            if section.get("image"):
+                found.append(section["image"])
+            for item in section.get("items", []):
+                if item.get("image"):
+                    found.append(item["image"])
+    return found
 
 
 def validate_spec(spec: object, source_root: str | None = None) -> tuple[dict, SpecErrors]:
@@ -694,7 +784,32 @@ def validate_spec(spec: object, source_root: str | None = None) -> tuple[dict, S
                         f"with id {fragment!r}",
                     )
 
-    return {"site": checked_site, "pages": checked_pages}, errors
+    checked_spec = {"site": checked_site, "pages": checked_pages}
+    if source_root is not None:
+        canonical_sources: dict[tuple[int, int], int] = {}
+        for image in _declared_images(checked_spec):
+            try:
+                identity, size = inspect_local_image(source_root, image["src"])
+                canonical_sources.setdefault(identity, size)
+            except (KeyError, OSError, ValueError):
+                # The field-level boundary already emitted the actionable path
+                # problem. Aggregate diagnostics only operate on valid files.
+                continue
+        if len(canonical_sources) > MAX_DISTINCT_IMAGES:
+            errors.add(
+                "images",
+                f"{len(canonical_sources)} distinct local files, the limit is "
+                f"{MAX_DISTINCT_IMAGES}",
+            )
+        total_image_bytes = sum(canonical_sources.values())
+        if total_image_bytes > MAX_TOTAL_IMAGE_BYTES:
+            errors.add(
+                "images",
+                f"{total_image_bytes} bytes across distinct local files, the limit is "
+                f"{MAX_TOTAL_IMAGE_BYTES}",
+            )
+
+    return checked_spec, errors
 
 
 # --- rendering --------------------------------------------------------------------
@@ -1514,48 +1629,68 @@ TEMPLATES: dict[str, dict] = {
 # --- output -----------------------------------------------------------------------
 
 
-def _declared_images(spec: dict) -> list[dict]:
-    """Every image dict in the spec, hero and item images alike, in one list.
+def resolve_image_assets(spec: dict, source_root: str | None) -> dict[str, bytes]:
+    """Return content-addressed destination bytes and resolve every image dict.
 
-    One place to walk the tree so resolution and copying can never enumerate
-    it two different ways and drift out of sync with each other.
+    Canonical source paths own count/byte accounting. Content digests own the
+    output, so identical bytes from the same or different local paths are held
+    and written once, and the writer never reopens a client-controlled path.
     """
-    found: list[dict] = []
-    for page in spec["pages"]:
-        for section in page["sections"]:
-            if section.get("image"):
-                found.append(section["image"])
-            for item in section.get("items", []):
-                if item.get("image"):
-                    found.append(item["image"])
-    return found
-
-
-def resolve_image_assets(spec: dict, source_root: str | None) -> dict[str, str]:
-    """Maps each declared image's spec-relative `src` to a content-addressed
-    `assets/images/...` path, and writes that path back onto the image dict
-    as `resolvedSrc` for the renderer to read.
-
-    Content-addressed so the same source image referenced from two places —
-    a logo in the hero and again in a feature card — copies once and both
-    places point at the identical file, and so writing the same spec twice
-    never grows the output: the digest is the name, and copying the same
-    bytes to the same name a second time is a no-op.
-    """
-    mapping: dict[str, str] = {}
     if source_root is None:
-        return mapping
+        return {}
+
+    references: list[tuple[dict, str]] = []
+    source_identities: dict[str, tuple[int, int]] = {}
+    canonical_sources: dict[tuple[int, int], tuple[str, bytes]] = {}
+    total_image_bytes = 0
     for image in _declared_images(spec):
         src = image["src"]
-        if src not in mapping:
-            absolute = os.path.join(source_root, *src.split("/"))
-            with open(absolute, "rb") as handle:
-                data = handle.read()
-            digest = hashlib.sha256(data).hexdigest()[:16]
+        references.append((image, src))
+        if src in source_identities:
+            continue
+        file_fd, metadata = open_local_image(source_root, src)
+        identity = (metadata.st_dev, metadata.st_ino)
+        source_identities[src] = identity
+        if identity in canonical_sources:
+            os.close(file_fd)
+            continue
+        if metadata.st_size > MAX_IMAGE_BYTES:
+            os.close(file_fd)
+            raise RuntimeError(f"image {src!r} changed after validation and is now too large")
+        if total_image_bytes + metadata.st_size > MAX_TOTAL_IMAGE_BYTES:
+            os.close(file_fd)
+            raise RuntimeError(
+                "image set changed after validation and now exceeds the aggregate byte limit"
+            )
+        data = read_open_image(file_fd)
+        if len(data) > MAX_IMAGE_BYTES:
+            raise RuntimeError(f"image {src!r} changed after validation and is now too large")
+        total_image_bytes += len(data)
+        if total_image_bytes > MAX_TOTAL_IMAGE_BYTES:
+            raise RuntimeError(
+                "image set changed after validation and now exceeds the aggregate byte limit"
+            )
+        canonical_sources[identity] = (src, data)
+
+    if len(canonical_sources) > MAX_DISTINCT_IMAGES:
+        raise RuntimeError(
+            f"image set changed after validation and now exceeds {MAX_DISTINCT_IMAGES} files"
+        )
+
+    source_assets: dict[tuple[int, int], tuple[str, bytes]] = {}
+    digest_assets: dict[str, tuple[str, bytes]] = {}
+    for identity, (src, data) in canonical_sources.items():
+        digest = hashlib.sha256(data).hexdigest()
+        asset = digest_assets.get(digest)
+        if asset is None:
             basename = re.sub(r"[^A-Za-z0-9._-]", "_", os.path.basename(src))
-            mapping[src] = f"assets/images/{digest}-{basename}"
-        image["resolvedSrc"] = mapping[src]
-    return mapping
+            asset = (f"assets/images/{digest}-{basename}", data)
+            digest_assets[digest] = asset
+        source_assets[identity] = asset
+
+    for image, src in references:
+        image["resolvedSrc"] = source_assets[source_identities[src]][0]
+    return {destination: data for destination, data in digest_assets.values()}
 
 
 def write_site(
@@ -1585,10 +1720,11 @@ def write_site(
     if image_assets:
         images_dir = os.path.join(destination, "assets", "images")
         os.makedirs(images_dir, exist_ok=True)
-        for src, dest_relative in image_assets.items():
+        for dest_relative, data in image_assets.items():
             dest_path = os.path.join(destination, *dest_relative.split("/"))
             if not os.path.isfile(dest_path):
-                shutil.copyfile(os.path.join(source_root, *src.split("/")), dest_path)
+                with open(dest_path, "wb") as handle:
+                    handle.write(data)
             written.append(dest_relative)
 
     assets = os.path.join(destination, "assets")

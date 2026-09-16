@@ -54,7 +54,8 @@ class PdfSystemTests(unittest.TestCase):
   src=self.source/'m.md';src.write_text('Body text')
   backend=SimpleNamespace(capabilities=SimpleNamespace(name='weasyprint'),render=fake_render)
   service=PdfService(self.policy, resolver=SimpleNamespace(resolve=lambda *_: (backend, None)))
-  with patch.object(PdfService,'_html_document',fake_html_document), \
+  with patch.object(PdfService,'_markdown_blocks',return_value='<p>Body text</p>'), \
+       patch.object(PdfService,'_html_document',fake_html_document), \
        patch('pdf_system.service.verify_pdf',return_value=SimpleNamespace(bytes=1,pages=1,version='1.4',sha256='s',mime_type='application/pdf',warnings=())):
    service.generate_markdown(src,self.output/'m.pdf',margin={'top':10,'right':20,'bottom':30,'left':40})
   self.assertEqual(captured['geometry'].margin,(10.0,20.0,30.0,40.0))

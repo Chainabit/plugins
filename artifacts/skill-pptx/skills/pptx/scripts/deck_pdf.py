@@ -35,6 +35,7 @@ import json
 import os
 import subprocess
 import sys
+from io import BytesIO
 from pathlib import Path
 
 # The layout engine lives in the sibling script. Importing it rather than
@@ -47,10 +48,10 @@ from deck_pptx import (
     IMAGE_FIT,
     LINE_HEIGHT_EM,
     SERIES_COLOURS,
+    ValidatedImage,
     build_geometry,
     check_fit,
     image_box,
-    measure_image,
     palette_mode,
     plan_slide,
     preflight_frame,
@@ -208,15 +209,21 @@ def _spec_is_predominantly_rtl(spec: dict) -> bool:
 class Page:
     """One slide's worth of drawing, in the geometry the shared engine chose."""
 
-    def __init__(self, canvas, geometry: dict, theme: dict, fonts: tuple[str, str],
-                 root: Path):
+    def __init__(
+        self,
+        canvas,
+        geometry: dict,
+        theme: dict,
+        fonts: tuple[str, str],
+        image_assets: dict[str, ValidatedImage],
+    ):
         self.canvas = canvas
         self.geometry = geometry
         self.theme = theme
         self.regular, self.bold = fonts
         self.height_in = geometry['slide'][1]
-        #: The spec's own directory; every picture resolves inside it.
-        self.root = root
+        #: Exact bytes already opened, bounded and decoded by the input owner.
+        self.image_assets = image_assets
 
     def _set_fill(self, hex_colour: str) -> None:
         from reportlab.lib.colors import HexColor
@@ -299,13 +306,13 @@ class Page:
         the visible crop matches the crop fractions the .pptx writes. Neither
         mode ever changes the picture's aspect ratio.
         """
-        path = (self.root / str(reference['path'])).resolve()
-        _, width_px, height_px = measure_image(path)
+        asset = self.image_assets[str(reference['path'])]
+        width_px, height_px = asset.width, asset.height
         left, top, width, height = rectangle
 
         if mode != 'cover':
             drawn = image_box(rectangle, (width_px, height_px), mode)
-            self._draw_image(path, drawn)
+            self._draw_image(asset, drawn)
             return
 
         image_ratio = width_px / max(height_px, 1)
@@ -322,7 +329,7 @@ class Page:
             width * 72.0, height * 72.0,
         )
         self.canvas.clipPath(clip, stroke=0, fill=0)
-        self._draw_image(path, (
+        self._draw_image(asset, (
             left + (width - drawn_width) / 2,
             top + (height - drawn_height) / 2,
             drawn_width,
@@ -330,10 +337,12 @@ class Page:
         ))
         self.canvas.restoreState()
 
-    def _draw_image(self, path: Path, rectangle) -> None:
+    def _draw_image(self, asset: ValidatedImage, rectangle) -> None:
+        from reportlab.lib.utils import ImageReader
+
         left, top, width, height = rectangle
         self.canvas.drawImage(
-            str(path),
+            ImageReader(BytesIO(asset.data)),
             left * 72.0,
             to_pdf_y(top + height, self.height_in),
             width * 72.0,
@@ -617,7 +626,12 @@ RENDERERS = {
 }
 
 
-def build_pdf(spec: dict, geometry: dict, output: str, root: Path) -> None:
+def build_pdf(
+    spec: dict,
+    geometry: dict,
+    output: str,
+    image_assets: dict[str, ValidatedImage],
+) -> None:
     from reportlab.pdfgen import canvas as pdf_canvas
 
     theme = resolve_theme(spec)
@@ -631,7 +645,7 @@ def build_pdf(spec: dict, geometry: dict, output: str, root: Path) -> None:
     document.setSubject(spec.get('subtitle') or '')
 
     for spec_slide in spec['slides']:
-        page = Page(document, geometry, theme, fonts, root)
+        page = Page(document, geometry, theme, fonts, image_assets)
         page.fill_rect((0, 0, geometry['slide'][0], geometry['slide'][1]), theme['background'])
         sizes, _ = plan_slide(spec_slide, geometry)
         RENDERERS[spec_slide['layout']](page, spec_slide, sizes)
@@ -727,7 +741,8 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     root = Path(os.path.abspath(args.spec)).parent
-    problems.extend(validate_spec(spec, root))
+    image_assets: dict[str, ValidatedImage] = {}
+    problems.extend(validate_spec(spec, root, image_assets))
 
     aspect = spec.get('aspect', '16:9') if isinstance(spec, dict) else None
     geometry = build_geometry(aspect) if aspect in ASPECTS else None
@@ -776,7 +791,7 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     try:
-        build_pdf(spec, geometry, args.output, root)
+        build_pdf(spec, geometry, args.output, image_assets)
     except (RuntimeError, subprocess.SubprocessError) as exc:
         print(f'ERROR: renderer_runtime: {exc}', file=sys.stderr)
         return 2

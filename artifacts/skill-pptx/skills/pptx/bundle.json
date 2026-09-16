@@ -4,7 +4,7 @@
     {
       "path": "SKILL.md",
       "type": "instructions",
-      "sha256": "c7aa9cdb5587dbc03f52a4855b21373de0286074a89378115efb9f11c7b0cdec",
+      "sha256": "06b07ca826e68ff6648a7699c11abf40727f66626a89c9b9c2f4396886ae4400",
       "bytes": 17958,
       "mode": "0644"
     },
@@ -18,15 +18,15 @@
     {
       "path": "scripts/deck_pdf.py",
       "type": "scripts",
-      "sha256": "22de464bb84ad083e563373311b12ce4dcdf25710ddff6f1f146953dbfcdb781",
-      "bytes": 32544,
+      "sha256": "0bc1e6cbe3408aa1b9460a2898770933fcbb9694e5e65e7140371430324b087a",
+      "bytes": 32874,
       "mode": "0644"
     },
     {
       "path": "scripts/deck_pptx.py",
       "type": "scripts",
-      "sha256": "e4c532b0b3e9852ca26a5f99083a22673341269a294fd2d2f8a44431fc5d0ec9",
-      "bytes": 62968,
+      "sha256": "dd31d7d7b0a6faa33767c0c5030f314f9883517b288735ef84c08b9384023fd4",
+      "bytes": 69707,
       "mode": "0644"
     },
     {
@@ -53,8 +53,8 @@
     {
       "path": "tests/test_media_layouts.py",
       "type": "metadata",
-      "sha256": "6780c6255ea4d46fb4c29e69e8c004f6fd998d13f15c96f28ff4c6b84edecec7",
-      "bytes": 20756,
+      "sha256": "1ccdcaece378c5ce2f9784f2797b9e566c9874f0dd3b5987fe2e4f1c09f2841d",
+      "bytes": 30129,
       "mode": "0644"
     }
   ]
