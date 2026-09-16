@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import base64
 import json
+import os
 import random
 import shutil
 import struct
@@ -25,6 +26,7 @@ sys.path.insert(0, str(ROOT))
 
 from pdf_system import PdfService, SecurityPolicy  # noqa: E402
 from pdf_system.errors import ErrorCode, PdfError  # noqa: E402
+from pdf_system.models import PageGeometry  # noqa: E402
 from pdf_system.safety import image_as_text, image_payload_page  # noqa: E402
 
 
@@ -284,7 +286,7 @@ class ValidatorTests(unittest.TestCase):
         target = self.root / "delivered.pdf"
         with self.assertRaises(PdfError) as caught:
             PdfService(SecurityPolicy(self.root, self.root))._render(
-                {}, Backend(), target, {"Title": "Revenue"}, "A4", "portrait"
+                {}, Backend(), target, {"Title": "Revenue"}, PageGeometry.from_spec("A4", "portrait")
             )
         self.assertEqual(caught.exception.code, ErrorCode.VALIDATION_FAILURE)
         self.assertFalse(target.exists())
@@ -303,6 +305,34 @@ class ValidatorTests(unittest.TestCase):
         result = self.validate(clean)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("no_printed_image_data", json.loads(result.stdout)["checks"])
+
+    def test_validator_import_does_not_probe_an_optional_renderer(self):
+        self.pdf("probe-import.pdf", [])
+        clean = self.pdf("clean-import.pdf", self.paragraphs("Validator boundary"))
+        fake_modules = self.root / "fake-modules"
+        fake_modules.mkdir()
+        (fake_modules / "weasyprint.py").write_text(
+            'print("OPTIONAL RENDERER IMPORTED")\nraise ImportError("native library absent")\n',
+            encoding="utf-8",
+        )
+        env = {
+            **os.environ,
+            "PYTHONPATH": os.pathsep.join(
+                filter(None, (str(fake_modules), os.environ.get("PYTHONPATH", "")))
+            ),
+        }
+
+        result = subprocess.run(
+            [sys.executable, str(ROOT / "scripts/validate_pdf.py"), str(clean)],
+            capture_output=True,
+            text=True,
+            check=False,
+            env=env,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("OPTIONAL RENDERER IMPORTED", result.stdout)
+        self.assertEqual(json.loads(result.stdout)["valid"], True)
 
 
 if __name__ == "__main__":

@@ -179,6 +179,71 @@ class PptxSpecValidationTests(unittest.TestCase):
             self.assertEqual(accepted.returncode, 0, accepted.stderr)
 
 
+class GeneratorPreflightFrameTests(unittest.TestCase):
+    """A registered generator's `--validate-only` run ends in a preflight frame.
+
+    Both deck renderers are registered generators, and a host reads the last
+    line a generator prints as the run's evidence. A spec check writes no file,
+    so it reports that it checked and produced nothing, in the renderer's own
+    execution protocol.
+    """
+
+    SPEC = {"title": "Quarterly review", "slides": [{"layout": "closing", "title": "Questions"}]}
+
+    def preflight(self, script: str, output: str) -> dict:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "spec.json").write_text(json.dumps(self.SPEC), encoding="utf-8")
+            result = subprocess.run(
+                [sys.executable, str(ROOT / "scripts" / script), "spec.json", output, "--validate-only"],
+                cwd=root,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            lines = result.stdout.strip().splitlines()
+            self.assertEqual(len(lines), 2, result.stdout)
+            self.assertTrue(lines[0].startswith("OK: spec.json is a valid deck spec"), lines[0])
+            self.assertFalse((root / output).exists(), "a spec check must not write the output")
+            return json.loads(lines[1])
+
+    def test_deck_spec_check_reports_a_preflight_frame(self) -> None:
+        self.assertEqual(
+            self.preflight("deck_pptx.py", "deck.pptx"),
+            {"schema": "chainabit.pptx.execution/v1", "ok": True, "operation": "preflight", "valid": True},
+        )
+
+    def test_deck_pdf_spec_check_reports_a_preflight_frame(self) -> None:
+        self.assertEqual(
+            self.preflight("deck_pdf.py", "deck.pdf"),
+            {"schema": "chainabit.pdf.execution/v1", "ok": True, "operation": "preflight", "valid": True},
+        )
+
+
+class DeckHandoffTests(unittest.TestCase):
+    """deck_pptx.py's `Next:` line states the delivery check; it runs nothing.
+
+    It used to print a command that ran the validator, and readers chained that
+    command onto the build. The deck is validated when it is delivered, so the
+    line names the validator by identity and spells no command or path.
+    """
+
+    def test_handoff_names_the_delivery_check_and_no_command(self) -> None:
+        scripts = str(ROOT / "scripts")
+        sys.path.insert(0, scripts)
+        self.addCleanup(sys.path.remove, scripts)
+        deck_pptx = importlib.import_module("deck_pptx")
+        line = deck_pptx.validation_handoff("out/q3.pptx")
+        self.assertEqual(
+            line, "Next: deliver out/q3.pptx; it is checked by skill-pptx.validate_pptx on delivery."
+        )
+        remainder = line.replace("out/q3.pptx", "")
+        self.assertNotIn(".py", remainder)
+        self.assertNotIn("python", remainder)
+        self.assertNotIn("/", remainder)
+
+
 #: Host locations an instruction must never name -- the set the repository's
 #: portability lint rejects in SKILL.md. A printed instruction is held to it too.
 HOST_LOCATIONS = ("/workspace", "/sandbox", ".skills", "/home/", "/opt/")

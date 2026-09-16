@@ -15,9 +15,10 @@ from typing import Any, Iterator
 from .backends import (CapabilityReport, PypdfManipulator,
                        ReportLabRenderer, WeasyPrintRenderer, capability_registry)
 from .errors import ErrorCode, PdfError
-from .models import DocumentRequirements, PageGeometry, SecurityPolicy
+from .models import DocumentRequirements, PageGeometry, SecurityPolicy, resolve_direction
+from .markdown_html import render_markdown
 from .safety import (IMAGE_FILE_FORMATS, bounded_read, image_as_text,
-                     reject_active_markup, safe_output, validate_image)
+                     image_data_uri, reject_active_markup, safe_output)
 from .verification import Verification, verify_pdf
 
 DEFAULT_FONT_FAMILY = os.environ.get(
@@ -118,7 +119,7 @@ class PdfService:
         req = DocumentRequirements.infer(kind, content, intent); reports = []
         for c in capability_registry(): reports.append({"backend": c.name, "available": c.available, "version": c.version, "required": sorted(req.required), "missing": sorted(c.missing(req.required)), "reason": c.detail or ("available" if c.available else "dependency unavailable")})
         return {"requirements": sorted(req.required), "reasons": req.reasons, "intent": intent, "backends": reports}
-    def generate_markdown(self, source: Path, destination: Path, title: str | None = None, lang: str = "und", page_size: object = "A4", orientation: str = "portrait", deterministic: bool = False, quality_profile: str = "quality", font: str | None = None, palette: object = None) -> Verification:
+    def generate_markdown(self, source: Path, destination: Path, title: str | None = None, lang: str = "und", page_size: object = "A4", orientation: str = "portrait", deterministic: bool = False, quality_profile: str = "quality", font: str | None = None, palette: object = None, margin: object = None) -> Verification:
         raw = bounded_read(source, self.policy)
         try: text = raw.decode("utf-8")
         except UnicodeDecodeError as exc: raise PdfError(ErrorCode.INVALID_INPUT, "Markdown must be UTF-8") from exc
@@ -132,8 +133,9 @@ class PdfService:
             raise PdfError(ErrorCode.UNSAFE_INPUT, f"Markdown contains {written}, which prints as characters rather than an image; save the image as a {IMAGE_FILE_FORMATS} file in the Markdown file's directory and reference it as ![description](relative/path.png)")
         reject_active_markup(text); req = DocumentRequirements.infer("markdown", text, "basic" if deterministic else quality_profile)
         backend, self.last_decision = self.resolver.resolve(req)
-        document = self._markdown_html(text, self.policy, self._font_family(font), resolve_palette(palette), palette is None and font is None); metadata = {"Title": title or source.stem, "Lang": lang, "Creator": "chainabit-pdf"}
-        return self._render(document, backend, destination, metadata, page_size, orientation)
+        geometry = self._resolve_geometry(page_size, orientation, margin)
+        document = self._markdown_html(text, self.policy, self._font_family(font), resolve_palette(palette), palette is None and font is None, geometry); metadata = {"Title": title or source.stem, "Lang": lang, "Creator": "chainabit-pdf"}
+        return self._render(document, backend, destination, metadata, geometry)
     def generate_report(self, source: Path, destination: Path, quality_profile: str = "quality") -> Verification:
         raw = bounded_read(source, self.policy)
         try: spec = json.loads(raw)
@@ -141,42 +143,35 @@ class PdfService:
         problems = self.validate_report(spec)
         if problems: raise PdfError(ErrorCode.INVALID_INPUT, "; ".join(problems))
         req = DocumentRequirements.infer("report", spec, quality_profile); backend, self.last_decision = self.resolver.resolve(req)
+        geometry = self._resolve_geometry(spec.get("pageSize", "A4"), spec.get("orientation", "portrait"), spec.get("margin"))
         palette = resolve_palette(spec.get("palette"))
         # The controller resolves the complete palette once.  Both adapters
         # receive that same immutable result: ReportLab is a structured
         # renderer, while WeasyPrint receives its HTML projection.  This keeps
         # a user palette from silently mixing with renderer-local defaults.
-        document = {**spec, "palette": palette} if backend.capabilities.name == "reportlab" else self._report_html(spec, self.policy, self._font_family(spec.get("font")), palette, spec.get("palette") is None and spec.get("font") is None); metadata = {"Title": spec["title"], "Author": spec.get("author", ""), "Subject": spec.get("subject", ""), "Lang": spec.get("language", "und"), "Creator": "chainabit-pdf"}
-        return self._render(document, backend, destination, metadata, spec.get("pageSize", "A4"), spec.get("orientation", "portrait"), spec.get("margin"))
+        document = {**spec, "palette": palette} if backend.capabilities.name == "reportlab" else self._report_html(spec, self.policy, self._font_family(spec.get("font")), palette, spec.get("palette") is None and spec.get("font") is None, geometry); metadata = {"Title": spec["title"], "Author": spec.get("author", ""), "Subject": spec.get("subject", ""), "Lang": spec.get("language", "und"), "Creator": "chainabit-pdf"}
+        return self._render(document, backend, destination, metadata, geometry)
     def manipulate(self, operation: str, sources: list[Path], destination: Path, options: dict) -> Verification:
         target = safe_output(destination, self.policy)
         for source in sources: bounded_read(source, self.policy)
         with TemporaryArtifact(self.policy) as temp:
             staged = temp / "result.pdf"; PypdfManipulator().manipulate(operation, sources, staged, options); result = verify_pdf(staged, self.policy.limits); os.replace(staged, target); return result
-    def _render(self, document: Any, backend: Any, destination: Path, metadata: dict[str, str], page_size: object, orientation: str, margin: object = None) -> Verification:
-        try: geometry = PageGeometry.from_spec(page_size, orientation, margin)
+    def _resolve_geometry(self, page_size: object, orientation: str, margin: object) -> PageGeometry:
+        try: return PageGeometry.from_spec(page_size, orientation, margin)
         except ValueError as exc: raise PdfError(ErrorCode.INVALID_INPUT, str(exc)) from exc
+    def _render(self, document: Any, backend: Any, destination: Path, metadata: dict[str, str], geometry: PageGeometry) -> Verification:
         target = safe_output(destination, self.policy); started = time.monotonic()
         with TemporaryArtifact(self.policy) as temp:
             staged = temp / "result.pdf"
-            # HTML owns the @page declaration; the ReportLab adapter receives
-            # a structured report dict. Applying an HTML-only replacement at
-            # this shared persistence boundary used to crash every ReportLab
-            # report before its renderer was invoked.
-            if isinstance(document, str):
-                document = document.replace("@page{size:A4;", f"@page{{size:{geometry.width:.2f}pt {geometry.height:.2f}pt;")
+            # The HTML document already carries its own @page rule, built from
+            # this same geometry by _html_document -- there is nothing left to
+            # patch here. A post-hoc string replacement previously stood in
+            # for that (and only ever touched page size, never margin, so a
+            # caller's margin request was silently dropped for every WeasyPrint
+            # document; see the fix that added this comment).
             backend.render(document, geometry, {k:v for k,v in metadata.items() if v}, staged, self.policy)
             result = verify_pdf(staged, self.policy.limits); os.replace(staged, target); return Verification(result.bytes, result.pages, result.version, result.sha256, result.mime_type, result.warnings + (f"backend={backend.capabilities.name}", f"duration_ms={(time.monotonic()-started)*1000:.1f}"))
-    def _paginate(self, lines: list[str], geometry: PageGeometry) -> list[list[str]]:
-        capacity = max(1, int((geometry.height - geometry.margin[0] - geometry.margin[2]) / 12)); pages=[]; current=[]
-        for line in lines:
-            if line == "\f" or len(current) >= capacity: pages.append(current or [""]); current=[]
-            if line != "\f": current.append(line)
-        if current: pages.append(current)
-        return pages or [[""]]
-    def _wrap(self, text: str) -> list[str]: return [text[i:i+100] for i in range(0, len(text), 100)] or [""]
-    def _markdown_lines(self, text: str) -> list[str]: return [line for raw in text.splitlines() for line in self._wrap(re.sub(r"^#{1,6}\s+|^[-*+]\s+|^\d+[.)]\s+", "", raw))]
-    def _markdown_html(self, text: str, policy: SecurityPolicy, font: str, palette: dict[str, str], show_chainabit_footer: bool) -> str:
+    def _markdown_html(self, text: str, policy: SecurityPolicy, font: str, palette: dict[str, str], show_chainabit_footer: bool, geometry: PageGeometry) -> str:
         # A form feed is the explicit page break this system already claims to
         # understand: models.py raises the `page_breaks` requirement when it
         # sees one, which constrains backend selection. It was then destroyed
@@ -189,48 +184,16 @@ class PdfService:
             '<div class="page-break"></div>'.join(
                 self._markdown_blocks(page) for page in text.split("\f")
             ),
-            font, palette, show_chainabit_footer,
+            font, palette, show_chainabit_footer, geometry, resolve_direction(text),
         )
     def _markdown_blocks(self, text: str) -> str:
-        lines=text.splitlines(); out=[]; i=0
-        while i<len(lines):
-            line=lines[i]
-            if not line.strip(): i+=1; continue
-            if line.startswith("```"):
-                code=[]; i+=1
-                while i<len(lines) and not lines[i].startswith("```"): code.append(lines[i]); i+=1
-                if i==len(lines): raise PdfError(ErrorCode.INVALID_INPUT, "unclosed Markdown code block")
-                out.append("<pre><code>"+html.escape("\n".join(code))+"</code></pre>"); i+=1; continue
-            m=re.match(r"^(#{1,6})\s+(.+)$",line)
-            if m: out.append(f"<h{len(m.group(1))}>{self._inline(m.group(2))}</h{len(m.group(1))}>"); i+=1; continue
-            if line.startswith("|") and i+1<len(lines) and "|" in lines[i+1]:
-                rows=[]
-                while i<len(lines) and lines[i].startswith("|"):
-                    cells=[x.strip() for x in lines[i].strip("|").split("|")]
-                    if not all(set(x)<=set("-: ") for x in cells): rows.append(cells)
-                    i+=1
-                out.append("<table><thead><tr>"+"".join("<th>"+self._inline(x)+"</th>" for x in rows[0])+"</tr></thead><tbody>"+"".join("<tr>"+"".join("<td>"+self._inline(x)+"</td>" for x in row)+"</tr>" for row in rows[1:])+"</tbody></table>"); continue
-            if re.match(r"^[-*+]\s+",line):
-                items=[]
-                while i<len(lines) and re.match(r"^[-*+]\s+",lines[i]): items.append("<li>"+self._inline(re.sub(r"^[-*+]\s+","",lines[i]))+"</li>"); i+=1
-                out.append("<ul>"+"".join(items)+"</ul>"); continue
-            out.append("<p>"+self._inline(line)+"</p>"); i+=1
-        return "".join(out)
-    def _inline(self, value: str) -> str:
-        if re.search(r"\$[^$]+\$|\\\(|\\\[", value):
-            if re.search(r"\\(frac|sqrt|begin|end|newcommand)\b", value):
-                raise PdfError(ErrorCode.UNSUPPORTED_CAPABILITY, "equation uses unsupported or unsafe math syntax")
-            value = re.sub(r"\$([^$]+)\$", r"<math><mrow><mi>\1</mi></mrow></math>", value)
-        value=re.sub(r"!\[([^]]*)\]\(([^)]+)\)", lambda m: self._image_tag(m.group(1),m.group(2)), value)
-        math_parts=[]
-        value=re.sub(r"<math>.*?</math>", lambda m: (math_parts.append(m.group(0)) or f"@@MATH{len(math_parts)-1}@@"), value)
-        value=html.escape(value, quote=True); value=re.sub(r"\*\*(.+?)\*\*",r"<strong>\1</strong>",value); value=re.sub(r"`([^`]+)`",r"<code>\1</code>",value); value=re.sub(r"\[([^]]+)\]\((https?://[^)]+)\)",r'<a href="\2">\1</a>',value)
-        for i, part in enumerate(math_parts): value=value.replace(f"@@MATH{i}@@", part)
-        return value
+        # One page of Markdown. The Markdown dialect (CommonMark blocks plus
+        # GFM tables) is owned by markdown_html; this controller only binds
+        # the page to the request's security policy.
+        return render_markdown(text, self.policy)
     def _image_tag(self, alt: str, uri: str) -> str:
-        path=(self.policy.input_root / uri).resolve(); mime,_,_=validate_image(path,self.policy); import base64
-        encoded=base64.b64encode(path.read_bytes()).decode("ascii"); return f'<img alt="{html.escape(alt,quote=True)}" src="data:{mime};base64,{encoded}">' 
-    def _report_html(self, spec: dict, policy: SecurityPolicy, font: str, palette: dict[str, str], show_chainabit_footer: bool) -> str:
+        return f'<img alt="{html.escape(alt,quote=True)}" src="{image_data_uri((self.policy.input_root / uri).resolve(), self.policy)}">'
+    def _report_html(self, spec: dict, policy: SecurityPolicy, font: str, palette: dict[str, str], show_chainabit_footer: bool, geometry: PageGeometry) -> str:
         chunks=[f"<h1>{html.escape(spec['title'])}</h1>"]
         for b in spec["blocks"]:
             kind=b["type"]
@@ -238,12 +201,27 @@ class PdfService:
             elif kind=="paragraph": chunks.append(f"<p>{html.escape(b['text'])}</p>")
             elif kind in {"bullets","numbered"}: chunks.append("<ul>"+"".join("<li>"+html.escape(x)+"</li>" for x in b["items"])+"</ul>")
             elif kind=="table": chunks.append("<table><thead><tr>"+"".join("<th>"+html.escape(str(x))+"</th>" for x in b["columns"])+"</tr></thead><tbody>"+"".join("<tr>"+"".join("<td>"+html.escape(str(x))+"</td>" for x in row)+"</tr>" for row in b["rows"])+"</tbody></table>")
-            elif kind=="image": chunks.append(self._image_tag(str(b.get("caption", "")), str(b["path"])))
+            elif kind=="image":
+                caption=str(b.get("caption",""))
+                tag=self._image_tag(caption, str(b["path"]))
+                # A report `caption` used to reach only the <img alt>
+                # attribute -- accessibility metadata a renderer never paints
+                # -- so a caption a caller asked to be visible silently never
+                # was. <figcaption> is the element WeasyPrint actually
+                # renders as body text.
+                chunks.append(f'<figure>{tag}<figcaption>{html.escape(caption)}</figcaption></figure>' if caption else tag)
             elif kind=="pagebreak": chunks.append('<div class="page-break"></div>')
             elif kind=="spacer": chunks.append(f'<div style="height:{int(b.get("height",12))}pt"></div>')
         header = html.escape(str(spec.get("header", ""))); footer = html.escape(str(spec.get("footer", "")))
         prefix = (f'<div class="running-header">{header}</div>' if header else "") + (f'<div class="running-footer">{footer}</div>' if footer else "")
-        return self._html_document(prefix + "".join(chunks), font, palette, show_chainabit_footer).replace("</style>", ".running-header{position:running(header)}.running-footer{position:running(footer)}@page{@top-center{content:element(header)}@bottom-center{content:element(footer)}};</style>")
+        # Direction is resolved from the report's own textual content -- every
+        # string value in the spec, walked the same way `validate_report`
+        # already walks it to find an embedded image-as-text -- not from the
+        # whole spec `str()`'d, which would count "title", "blocks", "type"
+        # and every other JSON key as Latin filler and understate an
+        # otherwise Arabic/Hebrew report.
+        direction = resolve_direction(" ".join(value for _, value in _report_strings(spec)))
+        return self._html_document(prefix + "".join(chunks), font, palette, show_chainabit_footer, geometry, direction).replace("</style>", ".running-header{position:running(header)}.running-footer{position:running(footer)}@page{@top-center{content:element(header)}@bottom-center{content:element(footer)}};</style>")
     def _font_family(self, requested: object) -> str:
         if requested is None:
             return DEFAULT_FONT_FAMILY
@@ -286,32 +264,53 @@ class PdfService:
             encoded=base64.b64encode(path.read_bytes()).decode("ascii")
             faces.append(f'@font-face{{font-family:"ChainabitArtifactArabic";font-style:normal;font-weight:{weight};src:url(data:font/ttf;base64,{encoded}) format("truetype")}}')
         return "".join(faces)
-    def _html_document(self, body: str, font: str, palette: dict[str, str], show_chainabit_footer: bool) -> str:
+    def _html_document(self, body: str, font: str, palette: dict[str, str], show_chainabit_footer: bool, geometry: PageGeometry, direction: str = "ltr") -> str:
         # One audited, print-first design system.  Callers choose content and
         # page geometry, not arbitrary CSS; that keeps professional output
         # deterministic and prevents a prompt from becoming a styling/security
-        # boundary.
+        # boundary. The @page rule is built from the caller's resolved
+        # geometry directly -- there is no later size/margin patch, and no
+        # second hardcoded default to drift from PageGeometry's own.
+        #
+        # `direction` is a LAYOUT property, resolved once by the caller from
+        # the document's own content (see resolve_direction in models.py) and
+        # applied here in exactly two ways: the `dir` attribute on `<html>`
+        # (WeasyPrint implements the same HTML5 `[dir=rtl]{direction:rtl}`
+        # mapping every browser does -- verified directly against its own
+        # bundled UA stylesheet, not assumed) and the CSS `direction`
+        # property set explicitly below as well, so this stylesheet does not
+        # depend on that UA default surviving a future WeasyPrint upgrade.
+        # Every rule below that used to hardcode a physical `left`/`right` is
+        # a logical property (`-inline-start`/`-inline-end`, `text-align:
+        # start`) instead, so it flips automatically with `direction` -- the
+        # renderer's Unicode Bidi implementation still does 100% of the
+        # actual character shaping and reordering; nothing here reverses or
+        # rewrites a single character of `body`.
         brand_footer = 'content:"CHAINABIT";font:600 7pt "ChainabitArtifact";letter-spacing:1.5pt;' if show_chainabit_footer else 'content:"";'
+        top, right, bottom, left = (f"{value:.2f}pt" for value in geometry.margin)
         style = self._font_css(font) + f'''
-@page{{size:A4;margin:58pt 54pt 54pt;background:{palette["background"]};
+@page{{size:{geometry.width:.2f}pt {geometry.height:.2f}pt;margin:{top} {right} {bottom} {left};background:{palette["background"]};
  @bottom-left{{{brand_footer}color:{palette["muted"]}}}
  @bottom-right{{content:counter(page) " / " counter(pages);font:8pt "ChainabitArtifact";color:{palette["muted"]}}}}}
-*{{box-sizing:border-box}}body{{font-family:"ChainabitArtifact","ChainabitArtifactArabic",sans-serif;color:{palette["body"]};font-size:10.5pt;line-height:1.58;margin:0}}
+*{{box-sizing:border-box}}body{{direction:{direction};font-family:"ChainabitArtifact","ChainabitArtifactArabic",sans-serif;color:{palette["body"]};font-size:10.5pt;line-height:1.58;margin:0;text-align:start}}
 h1,h2,h3,h4,h5,h6{{page-break-after:avoid;line-height:1.16;color:{palette["ink"]};margin:22pt 0 9pt}}
 h1{{font-size:28pt;letter-spacing:-.7pt;margin-top:0;padding:0 0 13pt;border-bottom:4pt solid {palette["accent"]}}}
-h2{{font-size:18pt;letter-spacing:-.25pt;padding-left:11pt;border-left:4pt solid {palette["accent"]}}}
+h2{{font-size:18pt;letter-spacing:-.25pt;padding-inline-start:11pt;border-inline-start:4pt solid {palette["accent"]}}}
 h3{{font-size:13.5pt;color:{palette["accent"]}}}p{{margin:0 0 10pt;orphans:3;widows:3}}
 strong{{color:{palette["ink"]}}}a{{color:{palette["accent"]};text-decoration:none;border-bottom:.5pt solid {palette["rule"]}}}
-ul,ol{{margin:6pt 0 14pt;padding-left:20pt}}li{{margin:0 0 5pt}}li::marker{{color:{palette["accent"]}}}
+ul,ol{{margin:6pt 0 14pt;padding-inline-start:20pt}}li{{margin:0 0 5pt}}li::marker{{color:{palette["accent"]}}}
 table{{width:100%;border-collapse:separate;border-spacing:0;margin:14pt 0 18pt;font-size:9pt;border:1pt solid {palette["rule"]};border-radius:5pt}}
-th{{background:{palette["ink"]};color:{palette["accentInk"]};font-weight:700}}th,td{{padding:7pt 8pt;text-align:left;vertical-align:top;border-right:.5pt solid {palette["rule"]};border-bottom:.5pt solid {palette["rule"]}}}
-th:last-child,td:last-child{{border-right:0}}tr:last-child td{{border-bottom:0}}tbody tr:nth-child(even){{background:{palette["surface"]}}}thead{{display:table-header-group}}tr{{page-break-inside:avoid}}
-pre{{white-space:pre-wrap;background:{palette["ink"]};color:{palette["accentInk"]};border-left:4pt solid {palette["accent"]};border-radius:5pt;padding:11pt 13pt;font-size:8.5pt;line-height:1.45;page-break-inside:avoid}}
+th{{background:{palette["ink"]};color:{palette["accentInk"]};font-weight:700}}th,td{{padding:7pt 8pt;text-align:start;vertical-align:top;border-inline-end:.5pt solid {palette["rule"]};border-bottom:.5pt solid {palette["rule"]}}}
+th:last-child,td:last-child{{border-inline-end:0}}tr:last-child td{{border-bottom:0}}tbody tr:nth-child(even){{background:{palette["surface"]}}}thead{{display:table-header-group}}tr{{page-break-inside:avoid}}
+pre{{white-space:pre-wrap;background:{palette["ink"]};color:{palette["accentInk"]};border-inline-start:4pt solid {palette["accent"]};border-radius:5pt;padding:11pt 13pt;font-size:8.5pt;line-height:1.45;page-break-inside:avoid}}
 code{{font-family:"Fira Code","Noto Sans Mono",monospace;background:{palette["surface"]};border-radius:2pt;padding:1pt 3pt}}pre code{{background:transparent;padding:0}}
-blockquote{{margin:14pt 0;padding:10pt 14pt;background:{palette["surface"]};border-left:4pt solid {palette["accent"]};color:{palette["body"]}}}
+blockquote{{margin:14pt 0;padding:10pt 14pt;background:{palette["surface"]};border-inline-start:4pt solid {palette["accent"]};color:{palette["body"]}}}blockquote>:last-child{{margin-bottom:0}}
+hr{{border:0;border-top:1pt solid {palette["rule"]};margin:18pt 0}}li>ul,li>ol{{margin:4pt 0 0}}li>p{{margin:0 0 5pt}}
 .page-break{{break-before:page}}img{{display:block;max-width:100%;height:auto;margin:14pt auto;border-radius:5pt}}
+figure{{margin:14pt 0;text-align:center;page-break-inside:avoid}}figure img{{margin:0 auto 6pt}}
+figcaption{{font-size:8.5pt;color:{palette["muted"]};text-align:center}}
 '''
-        return '<!doctype html><html><head><meta charset="utf-8"><style>'+style+'</style></head><body>'+body+'</body></html>'
+        return f'<!doctype html><html dir="{direction}"><head><meta charset="utf-8"><style>'+style+'</style></head><body>'+body+'</body></html>'
     @staticmethod
     def validate_report(spec: object) -> list[str]:
         if not isinstance(spec,dict): return ["spec must be an object"]

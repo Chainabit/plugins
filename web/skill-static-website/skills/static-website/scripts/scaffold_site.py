@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import argparse
 import datetime
+import errno
 import hashlib
 import html
 import json
@@ -38,10 +39,28 @@ import os
 import posixpath
 import re
 import shutil
+import stat
 import sys
 
 HEX_COLOUR = re.compile(r"^#[0-9A-Fa-f]{6}$")
 SLUG = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
+
+# Primary BCP-47 language subtags whose customary writing system is
+# right-to-left, matching the set major browser/OS platforms agree on. A
+# language whose script varies by region or era (Kurdish, Hausa) is
+# deliberately left out rather than guessed at from a two-letter tag alone.
+RTL_LANGUAGE_PREFIXES = frozenset({"ar", "arc", "dv", "fa", "he", "prs", "ps", "sd", "ug", "ur", "yi"})
+
+
+def resolve_direction(lang: str) -> str:
+    """The site's writing direction, from the one language tag this
+    generator already declares (`site.lang`) -- not a second, independent
+    field. `site.lang` is free-form but BCP-47-shaped ("ar", "ar-EG",
+    "he-IL"); only the primary subtag decides direction, so a region or
+    script suffix cannot flip it by accident.
+    """
+    primary = lang.strip().lower().split("-", 1)[0]
+    return "rtl" if primary in RTL_LANGUAGE_PREFIXES else "ltr"
 
 # These are renderer-local projections of skill-brand-defaults' profile. They
 # stay local because independently materialised skill bundles cannot import one
@@ -92,6 +111,22 @@ AVAILABLE_WEB_FAMILIES = {"IBM Plex Sans", "IBM Plex Sans Arabic"}
 
 MAX_PAGES = 12
 MAX_SECTIONS = 12
+
+# A picture is a local file already sitting beside the spec, never a URL: the
+# sandbox that renders a site has no network egress (see the module
+# docstring), so there is nothing here to fetch. SVG is left out even though
+# it is an image format, because it can carry a <script> and the site's own
+# contract (.chainabit-site.json runtime.javascript) promises none.
+IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
+MAX_IMAGE_BYTES = 10 * 1024 * 1024
+# The product accepts at most 64 MiB for a published artifact tree. Reserve
+# 4 MiB for bounded HTML, CSS, the contract file, and the runtime-provided font
+# set; image inputs cannot consume the entire publication envelope themselves.
+MAX_TOTAL_IMAGE_BYTES = 60 * 1024 * 1024
+# Two fully populated 12-page specs can still carry a broad visual set without
+# allowing the structural maximum (more than a thousand paths) to become a
+# filesystem/memory amplification vector.
+MAX_DISTINCT_IMAGES = 128
 
 
 # --- contrast ---------------------------------------------------------------------
@@ -249,7 +284,159 @@ def check_link(item: object, path: str, errors: SpecErrors) -> dict[str, str]:
     }
 
 
-def check_section(section: object, path: str, errors: SpecErrors) -> dict:
+def open_local_image(source_root: str, src: str) -> tuple[int, os.stat_result]:
+    """Open a regular image beneath ``source_root`` without following links.
+
+    A prior ``realpath``/``islink`` check is not an access boundary: a client
+    can swap a checked component before the later ``open``. Directory file
+    descriptors pin every component while ``O_NOFOLLOW`` rejects a link at the
+    instant it is opened. The caller owns the returned descriptor.
+    """
+    required_flags = ("O_DIRECTORY", "O_NOFOLLOW")
+    if any(not hasattr(os, name) for name in required_flags):
+        raise RuntimeError("this platform cannot securely open local image paths")
+
+    components = src.split("/")
+    if not components or any(component in ("", ".", "..") for component in components):
+        raise ValueError("is not a normalized relative image path")
+
+    close_on_exec = getattr(os, "O_CLOEXEC", 0)
+    directory_flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | close_on_exec
+    file_flags = (
+        os.O_RDONLY
+        | os.O_NOFOLLOW
+        | getattr(os, "O_NONBLOCK", 0)
+        | close_on_exec
+    )
+
+    directory_fd = os.open(source_root, directory_flags)
+    try:
+        for component in components[:-1]:
+            next_fd = os.open(component, directory_flags, dir_fd=directory_fd)
+            os.close(directory_fd)
+            directory_fd = next_fd
+        file_fd = os.open(components[-1], file_flags, dir_fd=directory_fd)
+    except OSError as exc:
+        if exc.errno in (errno.ELOOP, errno.ENOTDIR):
+            raise ValueError(
+                "uses a symbolic link or non-directory path component; image paths "
+                "must name regular local files"
+            ) from exc
+        raise
+    finally:
+        os.close(directory_fd)
+
+    metadata = os.fstat(file_fd)
+    if not stat.S_ISREG(metadata.st_mode):
+        os.close(file_fd)
+        raise ValueError("does not name a regular local file")
+    return file_fd, metadata
+
+
+def inspect_local_image(source_root: str, src: str) -> tuple[tuple[int, int], int]:
+    file_fd, metadata = open_local_image(source_root, src)
+    os.close(file_fd)
+    return (metadata.st_dev, metadata.st_ino), metadata.st_size
+
+
+def read_open_image(file_fd: int) -> bytes:
+    """Read one already-pinned descriptor within the per-file ceiling."""
+    try:
+        chunks: list[bytes] = []
+        remaining = MAX_IMAGE_BYTES + 1
+        while remaining:
+            chunk = os.read(file_fd, min(1024 * 1024, remaining))
+            if not chunk:
+                break
+            chunks.append(chunk)
+            remaining -= len(chunk)
+        data = b"".join(chunks)
+    finally:
+        os.close(file_fd)
+    return data
+
+
+def check_image(
+    value: object, path: str, errors: SpecErrors, source_root: str | None
+) -> dict | None:
+    """A locally staged image, never a URL.
+
+    The sandbox that renders a site has no network egress, so an image
+    reference has to already be a file the caller copied in before this ran —
+    the same rule skill-pptx enforces for a picture on a slide. Checking the
+    file itself here, not only the shape of the reference, turns a typo'd
+    path into one error message instead of a site that builds clean and
+    404s its own hero image.
+    """
+    if value is None:
+        return None
+    if not isinstance(value, dict):
+        errors.add(path, "must be an object with 'src' and 'alt'")
+        return None
+
+    src = value.get("src")
+    if not isinstance(src, str) or not src.strip():
+        errors.add(f"{path}.src", "required, must be a relative path to a local file")
+        return None
+    src = src.strip()
+    if "://" in src or src.startswith("data:"):
+        errors.add(
+            f"{path}.src",
+            f"{src!r} is a URL or data URI. The sandbox has no network, so an "
+            "image has to already be a file here — copy it in first and name "
+            "the path the copy landed at.",
+        )
+        return None
+    if src.startswith("/"):
+        errors.add(f"{path}.src", f"{src!r} is absolute; give a path relative to the spec")
+        return None
+    if ".." in src.split("/"):
+        errors.add(f"{path}.src", f"{src!r} escapes the directory the spec is in")
+        return None
+
+    extension = os.path.splitext(src)[1].lower()
+    if extension not in IMAGE_EXTENSIONS:
+        errors.add(
+            f"{path}.src",
+            f"{src!r} has an unsupported extension; use one of "
+            f"{', '.join(sorted(IMAGE_EXTENSIONS))}",
+        )
+        return None
+
+    alt = value.get("alt")
+    if not isinstance(alt, str) or not alt.strip():
+        errors.add(
+            f"{path}.alt",
+            "required, must describe the image for a screen-reader user",
+        )
+        return None
+    if len(alt) > 200:
+        errors.add(f"{path}.alt", f"{len(alt)} characters, the limit is 200")
+
+    # Existence and size are only checkable once the caller told us where the
+    # spec lives (main() passes this for --spec, not for a built-in
+    # --template, which never declares an image). --print-spec on a bare
+    # template still validates the shape above with no filesystem check.
+    if source_root is not None:
+        try:
+            _, size = inspect_local_image(source_root, src)
+        except FileNotFoundError:
+            errors.add(f"{path}.src", f"{src!r} does not exist next to the spec")
+            return None
+        except (OSError, ValueError) as exc:
+            errors.add(f"{path}.src", f"{src!r} {exc}")
+            return None
+        if size > MAX_IMAGE_BYTES:
+            errors.add(
+                f"{path}.src",
+                f"{src!r} is {size} bytes, the limit is {MAX_IMAGE_BYTES}",
+            )
+            return None
+
+    return {"src": src, "alt": alt.strip()}
+
+
+def check_section(section: object, path: str, errors: SpecErrors, source_root: str | None) -> dict:
     if not isinstance(section, dict):
         errors.add(path, "must be an object")
         return {}
@@ -279,6 +466,7 @@ def check_section(section: object, path: str, errors: SpecErrors) -> dict:
     if kind == "hero":
         checked["heading"] = require_text(section.get("heading"), f"{path}.heading", errors, 120)
         checked["text"] = optional_text(section.get("text"), f"{path}.text", errors)
+        checked["image"] = check_image(section.get("image"), f"{path}.image", errors, source_root)
         actions = section.get("actions") or []
         if not isinstance(actions, list):
             errors.add(f"{path}.actions", "must be a list of {label, href} objects")
@@ -325,6 +513,13 @@ def check_section(section: object, path: str, errors: SpecErrors) -> dict:
                     "text": optional_text(item.get("text"), f"{item_path}.text", errors),
                     "meta": optional_text(item.get("meta"), f"{item_path}.meta", errors, 80),
                     "href": optional_text(item.get("href"), f"{item_path}.href", errors),
+                    # Only features/cards render an item image; a list item is a
+                    # denser row and stays text-only by design (see render_section).
+                    "image": (
+                        check_image(item.get("image"), f"{item_path}.image", errors, source_root)
+                        if kind in ("features", "cards")
+                        else None
+                    ),
                 }
             )
         checked["items"] = collected
@@ -344,7 +539,20 @@ def check_section(section: object, path: str, errors: SpecErrors) -> dict:
     return checked
 
 
-def validate_spec(spec: object) -> tuple[dict, SpecErrors]:
+def _declared_images(spec: dict) -> list[dict]:
+    """Every image dict in the spec, hero and item images alike, in one list."""
+    found: list[dict] = []
+    for page in spec["pages"]:
+        for section in page["sections"]:
+            if section.get("image"):
+                found.append(section["image"])
+            for item in section.get("items", []):
+                if item.get("image"):
+                    found.append(item["image"])
+    return found
+
+
+def validate_spec(spec: object, source_root: str | None = None) -> tuple[dict, SpecErrors]:
     errors = SpecErrors()
     if not isinstance(spec, dict):
         errors.add("spec", "must be a JSON object")
@@ -409,7 +617,24 @@ def validate_spec(spec: object) -> tuple[dict, SpecErrors]:
         "title": require_text(site.get("title"), "site.title", errors, 80),
         "tagline": optional_text(site.get("tagline"), "site.tagline", errors, 200),
         "description": optional_text(site.get("description"), "site.description", errors, 300),
-        "lang": optional_text(site.get("lang"), "site.lang", errors, 12) or "en",
+        "lang": (checked_lang := optional_text(site.get("lang"), "site.lang", errors, 12) or "en"),
+        # Direction is a layout property derived from the one language tag
+        # already declared above, not a separate field the caller must also
+        # set. See resolve_direction's docstring for why the primary subtag
+        # decides and a region/script suffix does not.
+        "dir": resolve_direction(checked_lang),
+        # The skip-link and nav landmark are platform-authored accessibility
+        # chrome, not user content -- but they are read aloud to a
+        # screen-reader user on every page, so a site declared in Arabic or
+        # Turkish should not carry English boilerplate the model never wrote
+        # and cannot see to fix. Rather than this generator guessing a
+        # translation from `lang` (which does not scale past a handful of
+        # hardcoded languages and drifts from whatever the model actually
+        # said), the caller -- which already knows the requested language --
+        # may supply the label; English remains the default so an
+        # unspecified-language site is unaffected.
+        "skipLinkLabel": optional_text(site.get("skipLinkLabel"), "site.skipLinkLabel", errors, 60) or "Skip to content",
+        "navLabel": optional_text(site.get("navLabel"), "site.navLabel", errors, 60) or "Main",
         "theme": theme,
         "font": font,
         "fontSource": font_source,
@@ -486,7 +711,7 @@ def validate_spec(spec: object) -> tuple[dict, SpecErrors]:
                     page.get("description"), f"{page_path}.description", errors, 300
                 ),
                 "sections": [
-                    check_section(section, f"{page_path}.sections[{position}]", errors)
+                    check_section(section, f"{page_path}.sections[{position}]", errors, source_root)
                     for position, section in enumerate(sections)
                 ],
             }
@@ -559,7 +784,32 @@ def validate_spec(spec: object) -> tuple[dict, SpecErrors]:
                         f"with id {fragment!r}",
                     )
 
-    return {"site": checked_site, "pages": checked_pages}, errors
+    checked_spec = {"site": checked_site, "pages": checked_pages}
+    if source_root is not None:
+        canonical_sources: dict[tuple[int, int], int] = {}
+        for image in _declared_images(checked_spec):
+            try:
+                identity, size = inspect_local_image(source_root, image["src"])
+                canonical_sources.setdefault(identity, size)
+            except (KeyError, OSError, ValueError):
+                # The field-level boundary already emitted the actionable path
+                # problem. Aggregate diagnostics only operate on valid files.
+                continue
+        if len(canonical_sources) > MAX_DISTINCT_IMAGES:
+            errors.add(
+                "images",
+                f"{len(canonical_sources)} distinct local files, the limit is "
+                f"{MAX_DISTINCT_IMAGES}",
+            )
+        total_image_bytes = sum(canonical_sources.values())
+        if total_image_bytes > MAX_TOTAL_IMAGE_BYTES:
+            errors.add(
+                "images",
+                f"{total_image_bytes} bytes across distinct local files, the limit is "
+                f"{MAX_TOTAL_IMAGE_BYTES}",
+            )
+
+    return checked_spec, errors
 
 
 # --- rendering --------------------------------------------------------------------
@@ -593,7 +843,22 @@ def open_section(class_name: str, section: dict) -> str:
     return f'    <section{identifier} class="{class_name}">\n'
 
 
-def render_section(section: dict) -> str:
+def render_image(image: dict | None, prefix: str, css_class: str, loading: str = "lazy") -> str:
+    """An `<img>` for a resolved image reference, or '' if the section has none.
+
+    `resolvedSrc` is written by `resolve_image_assets`/`write_site` before any
+    page renders — it is the content-addressed `assets/images/...` path the
+    file was actually copied to, never the spec-relative `src` a model wrote,
+    which write_site never promises to preserve.
+    """
+    if not image:
+        return ""
+    src = escape(prefix + image["resolvedSrc"])
+    alt = escape(image["alt"])
+    return f'      <p class="{css_class}"><img src="{src}" alt="{alt}" loading="{loading}"></p>\n'
+
+
+def render_section(section: dict, prefix: str = "") -> str:
     kind = section.get("type")
 
     if kind == "hero":
@@ -601,6 +866,9 @@ def render_section(section: dict) -> str:
         if section.get("text"):
             body += f'      <p class="lede">{escape(section["text"])}</p>\n'
         body += render_actions(section.get("actions", []))
+        # Eager, not lazy: the hero image is above the fold on every page that
+        # has one, so deferring its load only delays the largest paint.
+        body += render_image(section.get("image"), prefix, "hero-media", loading="eager")
         return open_section("hero", section) + body + "    </section>\n"
 
     heading = ""
@@ -623,7 +891,8 @@ def render_section(section: dict) -> str:
             title_markup = (
                 f'<a href="{escape(item["href"])}">{title}</a>' if item.get("href") else title
             )
-            inner = f"          <h3>{title_markup}</h3>\n"
+            inner = render_image(item.get("image"), prefix, "card-media")
+            inner += f"          <h3>{title_markup}</h3>\n"
             if item.get("meta"):
                 inner += f'          <p class="meta">{escape(item["meta"])}</p>\n'
             if item.get("text"):
@@ -670,7 +939,7 @@ def render_section(section: dict) -> str:
     return ""
 
 
-def render_nav(pages: list[dict], current: str, prefix: str) -> str:
+def render_nav(pages: list[dict], current: str, prefix: str, nav_label: str = "Main") -> str:
     entries = [page for page in pages if page.get("nav")]
     if len(entries) < 2:
         return ""
@@ -684,7 +953,7 @@ def render_nav(pages: list[dict], current: str, prefix: str) -> str:
             items += f'        <li><a href="{escape(prefix + page["path"])}" aria-current="page">{label}</a></li>\n'
         else:
             items += f'        <li><a href="{escape(prefix + page["path"])}">{label}</a></li>\n'
-    return f'    <nav aria-label="Main">\n      <ul>\n{items}      </ul>\n    </nav>\n'
+    return f'    <nav aria-label="{escape(nav_label)}">\n      <ul>\n{items}      </ul>\n    </nav>\n'
 
 
 def render_page(spec: dict, page: dict) -> str:
@@ -697,7 +966,7 @@ def render_page(spec: dict, page: dict) -> str:
 
     head = (
         "<!DOCTYPE html>\n"
-        f'<html lang="{escape(site["lang"])}">\n'
+        f'<html lang="{escape(site["lang"])}" dir="{escape(site["dir"])}">\n'
         "<head>\n"
         '  <meta charset="utf-8">\n'
         # Without this every phone renders the page at 980px and scales it down,
@@ -712,15 +981,15 @@ def render_page(spec: dict, page: dict) -> str:
     brand_href = escape(prefix + "index.html")
     header = (
         "<body>\n"
-        '  <a class="skip-link" href="#main">Skip to content</a>\n'
+        f'  <a class="skip-link" href="#main">{escape(site["skipLinkLabel"])}</a>\n'
         "  <header class=\"site-header\">\n"
         f'    <p class="brand"><a href="{brand_href}">{escape(site["title"])}</a></p>\n'
-        + render_nav(spec["pages"], page["path"], prefix)
+        + render_nav(spec["pages"], page["path"], prefix, site["navLabel"])
         + "  </header>\n"
     )
 
     main = '  <main id="main">\n' + "".join(
-        render_section(section) for section in page["sections"]
+        render_section(section, prefix) for section in page["sections"]
     ) + "  </main>\n"
 
     year = datetime.date.today().year
@@ -834,7 +1103,7 @@ a:hover {{ text-decoration-thickness: 2px; }}
 
 .skip-link {{
   position: absolute;
-  left: -9999px;
+  inset-inline-start: -9999px;
   top: var(--space-2);
   background: var(--accent);
   color: var(--accent-ink);
@@ -842,7 +1111,7 @@ a:hover {{ text-decoration-thickness: 2px; }}
   border-radius: var(--radius);
   z-index: 10;
 }}
-.skip-link:focus {{ left: var(--space-4); }}
+.skip-link:focus {{ inset-inline-start: var(--space-4); }}
 
 .site-header {{
   display: flex;
@@ -882,6 +1151,13 @@ section:last-child {{ border-bottom: 0; }}
 
 .hero {{ padding: var(--space-8) 0 var(--space-7); }}
 .lede {{ font-size: var(--step-1); color: var(--muted); max-width: var(--measure); }}
+.hero-media {{ margin: var(--space-6) 0 0; }}
+.hero-media img {{
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius);
+}}
 
 .actions {{ display: flex; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-5); }}
 
@@ -915,6 +1191,13 @@ section:last-child {{ border-bottom: 0; }}
   border: 1px solid var(--rule);
   border-radius: var(--radius);
   padding: var(--space-5);
+}}
+.card-media {{ margin: calc(var(--space-5) * -1) calc(var(--space-5) * -1) var(--space-4); }}
+.card-media img {{
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius) var(--radius) 0 0;
 }}
 .card h3 {{ margin-bottom: var(--space-2); }}
 .card p:last-child {{ margin-bottom: 0; }}
@@ -1346,7 +1629,73 @@ TEMPLATES: dict[str, dict] = {
 # --- output -----------------------------------------------------------------------
 
 
-def write_site(spec: dict, destination: str, force: bool) -> list[str]:
+def resolve_image_assets(spec: dict, source_root: str | None) -> dict[str, bytes]:
+    """Return content-addressed destination bytes and resolve every image dict.
+
+    Canonical source paths own count/byte accounting. Content digests own the
+    output, so identical bytes from the same or different local paths are held
+    and written once, and the writer never reopens a client-controlled path.
+    """
+    if source_root is None:
+        return {}
+
+    references: list[tuple[dict, str]] = []
+    source_identities: dict[str, tuple[int, int]] = {}
+    canonical_sources: dict[tuple[int, int], tuple[str, bytes]] = {}
+    total_image_bytes = 0
+    for image in _declared_images(spec):
+        src = image["src"]
+        references.append((image, src))
+        if src in source_identities:
+            continue
+        file_fd, metadata = open_local_image(source_root, src)
+        identity = (metadata.st_dev, metadata.st_ino)
+        source_identities[src] = identity
+        if identity in canonical_sources:
+            os.close(file_fd)
+            continue
+        if metadata.st_size > MAX_IMAGE_BYTES:
+            os.close(file_fd)
+            raise RuntimeError(f"image {src!r} changed after validation and is now too large")
+        if total_image_bytes + metadata.st_size > MAX_TOTAL_IMAGE_BYTES:
+            os.close(file_fd)
+            raise RuntimeError(
+                "image set changed after validation and now exceeds the aggregate byte limit"
+            )
+        data = read_open_image(file_fd)
+        if len(data) > MAX_IMAGE_BYTES:
+            raise RuntimeError(f"image {src!r} changed after validation and is now too large")
+        total_image_bytes += len(data)
+        if total_image_bytes > MAX_TOTAL_IMAGE_BYTES:
+            raise RuntimeError(
+                "image set changed after validation and now exceeds the aggregate byte limit"
+            )
+        canonical_sources[identity] = (src, data)
+
+    if len(canonical_sources) > MAX_DISTINCT_IMAGES:
+        raise RuntimeError(
+            f"image set changed after validation and now exceeds {MAX_DISTINCT_IMAGES} files"
+        )
+
+    source_assets: dict[tuple[int, int], tuple[str, bytes]] = {}
+    digest_assets: dict[str, tuple[str, bytes]] = {}
+    for identity, (src, data) in canonical_sources.items():
+        digest = hashlib.sha256(data).hexdigest()
+        asset = digest_assets.get(digest)
+        if asset is None:
+            basename = re.sub(r"[^A-Za-z0-9._-]", "_", os.path.basename(src))
+            asset = (f"assets/images/{digest}-{basename}", data)
+            digest_assets[digest] = asset
+        source_assets[identity] = asset
+
+    for image, src in references:
+        image["resolvedSrc"] = source_assets[source_identities[src]][0]
+    return {destination: data for destination, data in digest_assets.values()}
+
+
+def write_site(
+    spec: dict, destination: str, force: bool, source_root: str | None = None
+) -> list[str]:
     if os.path.exists(destination) and not os.path.isdir(destination):
         raise SystemExit(f"ERROR: output: {destination} exists and is not a directory")
     if os.path.isdir(destination) and os.listdir(destination) and not force:
@@ -1358,12 +1707,25 @@ def write_site(spec: dict, destination: str, force: bool) -> list[str]:
 
     written: list[str] = []
 
+    # Resolved before any page renders: render_section reads image["resolvedSrc"].
+    image_assets = resolve_image_assets(spec, source_root)
+
     for page in spec["pages"]:
         target = os.path.join(destination, *page["path"].split("/"))
         os.makedirs(os.path.dirname(target) or destination, exist_ok=True)
         with open(target, "w", encoding="utf-8") as handle:
             handle.write(render_page(spec, page))
         written.append(page["path"])
+
+    if image_assets:
+        images_dir = os.path.join(destination, "assets", "images")
+        os.makedirs(images_dir, exist_ok=True)
+        for dest_relative, data in image_assets.items():
+            dest_path = os.path.join(destination, *dest_relative.split("/"))
+            if not os.path.isfile(dest_path):
+                with open(dest_path, "wb") as handle:
+                    handle.write(data)
+            written.append(dest_relative)
 
     assets = os.path.join(destination, "assets")
     os.makedirs(assets, exist_ok=True)
@@ -1488,6 +1850,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
 
+    source_root: str | None = None
     if args.template:
         raw = TEMPLATES[args.template]
     else:
@@ -1503,8 +1866,12 @@ def main(argv: list[str] | None = None) -> int:
         except json.JSONDecodeError as exc:
             print(f"ERROR: spec: {args.spec} is not valid JSON: {exc}", file=sys.stderr)
             return 1
+        # An image `src` is relative to the spec, so an image can only be
+        # checked (and later copied) once we know what directory that is —
+        # a built-in --template never declares one and needs no root.
+        source_root = os.path.dirname(os.path.abspath(args.spec))
 
-    spec, errors = validate_spec(raw)
+    spec, errors = validate_spec(raw, source_root)
 
     if args.print_spec:
         if errors:
@@ -1535,7 +1902,7 @@ def main(argv: list[str] | None = None) -> int:
         parser.error("an output directory is required unless --print-spec or --validate-only")
 
     try:
-        written = write_site(spec, args.outdir, args.force)
+        written = write_site(spec, args.outdir, args.force, source_root)
         digest, total_bytes, file_count = tree_identity(args.outdir)
     except (OSError, RuntimeError) as exc:
         print(f"ERROR: website_runtime: {exc}", file=sys.stderr)

@@ -23,6 +23,7 @@ SAFE_URI_SCHEMES = {"https", "http", "mailto"}
 # input boundary rejects both spellings, and verification rejects any PDF that
 # prints image data as text.
 IMAGE_FILE_FORMATS = "PNG, JPEG, GIF or WebP"
+IMAGE_DECODER_FORMATS = ("PNG", "JPEG", "GIF", "WEBP")
 RAW_IMAGE_TAG = re.compile(r"<\s*(img|svg)\b", re.I)
 _DATA_IMAGE_PREFIX = re.compile(r"data:\s*image/\s*[a-z0-9.+-]+\s*;\s*base64\s*,\s*", re.I)
 # Text extraction returns a wrapped token one line at a time. Join across line
@@ -152,9 +153,9 @@ def validate_image(path: Path, policy: SecurityPolicy) -> tuple[str, int, int]:
     try:
         from PIL import Image
         from io import BytesIO
-        with Image.open(BytesIO(raw)) as image:
+        with Image.open(BytesIO(raw), formats=IMAGE_DECODER_FORMATS) as image:
             image.verify()
-        with Image.open(BytesIO(raw)) as image:
+        with Image.open(BytesIO(raw), formats=IMAGE_DECODER_FORMATS) as image:
             width, height = image.size
             if width * height > policy.limits.max_image_pixels: raise PdfError(ErrorCode.RESOURCE_LIMIT, "image exceeds configured pixel limit")
             mime = Image.MIME.get(image.format)
@@ -164,3 +165,9 @@ def validate_image(path: Path, policy: SecurityPolicy) -> tuple[str, int, int]:
     except PdfError: raise
     except Exception as exc:
         raise PdfError(ErrorCode.INVALID_INPUT, "image is malformed or cannot be safely decoded") from exc
+
+
+def image_data_uri(path: Path, policy: SecurityPolicy) -> str:
+    """A validated image file as the data: URI an HTML renderer embeds."""
+    mime, _, _ = validate_image(path, policy)
+    return f"data:{mime};base64,{base64.b64encode(path.read_bytes()).decode('ascii')}"

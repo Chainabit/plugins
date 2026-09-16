@@ -278,7 +278,22 @@ export function validateMarketplace(root, { writeBundles = false } = {}) {
       if (!dependency.id || !ID_PATTERN.test(dependency.id) || !manifests.has(dependency.id)) fail(problems, entry.path, `composition dependency ${JSON.stringify(raw)} is missing or invalid`);
       if (dependency.constraint !== null && typeof dependency.constraint !== "string") fail(problems, entry.path, `composition dependency ${JSON.stringify(raw)} has an invalid version constraint`);
     }
-    try { resolveCompositionGraph(manifests, [id]); } catch (error) { fail(problems, entry.path, error.message); }
+    let graph;
+    try { graph = resolveCompositionGraph(manifests, [id]); } catch (error) { fail(problems, entry.path, error.message); continue; }
+    // A generator may produce a format its own plugin does not validate -- a
+    // deck skill rendering the deck's PDF -- but only a format that this plugin
+    // or a plugin it composes declares, because the declaring plugin is the one
+    // that names the format's validator. A format nobody in the graph declares
+    // has no validator, so whatever the generator writes would be delivered
+    // unchecked.
+    const declaredFormats = new Set(
+      graph.flatMap((dependency) => (manifests.get(dependency)?.manifest.artifactContract?.formats ?? []).map((format) => format?.format)),
+    );
+    for (const generator of entry.manifest.artifactContract?.generators ?? []) {
+      for (const format of generator?.formats ?? []) {
+        if (!declaredFormats.has(format)) fail(problems, entry.path, `artifact generator ${JSON.stringify(generator.id)} produces ${JSON.stringify(format)}, which neither this plugin nor any plugin it composes declares with a validator`);
+      }
+    }
   }
 
   let listing;
