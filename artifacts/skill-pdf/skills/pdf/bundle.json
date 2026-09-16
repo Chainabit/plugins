@@ -4,8 +4,8 @@
     {
       "path": "SKILL.md",
       "type": "instructions",
-      "sha256": "676045c789b7745864dcdd0a10d6518b596e0c6e7f06d59cfc069828c2a5b0f8",
-      "bytes": 8263,
+      "sha256": "e649450bf33679dbaeb487aaa30d885277326960ace70909fb9a66cab76d189b",
+      "bytes": 8262,
       "mode": "0644"
     },
     {
@@ -18,8 +18,8 @@
     {
       "path": "pdf_system/backends.py",
       "type": "metadata",
-      "sha256": "71e3449253f3e3451f730dc5659f91b3ddb6e546f303569aa149beee95fd0a7d",
-      "bytes": 15570,
+      "sha256": "6316cb79fd8d0c6934f8112a91b67dc984d00699ca600986a86a02bff4fe911f",
+      "bytes": 17889,
       "mode": "0644"
     },
     {
@@ -39,8 +39,8 @@
     {
       "path": "pdf_system/models.py",
       "type": "metadata",
-      "sha256": "22b378924d92d73007bd3a5474c6e2a42883584ed9c946285a900d977b9ac6f2",
-      "bytes": 6684,
+      "sha256": "250c2a089ee2a3269c59c93d37afbae05322f781639ff4b1dce83715a8136bd7",
+      "bytes": 8708,
       "mode": "0644"
     },
     {
@@ -53,8 +53,8 @@
     {
       "path": "pdf_system/service.py",
       "type": "metadata",
-      "sha256": "e493cdce12648cabc33da345e1d88077f4b836c314cb061ae89c432b977b748a",
-      "bytes": 24338,
+      "sha256": "22b21ce7619412c8853b19bc5a4e5c02e09f950eb870b5fee920525605c0c560",
+      "bytes": 26074,
       "mode": "0644"
     },
     {
@@ -74,15 +74,15 @@
     {
       "path": "references/dependencies.md",
       "type": "references",
-      "sha256": "5e5b8e02c72e99ed4dfdba4401077ea1586f912c86ad47313a28e020cf94ca38",
-      "bytes": 1037,
+      "sha256": "5c5fb4f4ef75cb3e98c78b4f8a329270b75d61742898defb922f7feded6ea3ad",
+      "bytes": 1898,
       "mode": "0644"
     },
     {
       "path": "references/typography.md",
       "type": "references",
-      "sha256": "0f36a22f60117b147531c54383f5ef88b3d3aff004fe3c5acd3cda992f70a698",
-      "bytes": 3990,
+      "sha256": "921a2a062ccddea56434ba667bcfb0dd3aa937d110cbe0dc89693e663127d0f6",
+      "bytes": 5790,
       "mode": "0644"
     },
     {
@@ -137,8 +137,8 @@
     {
       "path": "tests/test_pdf_system.py",
       "type": "metadata",
-      "sha256": "43a1dee20bc42c00de98a7d7e93af2ed3caef3f12969af21c23aa6848dcec32b",
-      "bytes": 19146,
+      "sha256": "83a53e3d09bdb09e00d837289aff10bf67b8f1eb658d63987915a0d3a59372f3",
+      "bytes": 25083,
       "mode": "0644"
     }
   ]

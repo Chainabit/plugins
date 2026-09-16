@@ -6,6 +6,7 @@ import importlib
 import importlib.util
 import json
 import os
+import re
 import subprocess
 from functools import lru_cache
 from abc import ABC, abstractmethod
@@ -79,7 +80,28 @@ def capability_registry() -> list[BackendCapabilities]:
     dependencies = {n: _dependency(n) for n in ("weasyprint", "reportlab", "pypdf", "PIL")}
     flags = {name: state[0] for name, state in dependencies.items()}
     return [
-        BackendCapabilities("weasyprint", flags["weasyprint"], dependencies["weasyprint"][1], frozenset({"ascii_basic_text", "unicode", "font_embedding", "turkish", "rtl", "cjk", "images", "tables", "rich_markdown", "pagination", "page_breaks", "headers_footers", "math", "complex_typography", "colors_rgb", "print_quality", "metadata"}) if flags["weasyprint"] else frozenset(), ("generate-markdown", "generate-report"), ("network disabled", "active HTML/SVG/remote assets blocked"), "weasyprint", "isolated print renderer for this skill's Markdown and report inputs"),
+        # `cjk` is deliberately NOT in this set. WeasyPrint can shape and lay
+        # out CJK text once it has a CJK-capable font to draw with, but this
+        # skill's own typography contract only ever provisions two families
+        # -- IBM Plex Sans (Latin/Cyrillic/Greek) and IBM Plex Sans Arabic --
+        # and neither carries a single CJK glyph (verified against the actual
+        # released font files, not assumed). The runtime image that installs
+        # this skill's font directory installs no third family either. A
+        # capability report is a promise about what a caller can ask for
+        # (see the block comment above this function): advertising `cjk`
+        # with nothing behind it meant `DocumentRequirements.infer`'s own
+        # `cjk` flag was satisfied by falling through to CSS `sans-serif`,
+        # which this container resolves to a font with no CJK coverage
+        # either -- so a requested Chinese/Japanese/Korean PDF rendered as
+        # boxes at exit 0, the exact silent failure this skill's own
+        # typography guidance says must never happen. Restoring the
+        # capability is one line here, the day a CJK font is a declared
+        # runtime asset (references/dependencies.md already says so: "Math
+        # and CJK/RTL claims require an adapter-specific integration test
+        # before being added to a descriptor"). Until then the resolver
+        # refuses a CJK document with a named, actionable capability gap
+        # instead of rendering it wrong.
+        BackendCapabilities("weasyprint", flags["weasyprint"], dependencies["weasyprint"][1], frozenset({"ascii_basic_text", "unicode", "font_embedding", "turkish", "rtl", "images", "tables", "rich_markdown", "pagination", "page_breaks", "headers_footers", "math", "complex_typography", "colors_rgb", "print_quality", "metadata"}) if flags["weasyprint"] else frozenset(), ("generate-markdown", "generate-report"), ("network disabled", "active HTML/SVG/remote assets blocked", "no CJK-capable font is provisioned; a CJK document is refused rather than rendered with missing glyphs"), "weasyprint", "isolated print renderer for this skill's Markdown and report inputs"),
         BackendCapabilities("reportlab", flags["reportlab"], dependencies["reportlab"][1], frozenset({"ascii_basic_text", "unicode", "font_embedding", "turkish", "images", "tables", "rich_markdown", "pagination", "page_breaks", "headers_footers", "colors_rgb", "print_quality", "metadata"}) if flags["reportlab"] else frozenset(), ("generate-report",), ("RTL/CJK/math require another tested adapter",), "reportlab", "programmatic structured-layout adapter"),
         BackendCapabilities("pypdf", flags["pypdf"], dependencies["pypdf"][1], frozenset({"manipulation", "metadata"}) if flags["pypdf"] else frozenset(), ("merge", "extract", "remove", "reorder", "rotate", "crop"), ("does not render documents",), "pypdf", "PDF manipulation adapter"),
         BackendCapabilities("pillow", flags["PIL"], dependencies["PIL"][1], frozenset({"images"}) if flags["PIL"] else frozenset(), ("normalize-image",), ("does not render PDFs",), "Pillow", "bounded image normalization adapter"),
@@ -112,7 +134,20 @@ class WeasyPrintRenderer(PdfRenderer):
             head += f'<title>{html.escape(metadata["Title"])}</title>'
         language = metadata.get("Lang")
         if language and language != "und":
-            document = document.replace("<html>", f'<html lang="{html.escape(language, quote=True)}">', 1)
+            # `_html_document` (service.py) already writes `<html dir="...">`
+            # -- direction is resolved from the document's own content, not
+            # from this optional caller-supplied tag -- so this can no longer
+            # assume a bare `<html>` with no attributes. A literal-string
+            # replace on that assumption would now silently stop matching
+            # and every PDF would lose its `lang` metadata with no error.
+            # The regex inserts `lang` into whatever attributes are already
+            # on the tag, in either order.
+            document = re.sub(
+                r"<html([^>]*)>",
+                lambda m: f'<html{m.group(1)} lang="{html.escape(language, quote=True)}">',
+                document,
+                count=1,
+            )
         return document.replace("<head>", f"<head>{head}", 1) if head else document
     def render(self, document: str, geometry: PageGeometry, metadata: dict[str, str], destination: Path, policy: Any) -> None:
         if not self.capabilities.available: raise PdfError(ErrorCode.DEPENDENCY_UNAVAILABLE, "professional HTML/CSS rendering requires optional dependency 'weasyprint'")

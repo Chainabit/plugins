@@ -125,15 +125,84 @@ def wrap(text: str, font: str, size: int, width_pt: float) -> list[str]:
     is a different job: here the true widths are available, so using them
     produces the tidier line breaks without touching the size that was already
     agreed.
-    """
-    from reportlab.lib.utils import simpleSplit
 
-    return simpleSplit(text, font, size, width_pt) or ['']
+    This does NOT use ReportLab's own `reportlab.lib.utils.simpleSplit`: it
+    tokenizes purely on `str.split()`, ASCII whitespace only. A Chinese or
+    Japanese sentence is written with no spaces at all, so the whole sentence
+    became ONE token that `simpleSplit` places on a line regardless of width
+    -- it ran off the slide edge instead of wrapping, silently, at exit 0.
+    The walk below breaks at the last whitespace seen since the previous
+    break when one exists (ordinary word-wrap for space-delimited scripts,
+    Latin/Cyrillic/Arabic alike) and between characters when it does not --
+    which is what a script with no word-separating whitespace needs, and
+    what CSS `line-break`/`word-break` already do in every browser and in
+    WeasyPrint for exactly the same reason.
+    """
+    from reportlab.pdfbase.pdfmetrics import stringWidth
+
+    def width(value: str) -> float:
+        return stringWidth(value, font, size)
+
+    lines: list[str] = []
+    for paragraph in text.split('\n'):
+        if not paragraph:
+            lines.append('')
+            continue
+        line = ''
+        last_space = -1  # index into `line` of the most recent whitespace character
+        for char in paragraph:
+            candidate = line + char
+            if not line or width(candidate) <= width_pt:
+                line = candidate
+                if char.isspace():
+                    last_space = len(line) - 1
+                continue
+            if last_space >= 0:
+                lines.append(line[:last_space].rstrip())
+                line = line[last_space + 1:].lstrip() + char
+            else:
+                lines.append(line)
+                line = char
+            last_space = len(line) - 1 if char.isspace() else -1
+        lines.append(line.rstrip())
+    return lines or ['']
 
 
 def to_pdf_y(top_in: float, slide_height_in: float) -> float:
     """PowerPoint measures down from the top; PDF measures up from the bottom."""
     return (slide_height_in - top_in) * 72.0
+
+
+# Hebrew + Arabic (and their extension blocks) -- the same range skill-pdf's
+# own capability probe uses to detect RTL content. Duplicated here rather
+# than imported: independently materialised skill bundles cannot import one
+# another at runtime (see scaffold_site.py's identical LIGHT_BACKGROUND/
+# DEFAULT_ACCENT precedent), so each keeps its own copy of the small pieces
+# of shared reasoning it needs.
+_RTL_RANGE = ('֐', 'ࣿ')
+
+
+def _spec_is_predominantly_rtl(spec: dict) -> bool:
+    """Whether the deck's own slide text is majority right-to-left.
+
+    Walks every string value under `slides` -- title, subtitle, bullets,
+    notes, meta, chart labels, whatever the layout carries -- and compares
+    strong-RTL characters against strong-LTR (Latin) ones, the same
+    ratio-not-presence signal as skill-pdf's `resolve_direction`, so a
+    handful of embedded Latin words or a URL does not trip this on its own.
+    """
+    pending: list = list(spec.get('slides', []) if isinstance(spec, dict) else [])
+    rtl = latin = 0
+    while pending:
+        value = pending.pop()
+        if isinstance(value, str):
+            rtl += sum(1 for c in value if _RTL_RANGE[0] <= c <= _RTL_RANGE[1])
+            latin += sum(1 for c in value if c.isascii() and c.isalpha())
+        elif isinstance(value, dict):
+            pending.extend(value.values())
+        elif isinstance(value, list):
+            pending.extend(value)
+    return rtl > latin
 
 
 class Page:
@@ -664,6 +733,26 @@ def main(argv: list[str] | None = None) -> int:
     geometry = build_geometry(aspect) if aspect in ASPECTS else None
     if geometry is not None:
         problems.extend(check_fit(spec, geometry))
+
+    # A genuine renderer limitation, not a spec mistake: this script draws
+    # text with `canvas.drawString`, which has no Unicode Bidi reordering and
+    # no Arabic contextual shaping (neither is available in the sandbox --
+    # no `python-bidi`/`arabic-reshaper` is installed, and none is assumed).
+    # Left unchecked, a predominantly right-to-left deck rendered at exit 0
+    # with every Arabic/Hebrew line disconnected and in the wrong visual
+    # order -- the silent-garbage failure this whole change exists to
+    # prevent. deck_pptx.py's own .pptx output is NOT restricted: PowerPoint,
+    # Keynote and Google Slides all shape and reorder this text correctly
+    # themselves, so only this renderer's own PDF companion refuses.
+    if isinstance(spec, dict) and _spec_is_predominantly_rtl(spec):
+        problems.append(
+            "slides: this deck's text is predominantly right-to-left (Arabic/Hebrew). "
+            'deck_pdf.py draws text directly with no bidi reordering or Arabic shaping '
+            'and would render it disconnected and in the wrong order, not merely '
+            "unstyled. Build the .pptx only -- deck_pptx.py's own output is unaffected, "
+            'since PowerPoint/Keynote/Google Slides shape and reorder this text '
+            'themselves -- or use the pdf skill directly for a right-to-left document.'
+        )
 
     if problems:
         for problem in problems:

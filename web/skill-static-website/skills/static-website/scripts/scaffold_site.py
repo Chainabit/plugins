@@ -43,6 +43,23 @@ import sys
 HEX_COLOUR = re.compile(r"^#[0-9A-Fa-f]{6}$")
 SLUG = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 
+# Primary BCP-47 language subtags whose customary writing system is
+# right-to-left, matching the set major browser/OS platforms agree on. A
+# language whose script varies by region or era (Kurdish, Hausa) is
+# deliberately left out rather than guessed at from a two-letter tag alone.
+RTL_LANGUAGE_PREFIXES = frozenset({"ar", "arc", "dv", "fa", "he", "prs", "ps", "sd", "ug", "ur", "yi"})
+
+
+def resolve_direction(lang: str) -> str:
+    """The site's writing direction, from the one language tag this
+    generator already declares (`site.lang`) -- not a second, independent
+    field. `site.lang` is free-form but BCP-47-shaped ("ar", "ar-EG",
+    "he-IL"); only the primary subtag decides direction, so a region or
+    script suffix cannot flip it by accident.
+    """
+    primary = lang.strip().lower().split("-", 1)[0]
+    return "rtl" if primary in RTL_LANGUAGE_PREFIXES else "ltr"
+
 # These are renderer-local projections of skill-brand-defaults' profile. They
 # stay local because independently materialised skill bundles cannot import one
 # another at runtime. The contract test pins them to the profile so this Protected
@@ -510,7 +527,24 @@ def validate_spec(spec: object, source_root: str | None = None) -> tuple[dict, S
         "title": require_text(site.get("title"), "site.title", errors, 80),
         "tagline": optional_text(site.get("tagline"), "site.tagline", errors, 200),
         "description": optional_text(site.get("description"), "site.description", errors, 300),
-        "lang": optional_text(site.get("lang"), "site.lang", errors, 12) or "en",
+        "lang": (checked_lang := optional_text(site.get("lang"), "site.lang", errors, 12) or "en"),
+        # Direction is a layout property derived from the one language tag
+        # already declared above, not a separate field the caller must also
+        # set. See resolve_direction's docstring for why the primary subtag
+        # decides and a region/script suffix does not.
+        "dir": resolve_direction(checked_lang),
+        # The skip-link and nav landmark are platform-authored accessibility
+        # chrome, not user content -- but they are read aloud to a
+        # screen-reader user on every page, so a site declared in Arabic or
+        # Turkish should not carry English boilerplate the model never wrote
+        # and cannot see to fix. Rather than this generator guessing a
+        # translation from `lang` (which does not scale past a handful of
+        # hardcoded languages and drifts from whatever the model actually
+        # said), the caller -- which already knows the requested language --
+        # may supply the label; English remains the default so an
+        # unspecified-language site is unaffected.
+        "skipLinkLabel": optional_text(site.get("skipLinkLabel"), "site.skipLinkLabel", errors, 60) or "Skip to content",
+        "navLabel": optional_text(site.get("navLabel"), "site.navLabel", errors, 60) or "Main",
         "theme": theme,
         "font": font,
         "fontSource": font_source,
@@ -790,7 +824,7 @@ def render_section(section: dict, prefix: str = "") -> str:
     return ""
 
 
-def render_nav(pages: list[dict], current: str, prefix: str) -> str:
+def render_nav(pages: list[dict], current: str, prefix: str, nav_label: str = "Main") -> str:
     entries = [page for page in pages if page.get("nav")]
     if len(entries) < 2:
         return ""
@@ -804,7 +838,7 @@ def render_nav(pages: list[dict], current: str, prefix: str) -> str:
             items += f'        <li><a href="{escape(prefix + page["path"])}" aria-current="page">{label}</a></li>\n'
         else:
             items += f'        <li><a href="{escape(prefix + page["path"])}">{label}</a></li>\n'
-    return f'    <nav aria-label="Main">\n      <ul>\n{items}      </ul>\n    </nav>\n'
+    return f'    <nav aria-label="{escape(nav_label)}">\n      <ul>\n{items}      </ul>\n    </nav>\n'
 
 
 def render_page(spec: dict, page: dict) -> str:
@@ -817,7 +851,7 @@ def render_page(spec: dict, page: dict) -> str:
 
     head = (
         "<!DOCTYPE html>\n"
-        f'<html lang="{escape(site["lang"])}">\n'
+        f'<html lang="{escape(site["lang"])}" dir="{escape(site["dir"])}">\n'
         "<head>\n"
         '  <meta charset="utf-8">\n'
         # Without this every phone renders the page at 980px and scales it down,
@@ -832,10 +866,10 @@ def render_page(spec: dict, page: dict) -> str:
     brand_href = escape(prefix + "index.html")
     header = (
         "<body>\n"
-        '  <a class="skip-link" href="#main">Skip to content</a>\n'
+        f'  <a class="skip-link" href="#main">{escape(site["skipLinkLabel"])}</a>\n'
         "  <header class=\"site-header\">\n"
         f'    <p class="brand"><a href="{brand_href}">{escape(site["title"])}</a></p>\n'
-        + render_nav(spec["pages"], page["path"], prefix)
+        + render_nav(spec["pages"], page["path"], prefix, site["navLabel"])
         + "  </header>\n"
     )
 
@@ -954,7 +988,7 @@ a:hover {{ text-decoration-thickness: 2px; }}
 
 .skip-link {{
   position: absolute;
-  left: -9999px;
+  inset-inline-start: -9999px;
   top: var(--space-2);
   background: var(--accent);
   color: var(--accent-ink);
@@ -962,7 +996,7 @@ a:hover {{ text-decoration-thickness: 2px; }}
   border-radius: var(--radius);
   z-index: 10;
 }}
-.skip-link:focus {{ left: var(--space-4); }}
+.skip-link:focus {{ inset-inline-start: var(--space-4); }}
 
 .site-header {{
   display: flex;

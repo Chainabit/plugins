@@ -3,7 +3,7 @@ name: pptx
 description: Builds real .pptx presentations inside the sandbox from a JSON spec, using eight brand-safe layouts with a checked palette and type scale - four text layouts, three that embed a picture, and one that plots a chart - renders that same spec as a matching PDF, and verifies the result is presentable before it is handed back. Use when the requested deliverable is a slide deck: the request mentions PowerPoint, pptx, .pptx, slides, a deck, a presentation, a pitch, "sunum", "slayt", a board update or a talk - including when it also asks for a PDF of that deck, for a picture or chart on the slides, or for the deck in several formats at once. Also use to check whether an existing .pptx is valid, or whether its slides are empty, overflowing, unreadably small, or too dense, and how many pictures and charts it embeds. Do NOT use when the deliverable is a document or report meant to be read rather than shown - use the pdf skill; do NOT use for a spreadsheet (.xlsx), a Markdown outline, or a web page. Renders Turkish and other Latin Extended-A characters correctly.
 license: Apache-2.0
 metadata:
-  version: 1.3.0
+  version: 1.4.0
 ---
 
 # Presentation generation
@@ -149,6 +149,16 @@ by that capability's validator, `skill-pdf.validate_pdf`, when it is delivered.
 You do not need to load the `pdf` skill or run its validator yourself. If
 delivery reports that the PDF failed validation, fix the spec and render it
 again. `deck_pdf.py` states the same after every render.
+
+`deck_pdf.py` draws text directly (`canvas.drawString`) with no Unicode Bidi
+reordering and no Arabic contextual shaping, and neither is available to add
+in the sandbox. It refuses a spec whose slide text is predominantly
+right-to-left (Arabic, Hebrew) with a named `ERROR:` line rather than
+rendering it disconnected and in the wrong order. `deck_pptx.py`'s `.pptx`
+output is unaffected by this limit: PowerPoint, Keynote and Google Slides all
+shape and reorder that text themselves when the file is opened. For a
+right-to-left deliverable that must be a PDF, use the `pdf` skill directly
+instead of `deck_pdf.py`.
 
 Deck-level fields: `title` (required, also the metadata title) and `slides`
 (required, 1–30). Optional: `subtitle` and `author` for the file metadata,

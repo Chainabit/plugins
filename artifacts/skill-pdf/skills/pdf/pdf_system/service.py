@@ -15,7 +15,7 @@ from typing import Any, Iterator
 from .backends import (CapabilityReport, PypdfManipulator,
                        ReportLabRenderer, WeasyPrintRenderer, capability_registry)
 from .errors import ErrorCode, PdfError
-from .models import DocumentRequirements, PageGeometry, SecurityPolicy
+from .models import DocumentRequirements, PageGeometry, SecurityPolicy, resolve_direction
 from .markdown_html import render_markdown
 from .safety import (IMAGE_FILE_FORMATS, bounded_read, image_as_text,
                      image_data_uri, reject_active_markup, safe_output)
@@ -184,7 +184,7 @@ class PdfService:
             '<div class="page-break"></div>'.join(
                 self._markdown_blocks(page) for page in text.split("\f")
             ),
-            font, palette, show_chainabit_footer, geometry,
+            font, palette, show_chainabit_footer, geometry, resolve_direction(text),
         )
     def _markdown_blocks(self, text: str) -> str:
         # One page of Markdown. The Markdown dialect (CommonMark blocks plus
@@ -214,7 +214,14 @@ class PdfService:
             elif kind=="spacer": chunks.append(f'<div style="height:{int(b.get("height",12))}pt"></div>')
         header = html.escape(str(spec.get("header", ""))); footer = html.escape(str(spec.get("footer", "")))
         prefix = (f'<div class="running-header">{header}</div>' if header else "") + (f'<div class="running-footer">{footer}</div>' if footer else "")
-        return self._html_document(prefix + "".join(chunks), font, palette, show_chainabit_footer, geometry).replace("</style>", ".running-header{position:running(header)}.running-footer{position:running(footer)}@page{@top-center{content:element(header)}@bottom-center{content:element(footer)}};</style>")
+        # Direction is resolved from the report's own textual content -- every
+        # string value in the spec, walked the same way `validate_report`
+        # already walks it to find an embedded image-as-text -- not from the
+        # whole spec `str()`'d, which would count "title", "blocks", "type"
+        # and every other JSON key as Latin filler and understate an
+        # otherwise Arabic/Hebrew report.
+        direction = resolve_direction(" ".join(value for _, value in _report_strings(spec)))
+        return self._html_document(prefix + "".join(chunks), font, palette, show_chainabit_footer, geometry, direction).replace("</style>", ".running-header{position:running(header)}.running-footer{position:running(footer)}@page{@top-center{content:element(header)}@bottom-center{content:element(footer)}};</style>")
     def _font_family(self, requested: object) -> str:
         if requested is None:
             return DEFAULT_FONT_FAMILY
@@ -257,38 +264,53 @@ class PdfService:
             encoded=base64.b64encode(path.read_bytes()).decode("ascii")
             faces.append(f'@font-face{{font-family:"ChainabitArtifactArabic";font-style:normal;font-weight:{weight};src:url(data:font/ttf;base64,{encoded}) format("truetype")}}')
         return "".join(faces)
-    def _html_document(self, body: str, font: str, palette: dict[str, str], show_chainabit_footer: bool, geometry: PageGeometry) -> str:
+    def _html_document(self, body: str, font: str, palette: dict[str, str], show_chainabit_footer: bool, geometry: PageGeometry, direction: str = "ltr") -> str:
         # One audited, print-first design system.  Callers choose content and
         # page geometry, not arbitrary CSS; that keeps professional output
         # deterministic and prevents a prompt from becoming a styling/security
         # boundary. The @page rule is built from the caller's resolved
         # geometry directly -- there is no later size/margin patch, and no
         # second hardcoded default to drift from PageGeometry's own.
+        #
+        # `direction` is a LAYOUT property, resolved once by the caller from
+        # the document's own content (see resolve_direction in models.py) and
+        # applied here in exactly two ways: the `dir` attribute on `<html>`
+        # (WeasyPrint implements the same HTML5 `[dir=rtl]{direction:rtl}`
+        # mapping every browser does -- verified directly against its own
+        # bundled UA stylesheet, not assumed) and the CSS `direction`
+        # property set explicitly below as well, so this stylesheet does not
+        # depend on that UA default surviving a future WeasyPrint upgrade.
+        # Every rule below that used to hardcode a physical `left`/`right` is
+        # a logical property (`-inline-start`/`-inline-end`, `text-align:
+        # start`) instead, so it flips automatically with `direction` -- the
+        # renderer's Unicode Bidi implementation still does 100% of the
+        # actual character shaping and reordering; nothing here reverses or
+        # rewrites a single character of `body`.
         brand_footer = 'content:"CHAINABIT";font:600 7pt "ChainabitArtifact";letter-spacing:1.5pt;' if show_chainabit_footer else 'content:"";'
         top, right, bottom, left = (f"{value:.2f}pt" for value in geometry.margin)
         style = self._font_css(font) + f'''
 @page{{size:{geometry.width:.2f}pt {geometry.height:.2f}pt;margin:{top} {right} {bottom} {left};background:{palette["background"]};
  @bottom-left{{{brand_footer}color:{palette["muted"]}}}
  @bottom-right{{content:counter(page) " / " counter(pages);font:8pt "ChainabitArtifact";color:{palette["muted"]}}}}}
-*{{box-sizing:border-box}}body{{font-family:"ChainabitArtifact","ChainabitArtifactArabic",sans-serif;color:{palette["body"]};font-size:10.5pt;line-height:1.58;margin:0}}
+*{{box-sizing:border-box}}body{{direction:{direction};font-family:"ChainabitArtifact","ChainabitArtifactArabic",sans-serif;color:{palette["body"]};font-size:10.5pt;line-height:1.58;margin:0;text-align:start}}
 h1,h2,h3,h4,h5,h6{{page-break-after:avoid;line-height:1.16;color:{palette["ink"]};margin:22pt 0 9pt}}
 h1{{font-size:28pt;letter-spacing:-.7pt;margin-top:0;padding:0 0 13pt;border-bottom:4pt solid {palette["accent"]}}}
-h2{{font-size:18pt;letter-spacing:-.25pt;padding-left:11pt;border-left:4pt solid {palette["accent"]}}}
+h2{{font-size:18pt;letter-spacing:-.25pt;padding-inline-start:11pt;border-inline-start:4pt solid {palette["accent"]}}}
 h3{{font-size:13.5pt;color:{palette["accent"]}}}p{{margin:0 0 10pt;orphans:3;widows:3}}
 strong{{color:{palette["ink"]}}}a{{color:{palette["accent"]};text-decoration:none;border-bottom:.5pt solid {palette["rule"]}}}
-ul,ol{{margin:6pt 0 14pt;padding-left:20pt}}li{{margin:0 0 5pt}}li::marker{{color:{palette["accent"]}}}
+ul,ol{{margin:6pt 0 14pt;padding-inline-start:20pt}}li{{margin:0 0 5pt}}li::marker{{color:{palette["accent"]}}}
 table{{width:100%;border-collapse:separate;border-spacing:0;margin:14pt 0 18pt;font-size:9pt;border:1pt solid {palette["rule"]};border-radius:5pt}}
-th{{background:{palette["ink"]};color:{palette["accentInk"]};font-weight:700}}th,td{{padding:7pt 8pt;text-align:left;vertical-align:top;border-right:.5pt solid {palette["rule"]};border-bottom:.5pt solid {palette["rule"]}}}
-th:last-child,td:last-child{{border-right:0}}tr:last-child td{{border-bottom:0}}tbody tr:nth-child(even){{background:{palette["surface"]}}}thead{{display:table-header-group}}tr{{page-break-inside:avoid}}
-pre{{white-space:pre-wrap;background:{palette["ink"]};color:{palette["accentInk"]};border-left:4pt solid {palette["accent"]};border-radius:5pt;padding:11pt 13pt;font-size:8.5pt;line-height:1.45;page-break-inside:avoid}}
+th{{background:{palette["ink"]};color:{palette["accentInk"]};font-weight:700}}th,td{{padding:7pt 8pt;text-align:start;vertical-align:top;border-inline-end:.5pt solid {palette["rule"]};border-bottom:.5pt solid {palette["rule"]}}}
+th:last-child,td:last-child{{border-inline-end:0}}tr:last-child td{{border-bottom:0}}tbody tr:nth-child(even){{background:{palette["surface"]}}}thead{{display:table-header-group}}tr{{page-break-inside:avoid}}
+pre{{white-space:pre-wrap;background:{palette["ink"]};color:{palette["accentInk"]};border-inline-start:4pt solid {palette["accent"]};border-radius:5pt;padding:11pt 13pt;font-size:8.5pt;line-height:1.45;page-break-inside:avoid}}
 code{{font-family:"Fira Code","Noto Sans Mono",monospace;background:{palette["surface"]};border-radius:2pt;padding:1pt 3pt}}pre code{{background:transparent;padding:0}}
-blockquote{{margin:14pt 0;padding:10pt 14pt;background:{palette["surface"]};border-left:4pt solid {palette["accent"]};color:{palette["body"]}}}blockquote>:last-child{{margin-bottom:0}}
+blockquote{{margin:14pt 0;padding:10pt 14pt;background:{palette["surface"]};border-inline-start:4pt solid {palette["accent"]};color:{palette["body"]}}}blockquote>:last-child{{margin-bottom:0}}
 hr{{border:0;border-top:1pt solid {palette["rule"]};margin:18pt 0}}li>ul,li>ol{{margin:4pt 0 0}}li>p{{margin:0 0 5pt}}
 .page-break{{break-before:page}}img{{display:block;max-width:100%;height:auto;margin:14pt auto;border-radius:5pt}}
 figure{{margin:14pt 0;text-align:center;page-break-inside:avoid}}figure img{{margin:0 auto 6pt}}
 figcaption{{font-size:8.5pt;color:{palette["muted"]};text-align:center}}
 '''
-        return '<!doctype html><html><head><meta charset="utf-8"><style>'+style+'</style></head><body>'+body+'</body></html>'
+        return f'<!doctype html><html dir="{direction}"><head><meta charset="utf-8"><style>'+style+'</style></head><body>'+body+'</body></html>'
     @staticmethod
     def validate_report(spec: object) -> list[str]:
         if not isinstance(spec,dict): return ["spec must be an object"]
