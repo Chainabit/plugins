@@ -93,6 +93,14 @@ AVAILABLE_WEB_FAMILIES = {"IBM Plex Sans", "IBM Plex Sans Arabic"}
 MAX_PAGES = 12
 MAX_SECTIONS = 12
 
+# A picture is a local file already sitting beside the spec, never a URL: the
+# sandbox that renders a site has no network egress (see the module
+# docstring), so there is nothing here to fetch. SVG is left out even though
+# it is an image format, because it can carry a <script> and the site's own
+# contract (.chainabit-site.json runtime.javascript) promises none.
+IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
+MAX_IMAGE_BYTES = 10 * 1024 * 1024
+
 
 # --- contrast ---------------------------------------------------------------------
 
@@ -249,7 +257,92 @@ def check_link(item: object, path: str, errors: SpecErrors) -> dict[str, str]:
     }
 
 
-def check_section(section: object, path: str, errors: SpecErrors) -> dict:
+def check_image(
+    value: object, path: str, errors: SpecErrors, source_root: str | None
+) -> dict | None:
+    """A locally staged image, never a URL.
+
+    The sandbox that renders a site has no network egress, so an image
+    reference has to already be a file the caller copied in before this ran —
+    the same rule skill-pptx enforces for a picture on a slide. Checking the
+    file itself here, not only the shape of the reference, turns a typo'd
+    path into one error message instead of a site that builds clean and
+    404s its own hero image.
+    """
+    if value is None:
+        return None
+    if not isinstance(value, dict):
+        errors.add(path, "must be an object with 'src' and 'alt'")
+        return None
+
+    src = value.get("src")
+    if not isinstance(src, str) or not src.strip():
+        errors.add(f"{path}.src", "required, must be a relative path to a local file")
+        return None
+    src = src.strip()
+    if "://" in src or src.startswith("data:"):
+        errors.add(
+            f"{path}.src",
+            f"{src!r} is a URL or data URI. The sandbox has no network, so an "
+            "image has to already be a file here — copy it in first and name "
+            "the path the copy landed at.",
+        )
+        return None
+    if src.startswith("/"):
+        errors.add(f"{path}.src", f"{src!r} is absolute; give a path relative to the spec")
+        return None
+    if ".." in src.split("/"):
+        errors.add(f"{path}.src", f"{src!r} escapes the directory the spec is in")
+        return None
+
+    extension = os.path.splitext(src)[1].lower()
+    if extension not in IMAGE_EXTENSIONS:
+        errors.add(
+            f"{path}.src",
+            f"{src!r} has an unsupported extension; use one of "
+            f"{', '.join(sorted(IMAGE_EXTENSIONS))}",
+        )
+        return None
+
+    alt = value.get("alt")
+    if not isinstance(alt, str) or not alt.strip():
+        errors.add(
+            f"{path}.alt",
+            "required, must describe the image for a screen-reader user",
+        )
+        return None
+    if len(alt) > 200:
+        errors.add(f"{path}.alt", f"{len(alt)} characters, the limit is 200")
+
+    # Existence and size are only checkable once the caller told us where the
+    # spec lives (main() passes this for --spec, not for a built-in
+    # --template, which never declares an image). --print-spec on a bare
+    # template still validates the shape above with no filesystem check.
+    if source_root is not None:
+        root = os.path.normpath(source_root)
+        absolute = os.path.normpath(os.path.join(root, src))
+        if absolute != root and not absolute.startswith(root + os.sep):
+            errors.add(f"{path}.src", f"{src!r} escapes the directory the spec is in")
+            return None
+        if not os.path.isfile(absolute):
+            errors.add(f"{path}.src", f"{src!r} does not exist next to the spec")
+            return None
+        try:
+            size = os.path.getsize(absolute)
+        except OSError as exc:
+            errors.add(f"{path}.src", f"could not read {src!r}: {exc}")
+            return None
+        if size > MAX_IMAGE_BYTES:
+            errors.add(
+                f"{path}.src",
+                f"{src!r} is {size} bytes, the limit is {MAX_IMAGE_BYTES}",
+            )
+            return None
+
+    return {"src": src, "alt": alt.strip()}
+
+
+def check_section(section: object, path: str, errors: SpecErrors, source_root: str | None) -> dict:
     if not isinstance(section, dict):
         errors.add(path, "must be an object")
         return {}
@@ -279,6 +372,7 @@ def check_section(section: object, path: str, errors: SpecErrors) -> dict:
     if kind == "hero":
         checked["heading"] = require_text(section.get("heading"), f"{path}.heading", errors, 120)
         checked["text"] = optional_text(section.get("text"), f"{path}.text", errors)
+        checked["image"] = check_image(section.get("image"), f"{path}.image", errors, source_root)
         actions = section.get("actions") or []
         if not isinstance(actions, list):
             errors.add(f"{path}.actions", "must be a list of {label, href} objects")
@@ -325,6 +419,13 @@ def check_section(section: object, path: str, errors: SpecErrors) -> dict:
                     "text": optional_text(item.get("text"), f"{item_path}.text", errors),
                     "meta": optional_text(item.get("meta"), f"{item_path}.meta", errors, 80),
                     "href": optional_text(item.get("href"), f"{item_path}.href", errors),
+                    # Only features/cards render an item image; a list item is a
+                    # denser row and stays text-only by design (see render_section).
+                    "image": (
+                        check_image(item.get("image"), f"{item_path}.image", errors, source_root)
+                        if kind in ("features", "cards")
+                        else None
+                    ),
                 }
             )
         checked["items"] = collected
@@ -344,7 +445,7 @@ def check_section(section: object, path: str, errors: SpecErrors) -> dict:
     return checked
 
 
-def validate_spec(spec: object) -> tuple[dict, SpecErrors]:
+def validate_spec(spec: object, source_root: str | None = None) -> tuple[dict, SpecErrors]:
     errors = SpecErrors()
     if not isinstance(spec, dict):
         errors.add("spec", "must be a JSON object")
@@ -486,7 +587,7 @@ def validate_spec(spec: object) -> tuple[dict, SpecErrors]:
                     page.get("description"), f"{page_path}.description", errors, 300
                 ),
                 "sections": [
-                    check_section(section, f"{page_path}.sections[{position}]", errors)
+                    check_section(section, f"{page_path}.sections[{position}]", errors, source_root)
                     for position, section in enumerate(sections)
                 ],
             }
@@ -593,7 +694,22 @@ def open_section(class_name: str, section: dict) -> str:
     return f'    <section{identifier} class="{class_name}">\n'
 
 
-def render_section(section: dict) -> str:
+def render_image(image: dict | None, prefix: str, css_class: str, loading: str = "lazy") -> str:
+    """An `<img>` for a resolved image reference, or '' if the section has none.
+
+    `resolvedSrc` is written by `resolve_image_assets`/`write_site` before any
+    page renders — it is the content-addressed `assets/images/...` path the
+    file was actually copied to, never the spec-relative `src` a model wrote,
+    which write_site never promises to preserve.
+    """
+    if not image:
+        return ""
+    src = escape(prefix + image["resolvedSrc"])
+    alt = escape(image["alt"])
+    return f'      <p class="{css_class}"><img src="{src}" alt="{alt}" loading="{loading}"></p>\n'
+
+
+def render_section(section: dict, prefix: str = "") -> str:
     kind = section.get("type")
 
     if kind == "hero":
@@ -601,6 +717,9 @@ def render_section(section: dict) -> str:
         if section.get("text"):
             body += f'      <p class="lede">{escape(section["text"])}</p>\n'
         body += render_actions(section.get("actions", []))
+        # Eager, not lazy: the hero image is above the fold on every page that
+        # has one, so deferring its load only delays the largest paint.
+        body += render_image(section.get("image"), prefix, "hero-media", loading="eager")
         return open_section("hero", section) + body + "    </section>\n"
 
     heading = ""
@@ -623,7 +742,8 @@ def render_section(section: dict) -> str:
             title_markup = (
                 f'<a href="{escape(item["href"])}">{title}</a>' if item.get("href") else title
             )
-            inner = f"          <h3>{title_markup}</h3>\n"
+            inner = render_image(item.get("image"), prefix, "card-media")
+            inner += f"          <h3>{title_markup}</h3>\n"
             if item.get("meta"):
                 inner += f'          <p class="meta">{escape(item["meta"])}</p>\n'
             if item.get("text"):
@@ -720,7 +840,7 @@ def render_page(spec: dict, page: dict) -> str:
     )
 
     main = '  <main id="main">\n' + "".join(
-        render_section(section) for section in page["sections"]
+        render_section(section, prefix) for section in page["sections"]
     ) + "  </main>\n"
 
     year = datetime.date.today().year
@@ -882,6 +1002,13 @@ section:last-child {{ border-bottom: 0; }}
 
 .hero {{ padding: var(--space-8) 0 var(--space-7); }}
 .lede {{ font-size: var(--step-1); color: var(--muted); max-width: var(--measure); }}
+.hero-media {{ margin: var(--space-6) 0 0; }}
+.hero-media img {{
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius);
+}}
 
 .actions {{ display: flex; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-5); }}
 
@@ -915,6 +1042,13 @@ section:last-child {{ border-bottom: 0; }}
   border: 1px solid var(--rule);
   border-radius: var(--radius);
   padding: var(--space-5);
+}}
+.card-media {{ margin: calc(var(--space-5) * -1) calc(var(--space-5) * -1) var(--space-4); }}
+.card-media img {{
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius) var(--radius) 0 0;
 }}
 .card h3 {{ margin-bottom: var(--space-2); }}
 .card p:last-child {{ margin-bottom: 0; }}
@@ -1346,7 +1480,53 @@ TEMPLATES: dict[str, dict] = {
 # --- output -----------------------------------------------------------------------
 
 
-def write_site(spec: dict, destination: str, force: bool) -> list[str]:
+def _declared_images(spec: dict) -> list[dict]:
+    """Every image dict in the spec, hero and item images alike, in one list.
+
+    One place to walk the tree so resolution and copying can never enumerate
+    it two different ways and drift out of sync with each other.
+    """
+    found: list[dict] = []
+    for page in spec["pages"]:
+        for section in page["sections"]:
+            if section.get("image"):
+                found.append(section["image"])
+            for item in section.get("items", []):
+                if item.get("image"):
+                    found.append(item["image"])
+    return found
+
+
+def resolve_image_assets(spec: dict, source_root: str | None) -> dict[str, str]:
+    """Maps each declared image's spec-relative `src` to a content-addressed
+    `assets/images/...` path, and writes that path back onto the image dict
+    as `resolvedSrc` for the renderer to read.
+
+    Content-addressed so the same source image referenced from two places —
+    a logo in the hero and again in a feature card — copies once and both
+    places point at the identical file, and so writing the same spec twice
+    never grows the output: the digest is the name, and copying the same
+    bytes to the same name a second time is a no-op.
+    """
+    mapping: dict[str, str] = {}
+    if source_root is None:
+        return mapping
+    for image in _declared_images(spec):
+        src = image["src"]
+        if src not in mapping:
+            absolute = os.path.join(source_root, *src.split("/"))
+            with open(absolute, "rb") as handle:
+                data = handle.read()
+            digest = hashlib.sha256(data).hexdigest()[:16]
+            basename = re.sub(r"[^A-Za-z0-9._-]", "_", os.path.basename(src))
+            mapping[src] = f"assets/images/{digest}-{basename}"
+        image["resolvedSrc"] = mapping[src]
+    return mapping
+
+
+def write_site(
+    spec: dict, destination: str, force: bool, source_root: str | None = None
+) -> list[str]:
     if os.path.exists(destination) and not os.path.isdir(destination):
         raise SystemExit(f"ERROR: output: {destination} exists and is not a directory")
     if os.path.isdir(destination) and os.listdir(destination) and not force:
@@ -1358,12 +1538,24 @@ def write_site(spec: dict, destination: str, force: bool) -> list[str]:
 
     written: list[str] = []
 
+    # Resolved before any page renders: render_section reads image["resolvedSrc"].
+    image_assets = resolve_image_assets(spec, source_root)
+
     for page in spec["pages"]:
         target = os.path.join(destination, *page["path"].split("/"))
         os.makedirs(os.path.dirname(target) or destination, exist_ok=True)
         with open(target, "w", encoding="utf-8") as handle:
             handle.write(render_page(spec, page))
         written.append(page["path"])
+
+    if image_assets:
+        images_dir = os.path.join(destination, "assets", "images")
+        os.makedirs(images_dir, exist_ok=True)
+        for src, dest_relative in image_assets.items():
+            dest_path = os.path.join(destination, *dest_relative.split("/"))
+            if not os.path.isfile(dest_path):
+                shutil.copyfile(os.path.join(source_root, *src.split("/")), dest_path)
+            written.append(dest_relative)
 
     assets = os.path.join(destination, "assets")
     os.makedirs(assets, exist_ok=True)
@@ -1488,6 +1680,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
 
+    source_root: str | None = None
     if args.template:
         raw = TEMPLATES[args.template]
     else:
@@ -1503,8 +1696,12 @@ def main(argv: list[str] | None = None) -> int:
         except json.JSONDecodeError as exc:
             print(f"ERROR: spec: {args.spec} is not valid JSON: {exc}", file=sys.stderr)
             return 1
+        # An image `src` is relative to the spec, so an image can only be
+        # checked (and later copied) once we know what directory that is —
+        # a built-in --template never declares one and needs no root.
+        source_root = os.path.dirname(os.path.abspath(args.spec))
 
-    spec, errors = validate_spec(raw)
+    spec, errors = validate_spec(raw, source_root)
 
     if args.print_spec:
         if errors:
@@ -1535,7 +1732,7 @@ def main(argv: list[str] | None = None) -> int:
         parser.error("an output directory is required unless --print-spec or --validate-only")
 
     try:
-        written = write_site(spec, args.outdir, args.force)
+        written = write_site(spec, args.outdir, args.force, source_root)
         digest, total_bytes, file_count = tree_identity(args.outdir)
     except (OSError, RuntimeError) as exc:
         print(f"ERROR: website_runtime: {exc}", file=sys.stderr)

@@ -4,8 +4,8 @@
     {
       "path": "SKILL.md",
       "type": "instructions",
-      "sha256": "f963f89484f8f6be7157c232fc925f7e4ce13758f9285872f3e9d7807dc36e8e",
-      "bytes": 4375,
+      "sha256": "bc50fafd497d7feb13a257df43fd61e06e24e2f41924480452b6a8478aa3354d",
+      "bytes": 5275,
       "mode": "0644"
     },
     {
@@ -18,8 +18,8 @@
     {
       "path": "scripts/scaffold_site.py",
       "type": "scripts",
-      "sha256": "ae60c79e17143b3bc2a655c10316e7a91158c600c05a2c098b98bc77e95f5441",
-      "bytes": 65044,
+      "sha256": "9fd6090c1bc580eb690925ec60b6619347f3b5cb767cbb58519e8423e1b6dec4",
+      "bytes": 73678,
       "mode": "0644"
     },
     {
@@ -34,6 +34,13 @@
       "type": "metadata",
       "sha256": "0f423cea84e605862f3ba06030c3a4667cbabde660b729a619c719f2765ea01b",
       "bytes": 6503,
+      "mode": "0644"
+    },
+    {
+      "path": "tests/test_images.py",
+      "type": "metadata",
+      "sha256": "f1e85e5ae9cbe495c390a4d9bec6ced708bd0b2a6ae9dd7f6ea705722487a224",
+      "bytes": 9960,
       "mode": "0644"
     }
   ]
