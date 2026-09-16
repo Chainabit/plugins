@@ -18,12 +18,14 @@ from __future__ import annotations
 import importlib.util
 import json
 import os
+import random
 import shutil
 import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 DECK = str(ROOT / "scripts/deck_pptx.py")
@@ -575,7 +577,7 @@ class MediaRefusalTests(MediaWorkspace):
             path = root / name
             write_picture(path, (32, 32), (index, 20, 40))
             with path.open("r+b") as handle:
-                handle.truncate(23 * 1024 * 1024)
+                handle.truncate(6 * 1024 * 1024)
             slides.append(
                 {
                     "layout": "image-full",
@@ -589,8 +591,47 @@ class MediaRefusalTests(MediaWorkspace):
 
         self.assertEqual(result.returncode, 1, result.stdout)
         self.assertIn("bytes across distinct local files", result.stderr)
-        self.assertIn("67108864-byte aggregate image limit", result.stderr)
+        self.assertIn("15728640-byte aggregate image limit", result.stderr)
         self.assertFalse((root / "deck.pptx").exists())
+
+    def test_image_budget_reserves_overhead_below_the_hosted_file_limit(self) -> None:
+        self.assertEqual(DECK_MODULE.MAX_HOSTED_OUTPUT_BYTES, 16 * 1024 * 1024)
+        self.assertEqual(DECK_MODULE.MIN_PACKAGE_OVERHEAD_BYTES, 1024 * 1024)
+        self.assertEqual(DECK_MODULE.MAX_TOTAL_IMAGE_BYTES, 15 * 1024 * 1024)
+        self.assertLess(
+            DECK_MODULE.MAX_TOTAL_IMAGE_BYTES,
+            DECK_MODULE.MAX_HOSTED_OUTPUT_BYTES,
+        )
+
+    def test_near_budget_images_build_a_file_below_the_hosted_limit(self) -> None:
+        slides = []
+        root = self.workspace({"title": "Near budget", "slides": slides})
+        random_bytes = random.Random(42)
+        target_size = 5 * 1024 * 1024 - 128 * 1024
+        for index in range(3):
+            name = f"media/near-budget-{index}.png"
+            path = root / name
+            write_picture(path, (32, 32), (index, 20, 40))
+            with path.open("ab") as handle:
+                handle.write(random_bytes.randbytes(target_size - path.stat().st_size))
+            slides.append(
+                {
+                    "layout": "image-full",
+                    "title": f"Picture {index}",
+                    "image": {"path": name, "alt": "x"},
+                }
+            )
+        (root / "spec.json").write_text(
+            json.dumps({"title": "Near budget", "slides": slides})
+        )
+
+        result = self.build(root)
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertLess(
+            (root / "deck.pptx").stat().st_size,
+            DECK_MODULE.MAX_HOSTED_OUTPUT_BYTES,
+        )
 
     def test_repeated_image_is_counted_once_by_the_aggregate_limit(self) -> None:
         slides = [
@@ -605,12 +646,39 @@ class MediaRefusalTests(MediaWorkspace):
         image = root / "media/large.png"
         write_picture(image, (32, 32), (20, 30, 40))
         with image.open("r+b") as handle:
-            handle.truncate(23 * 1024 * 1024)
+            handle.truncate(14 * 1024 * 1024)
 
         result = self.build(root, "--validate-only")
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertFalse((root / "deck.pptx").exists())
+
+    @unittest.skipUnless(hasattr(os, "link"), "hard links are unavailable")
+    def test_hard_link_aliases_are_decoded_once_as_one_canonical_image(self) -> None:
+        slides = [
+            {
+                "layout": "image-full",
+                "title": f"Picture {index}",
+                "image": {"path": f"media/alias-{index}.png", "alt": "x"},
+            }
+            for index in range(3)
+        ]
+        root = self.workspace({"title": "Aliases", "slides": slides})
+        source = root / "media/hero.png"
+        for index in range(3):
+            os.link(source, root / f"media/alias-{index}.png")
+        image_assets = {}
+
+        with mock.patch.object(
+            DECK_MODULE,
+            "measure_image_bytes",
+            wraps=DECK_MODULE.measure_image_bytes,
+        ) as decode:
+            problems = DECK_MODULE.validate_spec(spec={"title": "Aliases", "slides": slides}, root=root, resolved_images=image_assets)
+
+        self.assertEqual(problems, [])
+        self.assertEqual(decode.call_count, 1)
+        self.assertEqual(len(image_assets), 3)
 
     def test_a_series_plots_one_value_per_category(self) -> None:
         stderr = self.refuse(

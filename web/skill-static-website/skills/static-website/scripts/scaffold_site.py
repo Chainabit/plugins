@@ -339,8 +339,8 @@ def inspect_local_image(source_root: str, src: str) -> tuple[tuple[int, int], in
     return (metadata.st_dev, metadata.st_ino), metadata.st_size
 
 
-def read_local_image(source_root: str, src: str) -> tuple[tuple[int, int], bytes]:
-    file_fd, metadata = open_local_image(source_root, src)
+def read_open_image(file_fd: int) -> bytes:
+    """Read one already-pinned descriptor within the per-file ceiling."""
     try:
         chunks: list[bytes] = []
         remaining = MAX_IMAGE_BYTES + 1
@@ -353,7 +353,7 @@ def read_local_image(source_root: str, src: str) -> tuple[tuple[int, int], bytes
         data = b"".join(chunks)
     finally:
         os.close(file_fd)
-    return (metadata.st_dev, metadata.st_ino), data
+    return data
 
 
 def check_image(
@@ -1647,9 +1647,13 @@ def resolve_image_assets(spec: dict, source_root: str | None) -> dict[str, bytes
         references.append((image, src))
         if src in source_identities:
             continue
-        identity, data = read_local_image(source_root, src)
+        file_fd, metadata = open_local_image(source_root, src)
+        identity = (metadata.st_dev, metadata.st_ino)
         source_identities[src] = identity
-        canonical_sources.setdefault(identity, (src, data))
+        if identity in canonical_sources:
+            os.close(file_fd)
+            continue
+        canonical_sources[identity] = (src, read_open_image(file_fd))
 
     if len(canonical_sources) > MAX_DISTINCT_IMAGES:
         raise RuntimeError(

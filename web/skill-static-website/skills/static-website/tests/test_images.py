@@ -10,6 +10,7 @@ import tempfile
 import unittest
 import zlib
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 MODULE_SPEC = importlib.util.spec_from_file_location(
@@ -160,6 +161,37 @@ class StaticWebsiteImageTests(unittest.TestCase):
 
         images = list((site / "assets" / "images").glob("*"))
         self.assertEqual(len(images), 1, "the same source file must copy exactly once")
+
+    @unittest.skipUnless(hasattr(os, "link"), "hard links are unavailable")
+    def test_hard_link_aliases_are_read_once_as_one_canonical_source(self) -> None:
+        source = _tiny_png(self.root, "hero.png")
+        os.link(source, self.root / "alias.png")
+        spec = self._base_spec()
+        spec["pages"][0]["sections"][0]["image"] = {
+            "src": "hero.png",
+            "alt": "Hero",
+        }
+        spec["pages"][0]["sections"].append(
+            {
+                "type": "cards",
+                "items": [
+                    {
+                        "title": "Alias",
+                        "image": {"src": "alias.png", "alt": "Alias"},
+                    }
+                ],
+            }
+        )
+        checked, errors = SCAFFOLD.validate_spec(spec, str(self.root))
+        self.assertFalse(errors, errors.messages)
+
+        with mock.patch.object(
+            SCAFFOLD, "read_open_image", wraps=SCAFFOLD.read_open_image
+        ) as read:
+            assets = SCAFFOLD.resolve_image_assets(checked, str(self.root))
+
+        self.assertEqual(read.call_count, 1)
+        self.assertEqual(len(assets), 1)
 
     def test_rebuilding_the_same_spec_is_idempotent(self) -> None:
         _tiny_png(self.root, "hero.png")

@@ -181,10 +181,12 @@ ASPECTS = {"16:9": (13.333, 7.5), "4:3": (10.0, 7.5)}
 # refused at the boundary and named, rather than left to fail at draw time.
 MAX_IMAGE_BYTES = 25 * 1024 * 1024
 MAX_IMAGE_PIXELS = 40_000_000
-# The API publication boundary accepts at most 64 MiB for the complete artifact.
-# Bound the raw picture set at the input Information Expert so a valid slide count
-# cannot amplify into hundreds of MiB of decoder and package work.
-MAX_TOTAL_IMAGE_BYTES = 64 * 1024 * 1024
+# A deck or its PDF companion is one hosted file, and the API promotion boundary
+# accepts at most 16 MiB per file. Reserve 1 MiB for OOXML/PDF structure, slide
+# XML, fonts and metadata; the raw distinct image set cannot consume that space.
+MAX_HOSTED_OUTPUT_BYTES = 16 * 1024 * 1024
+MIN_PACKAGE_OVERHEAD_BYTES = 1 * 1024 * 1024
+MAX_TOTAL_IMAGE_BYTES = MAX_HOSTED_OUTPUT_BYTES - MIN_PACKAGE_OVERHEAD_BYTES
 MAX_DISTINCT_IMAGES = MAX_SLIDES
 #: The intersection of what the pdf capability accepts and what an OOXML package
 #: can carry. WebP is in the first set and not the second, so it is named as
@@ -384,8 +386,8 @@ def open_local_image(root: Path, reference: str) -> tuple[int, os.stat_result]:
     return file_fd, metadata
 
 
-def read_local_image(root: Path, reference: str) -> tuple[tuple[int, int], ValidatedImage]:
-    file_fd, metadata = open_local_image(root, reference)
+def read_open_image(file_fd: int) -> ValidatedImage:
+    """Read and decode one descriptor already pinned by ``open_local_image``."""
     try:
         chunks: list[bytes] = []
         remaining = MAX_IMAGE_BYTES + 1
@@ -399,10 +401,7 @@ def read_local_image(root: Path, reference: str) -> tuple[tuple[int, int], Valid
     finally:
         os.close(file_fd)
     mime, width, height = measure_image_bytes(data)
-    return (
-        (metadata.st_dev, metadata.st_ino),
-        ValidatedImage(data=data, mime=mime, width=width, height=height),
-    )
+    return ValidatedImage(data=data, mime=mime, width=width, height=height)
 
 
 def validate_image(
@@ -452,7 +451,7 @@ def validate_image(
     if resolved_images is not None and reference in resolved_images:
         return []
     try:
-        identity, asset = read_local_image(root, reference)
+        file_fd, metadata = open_local_image(root, reference)
     except FileNotFoundError:
         return [
             f"{where}.path: {reference!r} does not exist next to the spec. Name the "
@@ -463,6 +462,15 @@ def validate_image(
             f"{where}.path: {reference!r} is outside the spec's own directory, is not "
             f"a regular file, or {exc}"
         ]
+    identity = (metadata.st_dev, metadata.st_ino)
+    if image_inventory is not None and identity in image_inventory:
+        os.close(file_fd)
+        asset = image_inventory[identity]
+    else:
+        try:
+            asset = read_open_image(file_fd)
+        except (OSError, ValueError) as exc:
+            return [f"{where}.path: {reference!r} {exc}"]
     if image_inventory is not None:
         asset = image_inventory.setdefault(identity, asset)
     if resolved_images is not None:
