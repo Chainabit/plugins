@@ -4,7 +4,7 @@
     {
       "path": "SKILL.md",
       "type": "instructions",
-      "sha256": "15d4323e0fb6be47ccb18678c872968e6960daa3abd61bca378182311b57cd66",
+      "sha256": "a4375bde0bae4b17941b6a176f42d166fc839d011aeb905edd521cda5549a4ea",
       "bytes": 6447,
       "mode": "0644"
     },
@@ -18,8 +18,8 @@
     {
       "path": "scripts/scaffold_site.py",
       "type": "scripts",
-      "sha256": "2d83091edfdc092784593c7a485cf206b328e042867324ac535679d12d336817",
-      "bytes": 81043,
+      "sha256": "30774224278ac3c262f02db606168200c315a4f0f0ac3821a022848a770998d1",
+      "bytes": 81478,
       "mode": "0644"
     },
     {

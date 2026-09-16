@@ -1642,6 +1642,7 @@ def resolve_image_assets(spec: dict, source_root: str | None) -> dict[str, bytes
     references: list[tuple[dict, str]] = []
     source_identities: dict[str, tuple[int, int]] = {}
     canonical_sources: dict[tuple[int, int], tuple[str, bytes]] = {}
+    total_image_bytes = 0
     for image in _declared_images(spec):
         src = image["src"]
         references.append((image, src))
@@ -1653,7 +1654,23 @@ def resolve_image_assets(spec: dict, source_root: str | None) -> dict[str, bytes
         if identity in canonical_sources:
             os.close(file_fd)
             continue
-        canonical_sources[identity] = (src, read_open_image(file_fd))
+        if metadata.st_size > MAX_IMAGE_BYTES:
+            os.close(file_fd)
+            raise RuntimeError(f"image {src!r} changed after validation and is now too large")
+        if total_image_bytes + metadata.st_size > MAX_TOTAL_IMAGE_BYTES:
+            os.close(file_fd)
+            raise RuntimeError(
+                "image set changed after validation and now exceeds the aggregate byte limit"
+            )
+        data = read_open_image(file_fd)
+        if len(data) > MAX_IMAGE_BYTES:
+            raise RuntimeError(f"image {src!r} changed after validation and is now too large")
+        total_image_bytes += len(data)
+        if total_image_bytes > MAX_TOTAL_IMAGE_BYTES:
+            raise RuntimeError(
+                "image set changed after validation and now exceeds the aggregate byte limit"
+            )
+        canonical_sources[identity] = (src, data)
 
     if len(canonical_sources) > MAX_DISTINCT_IMAGES:
         raise RuntimeError(
@@ -1662,15 +1679,7 @@ def resolve_image_assets(spec: dict, source_root: str | None) -> dict[str, bytes
 
     source_assets: dict[tuple[int, int], tuple[str, bytes]] = {}
     digest_assets: dict[str, tuple[str, bytes]] = {}
-    total_image_bytes = 0
     for identity, (src, data) in canonical_sources.items():
-        if len(data) > MAX_IMAGE_BYTES:
-            raise RuntimeError(f"image {src!r} changed after validation and is now too large")
-        total_image_bytes += len(data)
-        if total_image_bytes > MAX_TOTAL_IMAGE_BYTES:
-            raise RuntimeError(
-                "image set changed after validation and now exceeds the aggregate byte limit"
-            )
         digest = hashlib.sha256(data).hexdigest()
         asset = digest_assets.get(digest)
         if asset is None:

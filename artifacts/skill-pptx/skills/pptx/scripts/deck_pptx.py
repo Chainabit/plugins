@@ -467,6 +467,18 @@ def validate_image(
         os.close(file_fd)
         asset = image_inventory[identity]
     else:
+        current_total = (
+            sum(len(item.data) for item in image_inventory.values())
+            if image_inventory is not None
+            else 0
+        )
+        if current_total + metadata.st_size > MAX_TOTAL_IMAGE_BYTES:
+            os.close(file_fd)
+            return [
+                f"{where}.path: distinct image set would be "
+                f"{current_total + metadata.st_size} bytes, over the "
+                f"{MAX_TOTAL_IMAGE_BYTES}-byte aggregate image limit"
+            ]
         try:
             asset = read_open_image(file_fd)
         except (OSError, ValueError) as exc:

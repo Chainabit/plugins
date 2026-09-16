@@ -3,7 +3,7 @@ name: static-website
 description: Static HTML/CSS implementation with servability, deterministic output, and link/asset checks; one website variation, not a universal web rule.
 license: Apache-2.0
 metadata:
-  version: 1.3.3
+  version: 1.3.4
   discovery: "static HTML/CSS implementation and servability checks"
   layer: implementation
   requires: "skill-software-engineering, skill-project-bootstrap, skill-git, skill-project-documentation, skill-web-engineering"

@@ -590,7 +590,7 @@ class MediaRefusalTests(MediaWorkspace):
         result = self.build(root, "--validate-only")
 
         self.assertEqual(result.returncode, 1, result.stdout)
-        self.assertIn("bytes across distinct local files", result.stderr)
+        self.assertIn("distinct image set would be 18874368 bytes", result.stderr)
         self.assertIn("15728640-byte aggregate image limit", result.stderr)
         self.assertFalse((root / "deck.pptx").exists())
 
