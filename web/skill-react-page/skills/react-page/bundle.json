@@ -1,0 +1,26 @@
+{
+  "formatVersion": 2,
+  "files": [
+    {
+      "path": "SKILL.md",
+      "type": "instructions",
+      "sha256": "50bfd37cba610c48bcef52bde9e38b68a26746b7efc61d1b822534a14aa9e43f",
+      "bytes": 4845,
+      "mode": "0644"
+    },
+    {
+      "path": "scripts/build_react_page.py",
+      "type": "scripts",
+      "sha256": "3131354298bc7ad33a77d50bd251bd905f3374f077f70ca23e78a615debf6c47",
+      "bytes": 14284,
+      "mode": "0644"
+    },
+    {
+      "path": "tests/test_build_react_page.py",
+      "type": "metadata",
+      "sha256": "d0dbe8767f35653a05800cb4413a8c6d41a3c132cad99f298ab3776ee11f3037",
+      "bytes": 12955,
+      "mode": "0644"
+    }
+  ]
+}

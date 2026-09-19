@@ -190,6 +190,16 @@
       }
     },
     {
+      "id": "skill-react-page",
+      "source": "https://github.com/chainabit/plugins.git#web/skill-react-page",
+      "version": "1.0.0",
+      "revision": "7b419629a7508b6f3a92d5308b0b34321b3f7ad8",
+      "integrity": {
+        "algorithm": "sha256",
+        "packageSha256": "0000000000000000000000000000000000000000000000000000000000000000"
+      }
+    },
+    {
       "id": "skill-angular",
       "source": "https://github.com/chainabit/plugins.git#web/skill-angular",
       "version": "1.0.0",
