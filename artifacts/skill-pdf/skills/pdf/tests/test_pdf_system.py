@@ -328,4 +328,69 @@ class PdfSystemTests(unittest.TestCase):
   with out.open('wb') as handle:writer.write(handle)
   result=subprocess.run([sys.executable,str(ROOT/'scripts/validate_pdf.py'),str(out)],capture_output=True,text=True,check=False)
   self.assertEqual(result.returncode,1);message=json.loads(result.stderr);self.assertEqual(message['error']['class'],'produced_artifact_rejected')
+class ImageReferenceResolutionTests(unittest.TestCase):
+ """An image reference that names no file is an authoring error the author can fix.
+
+ Measured in production: a Markdown source at the workspace root referenced
+ `trend_chart.png` while the chart had been saved as `out/trend_chart.png`.
+ Diagnosis reported the source ready, and the render then failed as a retryable
+ filesystem failure worded "source artifact cannot be resolved". The author
+ read that as the Markdown file itself missing and rewrote the same file, so
+ the render could never succeed.
+ """
+ def setUp(self):
+  self.tmp=tempfile.TemporaryDirectory(); self.root=Path(self.tmp.name)
+  (self.root/'out').mkdir()
+  from PIL import Image
+  Image.new('RGB',(4,4),'#10B981').save(self.root/'out'/'trend_chart.png')
+  self.source=self.root/'report.md'; self.policy=SecurityPolicy.for_paths(str(self.source),str(self.root/'out'/'report.pdf'))
+ def tearDown(self): self.tmp.cleanup()
+ def test_missing_image_is_named_invalid_input_that_retrying_cannot_fix(self):
+  from pdf_system.errors import RETRYABLE_RUNTIME_ERRORS
+  from pdf_system.markdown_html import render_markdown
+  with self.assertRaises(PdfError) as e: render_markdown('![Trend](trend_chart.png)',self.policy)
+  self.assertEqual(e.exception.code,ErrorCode.INVALID_INPUT)
+  self.assertIn('"trend_chart.png"',e.exception.message)
+  self.assertIn("source file's directory",e.exception.message)
+  self.assertNotIn(str(self.root),e.exception.message)
+  self.assertEqual(failure_class(e.exception),'invalid_user_input'); self.assertEqual(renderer_exit_code(e.exception),1)
+  self.assertNotIn(e.exception.code,RETRYABLE_RUNTIME_ERRORS)
+ def test_reference_relative_to_the_source_directory_embeds_the_image(self):
+  from pdf_system.markdown_html import render_markdown
+  self.assertIn('src="data:image/png;base64,',render_markdown('![Trend](out/trend_chart.png)',self.policy))
+ def test_report_image_block_resolves_through_the_same_boundary(self):
+  from pdf_system.safety import local_asset
+  self.assertEqual(local_asset('out/trend_chart.png',self.policy),(self.root/'out'/'trend_chart.png').resolve())
+  with self.assertRaises(PdfError) as e: local_asset('trend_chart.png',self.policy)
+  self.assertEqual(e.exception.code,ErrorCode.INVALID_INPUT)
+ def test_reference_outside_the_source_directory_stays_unsafe(self):
+  from pdf_system.safety import local_asset
+  outside=self.root.parent/(self.root.name+'-outside.png'); outside.write_bytes(b'x')
+  try:
+   with self.assertRaises(PdfError) as e: local_asset('../'+outside.name,self.policy)
+   self.assertEqual(e.exception.code,ErrorCode.UNSAFE_INPUT)
+  finally: outside.unlink()
+ def test_long_reference_is_bounded_in_the_message(self):
+  from pdf_system.safety import local_asset
+  with self.assertRaises(PdfError) as e: local_asset('a'*400+'.png',self.policy)
+  self.assertLess(len(e.exception.message),400)
+ def test_missing_source_file_is_invalid_input(self):
+  with self.assertRaises(PdfError) as e: PdfService(self.policy).generate_markdown(self.root/'absent.md',self.root/'out'/'x.pdf')
+  self.assertEqual(e.exception.code,ErrorCode.INVALID_INPUT)
+ def test_diagnosis_preflight_rejects_what_the_render_would_reject(self):
+  missing=PdfService(self.policy).diagnose('markdown','# T\n\n![Trend](trend_chart.png)')
+  self.assertFalse(missing['preflight']['ok']); self.assertEqual(missing['preflight']['error']['class'],'invalid_user_input')
+  self.assertIn('"trend_chart.png"',missing['preflight']['error']['message']); self.assertFalse(missing['preflight']['error']['retryable'])
+  found=PdfService(self.policy).diagnose('markdown','# T\n\n![Trend](out/trend_chart.png)')
+  self.assertEqual(found['preflight'],{'ok':True})
+  report=PdfService(self.policy).diagnose('report',{'title':'T','blocks':[{'type':'image','path':'trend_chart.png'}]})
+  self.assertFalse(report['preflight']['ok'])
+ def test_cli_diagnose_exits_one_when_preflight_rejects(self):
+  self.source.write_text('# T\n\n![Trend](trend_chart.png)\n',encoding='utf-8')
+  result=subprocess.run([sys.executable,str(ROOT/'scripts/pdf_tool.py'),'diagnose','markdown',str(self.source)],capture_output=True,text=True,check=False)
+  self.assertEqual(result.returncode,1,result.stdout+result.stderr); body=json.loads(result.stdout.strip().splitlines()[-1])
+  self.assertFalse(body['ok']); self.assertIn('"trend_chart.png"',body['preflight']['error']['message'])
+  self.source.write_text('# T\n\n![Trend](out/trend_chart.png)\n',encoding='utf-8')
+  result=subprocess.run([sys.executable,str(ROOT/'scripts/pdf_tool.py'),'diagnose','markdown',str(self.source)],capture_output=True,text=True,check=False)
+  self.assertEqual(result.returncode,0,result.stdout+result.stderr); self.assertTrue(json.loads(result.stdout.strip().splitlines()[-1])['ok'])
 if __name__=='__main__': unittest.main()

@@ -14,11 +14,12 @@ from typing import Any, Iterator
 
 from .backends import (CapabilityReport, PypdfManipulator,
                        ReportLabRenderer, WeasyPrintRenderer, capability_registry)
-from .errors import ErrorCode, PdfError
+from .errors import ErrorCode, PdfError, RETRYABLE_RUNTIME_ERRORS, failure_class
 from .models import DocumentRequirements, PageGeometry, SecurityPolicy, resolve_direction
 from .markdown_html import render_markdown
 from .safety import (IMAGE_FILE_FORMATS, bounded_read, image_as_text,
-                     image_data_uri, reject_active_markup, safe_output)
+                     image_data_uri, local_asset, reject_active_markup,
+                     safe_output, validate_image)
 from .verification import Verification, verify_pdf
 
 DEFAULT_FONT_FAMILY = os.environ.get(
@@ -118,7 +119,32 @@ class PdfService:
     def diagnose(self, kind: str, content: object, intent: str = "quality") -> dict[str, Any]:
         req = DocumentRequirements.infer(kind, content, intent); reports = []
         for c in capability_registry(): reports.append({"backend": c.name, "available": c.available, "version": c.version, "required": sorted(req.required), "missing": sorted(c.missing(req.required)), "reason": c.detail or ("available" if c.available else "dependency unavailable")})
-        return {"requirements": sorted(req.required), "reasons": req.reasons, "intent": intent, "backends": reports}
+        return {"requirements": sorted(req.required), "reasons": req.reasons, "intent": intent, "backends": reports, "preflight": self._preflight(kind, content)}
+    def _preflight(self, kind: str, content: object) -> dict[str, Any]:
+        """Run the render path's own input checks without rendering.
+
+        Backend availability says nothing about whether this source can render:
+        an image reference that names no file passed diagnosis and failed only
+        at render time. The checks are the renderer's, not a second copy, so
+        diagnosis and rendering cannot disagree about an input.
+        """
+        try:
+            if kind == "markdown":
+                text = str(content); self._check_markdown_text(text)
+                for page in text.split("\f"): render_markdown(page, self.policy)
+            else:
+                problems = self.validate_report(content)
+                if problems: raise PdfError(ErrorCode.INVALID_INPUT, "; ".join(problems))
+                for block in content["blocks"]:
+                    if block["type"] == "image": validate_image(local_asset(block["path"], self.policy), self.policy)
+        except PdfError as error:
+            return {"ok": False, "error": {"code": error.code.value, "class": failure_class(error), "message": error.message, "retryable": error.code in RETRYABLE_RUNTIME_ERRORS}}
+        return {"ok": True}
+    def _check_markdown_text(self, text: str) -> None:
+        written = image_as_text(text)
+        if written:
+            raise PdfError(ErrorCode.UNSAFE_INPUT, f"Markdown contains {written}, which prints as characters rather than an image; save the image as a {IMAGE_FILE_FORMATS} file in the Markdown file's directory and reference it as ![description](relative/path.png)")
+        reject_active_markup(text)
     def generate_markdown(self, source: Path, destination: Path, title: str | None = None, lang: str = "und", page_size: object = "A4", orientation: str = "portrait", deterministic: bool = False, quality_profile: str = "quality", font: str | None = None, palette: object = None, margin: object = None) -> Verification:
         raw = bounded_read(source, self.policy)
         try: text = raw.decode("utf-8")
@@ -128,10 +154,7 @@ class PdfService:
         if palette_errors: raise PdfError(ErrorCode.INVALID_INPUT, "; ".join(palette_errors))
         if isinstance(font, str) and font.strip() != DEFAULT_FONT_FAMILY and palette is None:
             raise PdfError(ErrorCode.INVALID_INPUT, "a non-Chainabit font override requires a complete palette")
-        written = image_as_text(text)
-        if written:
-            raise PdfError(ErrorCode.UNSAFE_INPUT, f"Markdown contains {written}, which prints as characters rather than an image; save the image as a {IMAGE_FILE_FORMATS} file in the Markdown file's directory and reference it as ![description](relative/path.png)")
-        reject_active_markup(text); req = DocumentRequirements.infer("markdown", text, "basic" if deterministic else quality_profile)
+        self._check_markdown_text(text); req = DocumentRequirements.infer("markdown", text, "basic" if deterministic else quality_profile)
         backend, self.last_decision = self.resolver.resolve(req)
         geometry = self._resolve_geometry(page_size, orientation, margin)
         document = self._markdown_html(text, self.policy, self._font_family(font), resolve_palette(palette), palette is None and font is None, geometry); metadata = {"Title": title or source.stem, "Lang": lang, "Creator": "chainabit-pdf"}
@@ -192,7 +215,7 @@ class PdfService:
         # the page to the request's security policy.
         return render_markdown(text, self.policy)
     def _image_tag(self, alt: str, uri: str) -> str:
-        return f'<img alt="{html.escape(alt,quote=True)}" src="{image_data_uri((self.policy.input_root / uri).resolve(), self.policy)}">'
+        return f'<img alt="{html.escape(alt,quote=True)}" src="{image_data_uri(local_asset(uri, self.policy), self.policy)}">'
     def _report_html(self, spec: dict, policy: SecurityPolicy, font: str, palette: dict[str, str], show_chainabit_footer: bool, geometry: PageGeometry) -> str:
         chunks=[f"<h1>{html.escape(spec['title'])}</h1>"]
         for b in spec["blocks"]:
