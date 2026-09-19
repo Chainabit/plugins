@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 2,
+  "id": "skill-react-page",
+  "name": "React Page",
+  "version": "1.0.0",
+  "description": "Builds a React page, app or slide presentation offline in the sandbox and delivers it as one self-contained HTML file. Source is ordinary React; the bundle, its CSS and its images are inlined, and nothing loads from another address.",
+  "author": {
+    "name": "Chainabit"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/chainabit/plugins/tree/main/web/skill-react-page",
+  "categories": [
+    "code"
+  ],
+  "keywords": [
+    "react",
+    "single-file",
+    "html",
+    "presentation",
+    "dashboard"
+  ],
+  "compatibility": {
+    "minVersion": "0.9.0"
+  },
+  "components": {
+    "skills": [
+      "skills/react-page"
+    ]
+  },
+  "composition": {
+    "requires": [
+      "skill-brand-defaults",
+      "skill-react",
+      "skill-web-engineering"
+    ],
+    "role": "implementation"
+  },
+  "permissions": {
+    "network": [],
+    "filesystem": [],
+    "shell": false,
+    "execute": true,
+    "dangerousSkipPermissions": false,
+    "permissionModelVersion": 2,
+    "requested": [
+      "sandbox.execute"
+    ]
+  },
+  "diagnostics": [
+    {
+      "entrypoint": "skills/react-page/scripts/build_react_page.py",
+      "inputErrorExitCodes": [
+        1
+      ]
+    }
+  ],
+  "requires": {
+    "python": [],
+    "binaries": [
+      "python3"
+    ],
+    "fonts": [
+      "IBM Plex Sans"
+    ]
+  },
+  "dependencies": {
+    "required": {
+      "python": [],
+      "binaries": [
+        "python3"
+      ],
+      "fonts": [
+        "IBM Plex Sans"
+      ]
+    },
+    "optional": {}
+  },
+  "typography": {
+    "defaultFamily": "IBM Plex Sans",
+    "userOverride": true,
+    "fallbackFamilies": [
+      "IBM Plex Sans Arabic"
+    ],
+    "runtimeAssetDirEnv": "CHAINABIT_ARTIFACT_FONT_DIR"
+  },
+  "runtime": {
+    "contractVersion": 2,
+    "interpreter": "python3",
+    "cwd": "workspace-root",
+    "assets": [
+      {
+        "id": "web.toolchain",
+        "envVar": "CHAINABIT_WEB_TOOLCHAIN_DIR",
+        "defaultPath": "/opt/chainabit/web-toolchain",
+        "required": true
+      },
+      {
+        "id": "fonts.ibm-plex",
+        "envVar": "CHAINABIT_ARTIFACT_FONT_DIR",
+        "defaultPath": "/opt/chainabit/artifact-fonts/ibm-plex-sans",
+        "required": true
+      }
+    ]
+  }
+}
