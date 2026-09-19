@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import binascii
+import json
 import os
 import re
 from pathlib import Path
@@ -38,12 +39,19 @@ _PAYLOAD_RUN_MIN_CHARS = 16
 _IMAGE_SIGNATURES = (b"\x89PNG\r\n\x1a\n", b"\xff\xd8\xff", b"GIF87a", b"GIF89a", b"<svg")
 
 
+_REFERENCE_LABEL_MAX_CHARS = 160
+
+
 def bounded_read(path: Path, policy: SecurityPolicy, root: Path | None = None) -> bytes:
     root = (root or policy.input_root).resolve()
     try:
         resolved = path.resolve(strict=True)
+    except FileNotFoundError as exc:
+        # A path that names no file is the caller's error: rerunning the same
+        # command cannot succeed, so it is not a retryable I/O failure.
+        raise PdfError(ErrorCode.INVALID_INPUT, "input file was not found at the given path") from exc
     except OSError as exc:
-        raise PdfError(ErrorCode.FILESYSTEM_FAILURE, "source artifact cannot be resolved") from exc
+        raise PdfError(ErrorCode.FILESYSTEM_FAILURE, "input file could not be read") from exc
     if not resolved.is_relative_to(root) or not resolved.is_file():
         raise PdfError(ErrorCode.UNSAFE_INPUT, "source path is outside the permitted input root")
     size = resolved.stat().st_size
@@ -69,7 +77,34 @@ def safe_asset_uri(uri: str, policy: SecurityPolicy) -> Path | None:
         if parsed.scheme not in SAFE_URI_SCHEMES:
             raise PdfError(ErrorCode.UNSAFE_INPUT, "asset URI scheme is not allowed")
         return None
-    return (policy.input_root / uri).resolve()
+    return local_asset(uri, policy)
+
+
+def local_asset(reference: str, policy: SecurityPolicy) -> Path:
+    """Resolve an author-written image reference to the file it names.
+
+    References resolve from the source file's directory. One that names no file
+    is an authoring error, not an I/O fault: the same render fails the same way
+    on every retry. So it is reported as invalid input that names the reference
+    as written and says where it resolves from, which is what the author needs
+    to correct it. A reference is a path, not document content.
+    """
+    root = policy.input_root.resolve()
+    path = (root / reference).resolve()
+    if not path.is_relative_to(root):
+        raise PdfError(ErrorCode.UNSAFE_INPUT, "source path is outside the permitted input root")
+    try:
+        exists = path.is_file()
+    except OSError:  # e.g. a name longer than the filesystem allows
+        exists = False
+    if not exists:
+        label = reference if len(reference) <= _REFERENCE_LABEL_MAX_CHARS else reference[: _REFERENCE_LABEL_MAX_CHARS - 1] + "…"
+        raise PdfError(
+            ErrorCode.INVALID_INPUT,
+            f"image {json.dumps(label, ensure_ascii=False)} was not found; image paths resolve from the "
+            "source file's directory, so save the image there or below it and reference it by that relative path",
+        )
+    return path
 
 
 def reject_active_markup(text: str) -> None:

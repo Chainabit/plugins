@@ -25,7 +25,8 @@ def main(argv=None):
   if a.command=="capabilities": return emit({"capabilities":PdfService.discover_capabilities()})
   if a.command=="diagnose":
    raw=Path(a.source).read_text(encoding="utf-8"); content=json.loads(raw) if a.kind=="report" else raw
-   return emit({"ok":True,**PdfService(policy(a.source,a.source)).diagnose(a.kind,content,a.profile)})
+   d=PdfService(policy(a.source,a.source)).diagnose(a.kind,content,a.profile)
+   return emit({"ok":d["preflight"]["ok"],**d},0 if d["preflight"]["ok"] else 1)
   if a.command=="validate":
    r=verify_pdf(Path(a.pdf),Limits()); return emit({"ok":True,"pages":r.pages,"bytes":r.bytes,"version":r.version,"sha256":r.sha256,"mime":r.mime_type})
   s=PdfService(policy(a.source if a.command!="manipulate" else a.sources[0],a.output))

@@ -217,8 +217,8 @@ class ReportLabRenderer(PdfRenderer):
                     rows = [[Paragraph(escape_report(str(x)), body) for x in block["columns"]]] + [[Paragraph(escape_report(str(x)), body) for x in row] for row in block["rows"]]
                     table = Table(rows, repeatRows=1, hAlign="LEFT"); table.setStyle(TableStyle([("BACKGROUND", (0,0), (-1,0), colors.HexColor(palette["surface"])), ("GRID", (0,0), (-1,-1), .5, colors.HexColor(palette["rule"])), ("VALIGN", (0,0), (-1,-1), "TOP"), ("LEFTPADDING", (0,0), (-1,-1), 5)])); flow.append(table)
                 elif kind == "image":
-                    from .safety import validate_image
-                    image_path = (policy.input_root / str(block["path"])).resolve(); validate_image(image_path, policy)
+                    from .safety import local_asset, validate_image
+                    image_path = local_asset(str(block["path"]), policy); validate_image(image_path, policy)
                     flow.append(Image(str(image_path), width=min(geometry.width - geometry.margin[1] - geometry.margin[3], 400), height=200, kind="proportional"))
                 elif kind == "spacer": flow.append(Spacer(1, float(block.get("height", 12))))
                 elif kind == "pagebreak": flow.append(PageBreak())
