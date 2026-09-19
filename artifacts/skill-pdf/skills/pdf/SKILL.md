@@ -3,7 +3,7 @@ name: pdf
 description: Create, validate, and manipulate secure PDF artifacts. Inspect required capabilities first and prefer the highest-quality available backend; never silently downgrade rich content.
 license: Apache-2.0
 metadata:
-  version: 5.3.1
+  version: 5.3.2
 ---
 
 # PDF artifact system
@@ -36,6 +36,17 @@ print in the body, and all of them survive for whatever reads the file next.
 A date, an author, a status or a period that the **user** asked for is the
 document's content: write it, in the terms the request used. This rule is about
 what the system volunteers about itself, never about what was requested.
+
+## How long it is
+
+A length the user asked for, such as a page count, is part of the request. The
+renderer reports the page count of every PDF it writes (`output.pages`). When
+that count falls short of the requested length, the document is not finished:
+deepen the content with substance the subject supports, such as sections,
+worked examples, tables or figures, then render again. Do this before
+delivering the file. Do not pad with filler, repetition or blank pages. If the
+subject honestly cannot fill the length, deliver what it supports and say so
+plainly in your reply.
 
 `skill-brand-defaults` is a composed foundation. Resolve visual identity before
 choosing an entrypoint. With no visual identity, this skill uses the Chainabit
@@ -94,7 +105,12 @@ last section ending is the end of it.
 Images reach a PDF only as files. Save each chart or picture as a PNG, JPEG,
 GIF, or WebP file in the source's directory, then reference it with Markdown
 image syntax, `![description](relative/path.png)`, or a report block,
-`{"type": "image", "path": "relative/path.png"}`. A raw HTML `<img>` or `<svg>`
+`{"type": "image", "path": "relative/path.png"}`. An image path resolves from
+the source file's directory, not from the working directory: a source written
+at `report.md` that shows a chart saved as `charts/growth.png` references
+`charts/growth.png`, and the same chart referenced as `growth.png` is not found.
+A reference that names no file is rejected as invalid input with the reference
+named. Fix the path or move the file; rerunning the same render cannot succeed. A raw HTML `<img>` or `<svg>`
 tag and an inline `data:image/…;base64,` URI are rejected before rendering,
 because either would print as characters instead of a picture. The validator
 also rejects any PDF that prints image data as text.
@@ -105,7 +121,7 @@ The deterministic backend is a diagnostic/basic-text implementation, not an auth
 
 Successful renderer and validator responses use the versioned JSON contracts `chainabit.pdf.execution/v1` and `chainabit.pdf.validation/v1`. Both include the exact output SHA-256. Exit `1` is a deterministic input/artifact rejection; exit `2` means runtime, dependency, timeout, I/O, or internal output failure. Never infer those categories from human-readable stderr.
 
-`capabilities` is the registry source of truth. `diagnose` explains requirements, availability, missing capabilities, and rejection reasons without exposing document content. Current adapters isolate WeasyPrint HTML/CSS, ReportLab structured layout, Pillow image normalization, and pypdf manipulation. WeasyPrint and pypdf are required for the official Markdown delivery path; the other adapters remain explicitly negotiated capabilities.
+`capabilities` is the registry source of truth. `diagnose` explains requirements, availability, missing capabilities, and rejection reasons without exposing document content. Its `preflight` runs the renderer's own input checks, including every image reference, without rendering. `ok: false` with exit `1` means the render would reject this source for the reason in `preflight.error`, so fix that input before rendering. Current adapters isolate WeasyPrint HTML/CSS, ReportLab structured layout, Pillow image normalization, and pypdf manipulation. WeasyPrint and pypdf are required for the official Markdown delivery path; the other adapters remain explicitly negotiated capabilities.
 
 Security is enforced at adapter boundaries: canonical roots, bounded inputs/images/pages/CSS, safe temporary directories, no network by default, no file URLs or active HTML/SVG, controlled assets, no shell strings, timeouts, cleanup, atomic persistence after verification, deterministic metadata when requested, and structured errors.
 
