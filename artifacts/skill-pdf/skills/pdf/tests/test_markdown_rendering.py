@@ -376,13 +376,18 @@ class CommonMarkStructureTests(unittest.TestCase):
     def test_a_backslash_escapes_any_punctuation(self):
         self.assertEqual(self.tree("\\$5, \\~, \\*, \\=").find("p").text.strip(), "$5, ~, *, =")
 
-    def test_math_keeps_its_projection_and_prices_stay_text(self):
+    def test_math_is_laid_out_and_prices_stay_text(self):
+        # Equations are laid out by math_html (pinned in test_math_rendering.py);
+        # this only pins how they meet the Markdown reader.
         paragraph = self.tree("Area $x+1$ costs $5 and $10").find("p")
-        self.assertEqual([math.find("mrow/mi").text for math in paragraph.iter("math")], ["x+1"])
+        self.assertEqual(len(list(paragraph.iter("math"))), 0)
+        self.assertEqual(len([node for node in paragraph.iter("span") if node.get("class") == "m"]), 1)
         self.assertIn("$5 and $10", "".join(paragraph.itertext()))
+        self.assertIn("12", "".join(self.tree("$\\frac{1}{2}$").itertext()))
         with self.assertRaises(PdfError) as unsupported:
-            self.tree("$\\frac{1}{2}$")
+            self.tree("$\\notacommand{1}$")
         self.assertEqual(unsupported.exception.code, ErrorCode.UNSUPPORTED_CAPABILITY)
+        self.assertIn("notacommand", unsupported.exception.message)
 
     def test_images_are_embedded_from_files_under_the_source_directory(self):
         try:
