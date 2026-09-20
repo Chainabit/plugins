@@ -39,6 +39,7 @@ from dataclasses import dataclass
 from urllib.parse import unquote, urlparse
 
 from .errors import ErrorCode, PdfError
+from .math_html import MathError, render_math
 from .models import SecurityPolicy
 from .safety import image_data_uri, safe_asset_uri
 
@@ -55,16 +56,20 @@ _QUOTE_MARKER = re.compile(r"^[ ]{0,3}>[ ]?")
 _UNESCAPED_PIPE = re.compile(r"(?<!\\)\|")
 _TRAILING_HASHES = re.compile(r"#+$")
 
-# Math keeps the renderer's projection: the expression's text in a MathML run,
-# without its delimiters. A single-dollar span needs no space inside either
-# delimiter and no digit after the closing one, so "$5 and $10" stays text.
+# An equation inside a line of text. A single-dollar span needs no space inside
+# either delimiter and no digit after the closing one, so "$5 and $10" stays
+# text. An equation that starts its own line is read before the block parser
+# sees it (`_DisplayMath`), because its lines may begin with `+`, `-` or `1.`,
+# which the block parser would take for list markers.
 _MATH = (
     r"(?<!\\)\$\$(?P<display>.+?)\$\$"
     r"|\\\((?P<paren>.+?)\\\)"
     r"|\\\[(?P<bracket>.+?)\\\]"
     r"|(?<![\\$\w])\$(?![\s$])(?P<inline>[^$\n]*?[^\s\\$])\$(?![\d$])"
 )
-_UNSUPPORTED_MATH = re.compile(r"\\(?:frac|sqrt|begin|end|newcommand)\b")
+_MATH_FENCE = re.compile(r"^(?P<indent>[ ]{0,3})(?P<fence>`{3,}|~{3,})[ ]*math[ ]*$", re.I)
+# The most equations one refusal names; the rest are counted.
+_MAX_REPORTED_EQUATIONS = 5
 
 LINK_SCHEMES = frozenset({"http", "https", "mailto"})
 
@@ -387,8 +392,60 @@ def _linkable(href: str) -> bool:
     return urlparse(href).scheme.lower() in LINK_SCHEMES
 
 
-def render_markdown(text: str, policy: SecurityPolicy) -> str:
-    """Return the HTML body for Markdown text; images are read under `policy`."""
+class _Equations:
+    """The equations of one page, and the ones that could not be laid out.
+
+    Every equation is laid out, so a source with several bad ones is refused
+    once, naming each: the author repairs them together instead of finding
+    them one render at a time.
+    """
+
+    def __init__(self, text: str, first_line: int):
+        self.text = text
+        self.first_line = first_line
+        self.problems: list[tuple[int | None, MathError]] = []
+
+    def line_of(self, raw: str) -> int | None:
+        at = self.text.find(raw)
+        return None if at < 0 else self.first_line + self.text.count("\n", 0, at)
+
+    def lay_out(self, expression: str, *, display: bool, block: bool, line: int | None, raw: str = ""):
+        try:
+            return render_math(expression, display=display, block=block)
+        except MathError as error:
+            self.problems.append((line if line is not None else self.line_of(raw), error))
+            return None
+
+    def refuse(self) -> None:
+        if not self.problems:
+            return
+        ordered = sorted(self.problems, key=lambda problem: (problem[0] is None, problem[0] or 0))
+        shown = ordered[:_MAX_REPORTED_EQUATIONS]
+        parts = [
+            ("line %d: %s" % (line, error.detail)) if line is not None else error.detail
+            for line, error in shown
+        ]
+        more = len(self.problems) - len(shown)
+        count = len(self.problems)
+        noun = "equation cannot" if count == 1 else "equations cannot"
+        message = "%d %s be laid out: %s%s. Rewrite %s with supported TeX (see the mathematics section of SKILL.md), then render again" % (
+            count, noun, "; ".join(parts), ("; and %d more" % more) if more else "",
+            "it" if count == 1 else "them",
+        )
+        code = (
+            ErrorCode.UNSUPPORTED_CAPABILITY
+            if any(error.kind == "unsupported" for _, error in self.problems)
+            else ErrorCode.INVALID_INPUT
+        )
+        raise PdfError(code, message)
+
+
+def render_markdown(text: str, policy: SecurityPolicy, first_line: int = 1) -> str:
+    """Return the HTML body for Markdown text; images are read under `policy`.
+
+    `first_line` is the source line the text starts on, so an equation that
+    cannot be laid out is reported by the line the author wrote it on.
+    """
     try:
         import xml.etree.ElementTree as etree
 
@@ -412,14 +469,105 @@ def render_markdown(text: str, policy: SecurityPolicy) -> str:
         def handleMatch(self, match, data):  # noqa: N802 - Python-Markdown API
             return etree.Element("br"), match.start(0), match.end(0)
 
+    equations = _Equations(text, first_line)
+
+    def atomic(element):
+        """Mark every text run as final: no later inline rule may read it as Markdown."""
+        for node in element.iter():
+            if node.text:
+                node.text = AtomicString(node.text)
+            if node.tail:
+                node.tail = AtomicString(node.tail)
+        return element
+
     class InlineMath(InlineProcessor):
         def handleMatch(self, match, data):  # noqa: N802 - Python-Markdown API
-            expression = next(value for value in match.groupdict().values() if value is not None)
-            if _UNSUPPORTED_MATH.search(expression):
-                raise PdfError(ErrorCode.UNSUPPORTED_CAPABILITY, "equation uses unsupported or unsafe math syntax")
-            math = etree.Element("math")
-            etree.SubElement(etree.SubElement(math, "mrow"), "mi").text = AtomicString(expression)
-            return math, match.start(0), match.end(0)
+            groups = match.groupdict()
+            display = groups["display"] is not None or groups["bracket"] is not None
+            expression = next(value for value in groups.values() if value is not None)
+            laid_out = equations.lay_out(expression, display=display, block=False, line=None, raw=match.group(0))
+            if laid_out is None:
+                laid_out = etree.Element("span")
+            return atomic(laid_out), match.start(0), match.end(0)
+
+    class DisplayMath(Preprocessor):
+        """An equation that owns its lines, read whole before block parsing."""
+
+        def run(self, lines: list[str]) -> list[str]:
+            out: list[str] = []
+            index = 0
+            fence: str | None = None
+            while index < len(lines):
+                line = lines[index]
+                if fence is not None:
+                    out.append(line)
+                    closing = _FENCE_CLOSE.match(line)
+                    if closing and closing.group("fence")[0] == fence[0] and len(closing.group("fence")) >= len(fence):
+                        fence = None
+                    index += 1
+                    continue
+                math_fence = _MATH_FENCE.match(line)
+                if math_fence:
+                    end = index + 1
+                    while end < len(lines):
+                        closing = _FENCE_CLOSE.match(lines[end])
+                        if closing and closing.group("fence")[0] == math_fence.group("fence")[0]:
+                            break
+                        end += 1
+                    body = "\n".join(lines[index + 1:end])
+                    self._emit(out, body, line[: len(line) - len(line.lstrip())], first_line + index)
+                    index = min(end + 1, len(lines))
+                    continue
+                opened = _FENCE_OPEN.match(line.lstrip(" "))
+                if opened and len(line) - len(line.lstrip(" ")) < 4:
+                    fence = opened.group("fence")
+                    out.append(line)
+                    index += 1
+                    continue
+                block = self._block_at(lines, index)
+                if block is None:
+                    out.append(line)
+                    index += 1
+                    continue
+                body, tail, end = block
+                indent = line[: len(line) - len(line.lstrip())]
+                self._emit(out, body, indent, first_line + index)
+                if tail:
+                    out.append(indent + tail)
+                index = end + 1
+            return out
+
+        @staticmethod
+        def _block_at(lines: list[str], index: int):
+            """`(expression, text after the closing delimiter, last line)` for an equation starting this line."""
+            stripped = lines[index].strip()
+            for opening, closing in (("$$", "$$"), ("\\[", "\\]")):
+                if not stripped.startswith(opening):
+                    continue
+                rest = stripped[len(opening):]
+                position = rest.find(closing)
+                if position >= 0:
+                    return rest[:position], rest[position + len(closing):].strip(), index
+                body = [rest]
+                for end in range(index + 1, min(len(lines), index + 400)):
+                    candidate = lines[end]
+                    if not candidate.strip():
+                        break
+                    position = candidate.find(closing)
+                    if position >= 0:
+                        body.append(candidate[:position])
+                        return "\n".join(body), candidate[position + len(closing):].strip(), end
+                    body.append(candidate)
+                # Never closed: a stray delimiter is text, not an equation.
+                return None
+            return None
+
+        def _emit(self, out: list[str], expression: str, indent: str, line: int) -> None:
+            laid_out = equations.lay_out(expression, display=True, block=True, line=line)
+            if laid_out is None:
+                return
+            placeholder = self.md.htmlStash.store(etree.tostring(laid_out, encoding="unicode", method="html"))
+            out.extend(["", indent + placeholder, ""])
 
     class ExternalResources(Treeprocessor):
         def run(self, root):
@@ -436,6 +584,9 @@ def render_markdown(text: str, policy: SecurityPolicy) -> str:
             md.inlinePatterns.deregister("html")
             # After whitespace normalization (30), before fences are stashed (25).
             md.preprocessors.register(CommonMarkBlocks(md), "commonmark_blocks", 27)
+            # Before the block rules, so an equation's own lines stay together;
+            # after whitespace normalization (30), so tabs are already spaces.
+            md.preprocessors.register(DisplayMath(md), "display_math", 28)
             # Below code spans (190), above backslash escapes (180), so `\(` is math.
             md.inlinePatterns.register(InlineMath(_MATH, md), "math", 185)
             md.inlinePatterns.register(LineBreakTag(r"<br[ ]*/?>", md), "line_break_tag", 90)
@@ -448,4 +599,6 @@ def render_markdown(text: str, policy: SecurityPolicy) -> str:
             md.treeprocessors.register(ExternalResources(md), "external_resources", 15)
 
     parser = markdown.Markdown(extensions=["tables", "fenced_code", "sane_lists", Dialect()])
-    return parser.convert(text)
+    html = parser.convert(text)
+    equations.refuse()
+    return html

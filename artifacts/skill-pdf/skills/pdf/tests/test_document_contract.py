@@ -83,5 +83,49 @@ class DocumentBodyContractTests(unittest.TestCase):
         self.contains("A document also needs no rule to finish")
 
 
+class LengthAndMathematicsContractTests(unittest.TestCase):
+    """A run spent its whole budget rewriting one source to reach a page count.
+
+    A requested length used to be checked after the fact: short of it, the
+    document was "not finished" and the instruction was to deepen and render
+    again *before delivering*. Nothing bounded that loop, so eleven rewrites of
+    a 26 KB program later the time was gone, the last render was refused for an
+    equation, and no file existed. The instructions are the control here too.
+    """
+
+    def contains(self, sentence: str) -> None:
+        self.assertIn(" ".join(sentence.split()), PROSE, sentence)
+
+    def test_a_requested_length_is_planned_for_and_the_revision_is_bounded(self):
+        self.contains("it is met by planning, not by repair.")
+        self.contains("A page of this document system holds about 450 words of running text.")
+        self.contains("write the whole Markdown file once, and render it.")
+        self.contains("Within a page of the request, or beyond it because the subject needed the room: deliver the file.")
+        self.contains("Short by more than a page: revise once.")
+        self.contains("There is no second revision.")
+
+    def test_the_delivered_page_count_is_the_one_the_renderer_reported(self):
+        self.contains("say the count the renderer reported.")
+        self.contains("Never state a page count the renderer did not report.")
+        self.assertNotIn("the document is not finished", PROSE)
+        self.assertNotIn("Do this before delivering the file.", PROSE)
+
+    def test_the_source_is_a_file_and_not_the_output_of_a_program(self):
+        self.contains("Write the Markdown source as a file, exactly as it should read, and give the generator that file.")
+        self.contains("Do not build the source inside a program.")
+        self.contains("hides its exit status, so a refused render can look like success.")
+
+    def test_equations_are_written_as_tex_and_the_subset_is_stated(self):
+        self.contains("Write an equation as TeX.")
+        self.contains("A dollar sign before a digit stays a dollar sign")
+        self.contains("The supported subset:")
+        self.contains("Outside the subset:")
+
+    def test_a_refused_equation_is_repaired_never_disguised(self):
+        self.contains("naming the line and the command of every such equation at once.")
+        self.contains("Fix those equations and render again.")
+        self.contains("an equation is never replaced by its source text, by a picture or by a plainer version of itself.")
+
+
 if __name__ == "__main__":
     unittest.main()

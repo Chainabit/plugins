@@ -3,7 +3,7 @@ name: pdf
 description: Create, validate, and manipulate secure PDF artifacts. Inspect required capabilities first and prefer the highest-quality available backend; never silently downgrade rich content.
 license: Apache-2.0
 metadata:
-  version: 5.3.2
+  version: 5.4.0
 ---
 
 # PDF artifact system
@@ -39,14 +39,28 @@ what the system volunteers about itself, never about what was requested.
 
 ## How long it is
 
-A length the user asked for, such as a page count, is part of the request. The
-renderer reports the page count of every PDF it writes (`output.pages`). When
-that count falls short of the requested length, the document is not finished:
-deepen the content with substance the subject supports, such as sections,
-worked examples, tables or figures, then render again. Do this before
-delivering the file. Do not pad with filler, repetition or blank pages. If the
-subject honestly cannot fill the length, deliver what it supports and say so
-plainly in your reply.
+A length the user asked for, such as a page count, is part of the request, and
+it is met by planning, not by repair. A page of this document system holds about
+450 words of running text. Equations, tables, code blocks and headings take more
+room, so ten pages is roughly 3,500 to 4,500 words of prose alongside its
+equations, and a one-page summary is about 350 words. Outline the sections to
+that size, write the whole Markdown file once, and render it.
+
+The renderer reports the page count of every PDF it writes (`output.pages`).
+Compare it with the request:
+
+- Within a page of the request, or beyond it because the subject needed the
+  room: deliver the file. An exact count is not chased.
+- Short by more than a page: revise once. Add the substance the subject
+  supports, such as a worked example, a section that was only named, a table or
+  a figure, write the file again with those sections in place, render, and
+  deliver whatever that render reports. There is no second revision. Rewriting a
+  long document takes real time, and a delivered document a page or two short
+  serves the reader better than a run that ends with no document.
+- When the delivered count differs from the request, say the count the renderer
+  reported. Never state a page count the renderer did not report.
+
+Do not pad with filler, repetition or blank pages.
 
 `skill-brand-defaults` is a composed foundation. Resolve visual identity before
 choosing an entrypoint. With no visual identity, this skill uses the Chainabit
@@ -71,6 +85,13 @@ through an unregistered wrapper cannot acquire publication proof.
 Sources passed to those entrypoints must be regular files inside the workspace.
 Write JSON or Markdown inputs first; process substitution and `/dev/fd/*` paths
 are intentionally rejected by the filesystem boundary.
+
+Write the Markdown source as a file, exactly as it should read, and give the
+generator that file. Do not build the source inside a program. A program's string
+literals rewrite backslashes (`\f`, `\b`, `\n` and `\t` inside `\frac`, `\beta`,
+`\nabla` and `\theta` become control characters), and a program that runs the
+generator on your behalf hides its exit status, so a refused render can look like
+success. Output produced that way also cannot be published.
 
 Run each generator as its own command: the interpreter, the script, the source
 and the output, with no shell wrapper and nothing chained before or after it.
@@ -101,6 +122,43 @@ line above, and that line becomes a heading instead — which is what a status o
 a summary line followed straight away by `---` turns into. The rule characters
 themselves never print either way. A document also needs no rule to finish: the
 last section ending is the end of it.
+
+## Mathematics
+
+Write an equation as TeX. Inline math goes between single dollar signs, and a
+display equation goes between `$$` lines or in a fenced block whose info string
+is `math`. The renderer lays the equation out itself, so no package, preamble or
+macro is needed, and what is written is what prints. A dollar sign before a
+digit stays a dollar sign, so `$5 and $10` is text.
+
+The supported subset:
+
+- Structure: `\frac`, `\dfrac`, `\tfrac`, `\binom`, `\sqrt` with an optional index,
+  superscripts, subscripts and primes, `\left` and `\right` with any of
+  `( ) [ ] \{ \} \langle \rangle | \| \lfloor \rfloor \lceil \rceil`, the sizes `\big`
+  to `\Bigg`, and big operators with limits (`\sum`, `\prod`, `\int`, `\oint`,
+  `\bigcup`, `\bigcap`, `\lim`, `\max`, `\min`, `\sup`, `\inf`), `\substack`, `\overset`,
+  `\underset`, `\stackrel`, `\xrightarrow`, `\underbrace`, `\overbrace`, `\overline`,
+  `\underline`, `\boxed`, `\tag`.
+- Text and fonts: `\text`, `\mathrm`, `\mathbf`, `\boldsymbol`, `\mathit`, `\mathsf`,
+  `\mathtt`, `\mathbb`, `\mathcal` (printed as bold italic capitals),
+  `\operatorname`, and the accents `\hat`, `\bar`, `\tilde`, `\vec`, `\dot`, `\ddot`,
+  `\widehat`, `\widetilde`.
+- Environments: `matrix`, `pmatrix`, `bmatrix`, `Bmatrix`, `vmatrix`, `Vmatrix`,
+  `cases`, `array` (with `\hline` and `|` column rules), `aligned`, `align`,
+  `gather`, `split`, `equation`.
+- Symbols: the Greek letters, relations, arrows, logic and set symbols,
+  `\partial`, `\nabla`, `\infty`, `\ldots`, `\cdots`, the spacing commands `\,`, `\;`,
+  `\quad` and `\qquad`, and the named operators such as `\sin`, `\log` and `\exp`.
+
+Outside the subset: macro definitions (`\newcommand`, `\def`), packages, colour
+commands, TikZ, `\phantom`, `\not` and `\hline` outside an `array`. An equation
+that cannot be laid out is refused as invalid input, naming the line and the
+command of every such equation at once. Fix those equations and render again.
+Rerunning the same source cannot succeed, and an equation is never replaced by
+its source text, by a picture or by a plainer version of itself.
+
+## Rendering contract
 
 Images reach a PDF only as files. Save each chart or picture as a PNG, JPEG,
 GIF, or WebP file in the source's directory, then reference it with Markdown
