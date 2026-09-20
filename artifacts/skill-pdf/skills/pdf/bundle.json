@@ -4,8 +4,8 @@
     {
       "path": "SKILL.md",
       "type": "instructions",
-      "sha256": "41a86f2beaf208b7fa3aa70c8d54c2c6402376808aacff894fdd57ed49a407ab",
-      "bytes": 9507,
+      "sha256": "0f636cb50d2884bda81b152d85c8606b682026f12fb1f334cc91003871067571",
+      "bytes": 12881,
       "mode": "0644"
     },
     {
@@ -18,8 +18,8 @@
     {
       "path": "pdf_system/backends.py",
       "type": "metadata",
-      "sha256": "84211ed802fd695a65f92a959d74037f674783ae250825fd9974c7750b9f0316",
-      "bytes": 17891,
+      "sha256": "d8c0fc9c653ed832509fff1756cac314a744ee08d9b57b2923fdbd77e93e63fc",
+      "bytes": 18082,
       "mode": "0644"
     },
     {
@@ -32,8 +32,36 @@
     {
       "path": "pdf_system/markdown_html.py",
       "type": "metadata",
-      "sha256": "9fe775fe0d766c711c19eb50d451bf23ba253eb76a72d1c0f6ec5c5bdf944e1f",
-      "bytes": 19844,
+      "sha256": "dd993eabd1aaf55fba48bbc7dc1eca740c5039a99357163131fb86708ede870b",
+      "bytes": 26709,
+      "mode": "0644"
+    },
+    {
+      "path": "pdf_system/math_html.py",
+      "type": "metadata",
+      "sha256": "7a8ca0ae11a47b67dc2afcefec4695aef9f50d32483fff3f3a60285c96de25db",
+      "bytes": 2879,
+      "mode": "0644"
+    },
+    {
+      "path": "pdf_system/math_layout.py",
+      "type": "metadata",
+      "sha256": "410e6418ee28d6915899119f2978abd170c2805e7192465183874dda988a5bba",
+      "bytes": 23157,
+      "mode": "0644"
+    },
+    {
+      "path": "pdf_system/math_parser.py",
+      "type": "metadata",
+      "sha256": "d30dbaaa38b9f5f88c45e5135c405bebb2a1e295c287abc309f6b08f65db6e0b",
+      "bytes": 24944,
+      "mode": "0644"
+    },
+    {
+      "path": "pdf_system/math_symbols.py",
+      "type": "metadata",
+      "sha256": "48fbb1fba1d5ac3615934add4b29bfa13f126024165a7a3a1c0f3d660653d6c1",
+      "bytes": 8756,
       "mode": "0644"
     },
     {
@@ -53,8 +81,8 @@
     {
       "path": "pdf_system/service.py",
       "type": "metadata",
-      "sha256": "c695f9b4d95f9e5d1ab96741166d23a4bdbcf3b418eb74ed136e76d8c4b56864",
-      "bytes": 27519,
+      "sha256": "a33d8fffcd2fcc5c247a43f36bb6bdcfae230b83e4fd58f683b40a0e6957fc23",
+      "bytes": 27951,
       "mode": "0644"
     },
     {
@@ -74,8 +102,8 @@
     {
       "path": "references/dependencies.md",
       "type": "references",
-      "sha256": "5c5fb4f4ef75cb3e98c78b4f8a329270b75d61742898defb922f7feded6ea3ad",
-      "bytes": 1898,
+      "sha256": "c2db00f37d521e745fc8a6eca71eeb37919579bf5802309dfff0e609f4d22ce5",
+      "bytes": 2498,
       "mode": "0644"
     },
     {
@@ -116,8 +144,8 @@
     {
       "path": "tests/test_document_contract.py",
       "type": "metadata",
-      "sha256": "e5e1486bed584ba1daa0d3223437730de8b8c6887c5dfe5ed4ca18ac021b1c93",
-      "bytes": 4020,
+      "sha256": "353a76d365912d5a9e744acd942e5fcbec1e9b41e6ef23e9ed689ceaa0ef78af",
+      "bytes": 6580,
       "mode": "0644"
     },
     {
@@ -130,8 +158,15 @@
     {
       "path": "tests/test_markdown_rendering.py",
       "type": "metadata",
-      "sha256": "e4734be4ede336df2fecaff41c9eeb444a3540fc8cbd021dbe3b153463fea09a",
-      "bytes": 21278,
+      "sha256": "11885fdb04fe452bd34ac1a5c1f81c35826e15c154783291c8c490f9d5bc99ac",
+      "bytes": 21629,
+      "mode": "0644"
+    },
+    {
+      "path": "tests/test_math_rendering.py",
+      "type": "metadata",
+      "sha256": "32769d01258059feb01f68f33abbbdbf10ac9925ad216823355112c91b405dd5",
+      "bytes": 32396,
       "mode": "0644"
     },
     {

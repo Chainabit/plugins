@@ -17,6 +17,7 @@ from .backends import (CapabilityReport, PypdfManipulator,
 from .errors import ErrorCode, PdfError, RETRYABLE_RUNTIME_ERRORS, failure_class
 from .models import DocumentRequirements, PageGeometry, SecurityPolicy, resolve_direction
 from .markdown_html import render_markdown
+from .math_html import MATH_CSS
 from .safety import (IMAGE_FILE_FORMATS, bounded_read, image_as_text,
                      image_data_uri, local_asset, reject_active_markup,
                      safe_output, validate_image)
@@ -131,7 +132,9 @@ class PdfService:
         try:
             if kind == "markdown":
                 text = str(content); self._check_markdown_text(text)
-                for page in text.split("\f"): render_markdown(page, self.policy)
+                line = 1
+                for page in text.split("\f"):
+                    render_markdown(page, self.policy, line); line += page.count("\n")
             else:
                 problems = self.validate_report(content)
                 if problems: raise PdfError(ErrorCode.INVALID_INPUT, "; ".join(problems))
@@ -203,17 +206,18 @@ class PdfService:
         # dropped before any HTML existed. A document written as ten pages came
         # out as two, and validate_pdf.py cannot detect the loss because it
         # only bounds the page count rather than checking it.
+        pages, line = [], 1
+        for page in text.split("\f"):
+            pages.append(self._markdown_blocks(page, line)); line += page.count("\n")
         return self._html_document(
-            '<div class="page-break"></div>'.join(
-                self._markdown_blocks(page) for page in text.split("\f")
-            ),
+            '<div class="page-break"></div>'.join(pages),
             font, palette, show_chainabit_footer, geometry, resolve_direction(text),
         )
-    def _markdown_blocks(self, text: str) -> str:
+    def _markdown_blocks(self, text: str, first_line: int = 1) -> str:
         # One page of Markdown. The Markdown dialect (CommonMark blocks plus
         # GFM tables) is owned by markdown_html; this controller only binds
         # the page to the request's security policy.
-        return render_markdown(text, self.policy)
+        return render_markdown(text, self.policy, first_line)
     def _image_tag(self, alt: str, uri: str) -> str:
         return f'<img alt="{html.escape(alt,quote=True)}" src="{image_data_uri(local_asset(uri, self.policy), self.policy)}">'
     def _report_html(self, spec: dict, policy: SecurityPolicy, font: str, palette: dict[str, str], show_chainabit_footer: bool, geometry: PageGeometry) -> str:
@@ -311,7 +315,10 @@ class PdfService:
         # rewrites a single character of `body`.
         brand_footer = 'content:"CHAINABIT";font:600 7pt "ChainabitArtifact";letter-spacing:1.5pt;' if show_chainabit_footer else 'content:"";'
         top, right, bottom, left = (f"{value:.2f}pt" for value in geometry.margin)
-        style = self._font_css(font) + f'''
+        # The stylesheet of the equations the Markdown reader lays out is owned
+        # by math_html, next to the class names it emits; it is plain layout
+        # over the document's own font and colour.
+        style = self._font_css(font) + MATH_CSS + f'''
 @page{{size:{geometry.width:.2f}pt {geometry.height:.2f}pt;margin:{top} {right} {bottom} {left};background:{palette["background"]};
  @bottom-left{{{brand_footer}color:{palette["muted"]}}}
  @bottom-right{{content:counter(page) " / " counter(pages);font:8pt "ChainabitArtifact";color:{palette["muted"]}}}}}
