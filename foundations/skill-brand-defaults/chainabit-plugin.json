@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "skill-brand-defaults",
   "name": "Chainabit Brand Defaults",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Shared default visual-identity policy for website, PDF, and presentation artifact skills.",
   "author": {
     "name": "Chainabit"

@@ -3,14 +3,14 @@
     {
       "path": "SKILL.md",
       "type": "instructions",
-      "sha256": "bc15ff66566c58b154c48d5da940ae5027a27fc9e22adc01b06088cd29f57fdc",
-      "bytes": 1580
+      "sha256": "8e99b83d2241dc458f1ec8040578c426c15fbdb24bc66d360a242dbef77345e1",
+      "bytes": 3522
     },
     {
       "path": "references/brand-profile.json",
       "type": "references",
-      "sha256": "a302443576ce5ec82acdcf76833bab3a06e8947637f53a68e2ec34d7c863c6ad",
-      "bytes": 2041
+      "sha256": "4d59886a54c99b5dad1824663276d6044de90208d0b79a51351236c4245ce153",
+      "bytes": 2191
     }
   ]
 }

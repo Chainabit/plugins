@@ -226,7 +226,9 @@ class PdfService:
             kind=b["type"]
             if kind=="heading": chunks.append(f"<h2>{html.escape(b['text'])}</h2>")
             elif kind=="paragraph": chunks.append(f"<p>{html.escape(b['text'])}</p>")
-            elif kind in {"bullets","numbered"}: chunks.append("<ul>"+"".join("<li>"+html.escape(x)+"</li>" for x in b["items"])+"</ul>")
+            elif kind in {"bullets","numbered"}:
+                tag = "ol" if kind == "numbered" else "ul"
+                chunks.append(f"<{tag}>"+"".join("<li>"+html.escape(x)+"</li>" for x in b["items"])+f"</{tag}>")
             elif kind=="table": chunks.append("<table><thead><tr>"+"".join("<th>"+html.escape(str(x))+"</th>" for x in b["columns"])+"</tr></thead><tbody>"+"".join("<tr>"+"".join("<td>"+html.escape(str(x))+"</td>" for x in row)+"</tr>" for row in b["rows"])+"</tbody></table>")
             elif kind=="image":
                 caption=str(b.get("caption",""))

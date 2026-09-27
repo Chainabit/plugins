@@ -82,7 +82,7 @@ Templates: `landing` (one page, no nav) for a product or campaign page;
 
 ```json
 {
-  "site": { "title": "Aylin Demir", "theme": "auto", "accent": "#1D4ED8" },
+  "site": { "title": "Aylin Demir", "theme": "auto", "accent": "#327B61" },
   "pages": [
     { "path": "index.html", "title": "Home", "nav": "Home", "sections": [
         { "type": "hero", "heading": "Aylin Demir", "text": "Short lede.",
