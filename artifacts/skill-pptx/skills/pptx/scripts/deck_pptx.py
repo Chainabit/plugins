@@ -1565,6 +1565,21 @@ def artifact_identity(path: str, slides: int, font: str) -> dict:
     }
 
 
+def input_recovery_handoff(spec: str, output: str) -> str:
+    """Tell the caller how a rejected spec becomes a real deliverable.
+
+    Editing the spec is only the repair. The generator still has to run again
+    before its output exists, and delivery cannot stand in for that render.
+    Keep this beside the generator contract so every renderer over the shared
+    spec gives the same recovery instruction.
+    """
+    return (
+        f"Next: correct every ERROR in {spec}, then rerun this generator with "
+        f"{spec} and {output}. Do not deliver {output} until the generator exits 0 "
+        f"and prints OK: wrote {output}."
+    )
+
+
 # --- CLI --------------------------------------------------------------------------
 
 
@@ -1646,6 +1661,7 @@ def main(argv: list[str] | None = None) -> int:
     if problems:
         for problem in problems:
             print(f"ERROR: {problem}", file=sys.stderr)
+        print(input_recovery_handoff(args.spec, args.output), file=sys.stderr)
         return 1
 
     if args.validate_only:

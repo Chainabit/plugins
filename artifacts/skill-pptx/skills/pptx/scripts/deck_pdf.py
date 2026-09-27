@@ -52,6 +52,7 @@ from deck_pptx import (
     build_geometry,
     check_fit,
     image_box,
+    input_recovery_handoff,
     palette_mode,
     plan_slide,
     preflight_frame,
@@ -772,6 +773,7 @@ def main(argv: list[str] | None = None) -> int:
     if problems:
         for problem in problems:
             print(f'ERROR: {problem}', file=sys.stderr)
+        print(input_recovery_handoff(args.spec, args.output), file=sys.stderr)
         return 1
 
     if args.validate_only:
