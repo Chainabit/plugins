@@ -178,6 +178,38 @@ class PptxSpecValidationTests(unittest.TestCase):
             )
             self.assertEqual(accepted.returncode, 0, accepted.stderr)
 
+    def test_rejected_spec_requires_a_successful_rerun_before_delivery(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "wavenet_presentation.json"
+            source.write_text(json.dumps({
+                "title": "WaveNet",
+                "slides": [{
+                    "layout": "content",
+                    "title": "Causal convolutions",
+                    "bullets": ["Predict the next sample"],
+                    "note": " ".join(["This footnote belongs in speaker notes"] * 20),
+                }],
+            }), encoding="utf-8")
+
+            for script, extension in (("deck_pptx.py", "pptx"), ("deck_pdf.py", "pdf")):
+                with self.subTest(script=script):
+                    output = root / f"wavenet_presentation.{extension}"
+                    rejected = subprocess.run(
+                        [sys.executable, str(ROOT / "scripts" / script), str(source), str(output)],
+                        capture_output=True,
+                        text=True,
+                        check=False,
+                    )
+
+                    self.assertEqual(rejected.returncode, 1)
+                    self.assertIn("slides[0].note: will not fit its box", rejected.stderr)
+                    self.assertIn("correct every ERROR", rejected.stderr)
+                    self.assertIn("rerun this generator", rejected.stderr)
+                    self.assertIn("Do not deliver", rejected.stderr)
+                    self.assertIn("until the generator exits 0", rejected.stderr)
+                    self.assertFalse(output.exists())
+
 
 class GeneratorPreflightFrameTests(unittest.TestCase):
     """A registered generator's `--validate-only` run ends in a preflight frame.
