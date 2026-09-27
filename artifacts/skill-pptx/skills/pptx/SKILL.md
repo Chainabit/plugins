@@ -3,7 +3,7 @@ name: pptx
 description: Builds real .pptx presentations inside the sandbox from a JSON spec, using eight brand-safe layouts with a checked palette and type scale - four text layouts, three that embed a picture, and one that plots a chart - renders that same spec as a matching PDF, and verifies the result is presentable before it is handed back. Use when the requested deliverable is a slide deck: the request mentions PowerPoint, pptx, .pptx, slides, a deck, a presentation, a pitch, "sunum", "slayt", a board update or a talk - including when it also asks for a PDF of that deck, for a picture or chart on the slides, or for the deck in several formats at once. Also use to check whether an existing .pptx is valid, or whether its slides are empty, overflowing, unreadably small, or too dense, and how many pictures and charts it embeds. Do NOT use when the deliverable is a document or report meant to be read rather than shown - use the pdf skill; do NOT use for a spreadsheet (.xlsx), a Markdown outline, or a web page. Renders Turkish and other Latin Extended-A characters correctly.
 license: Apache-2.0
 metadata:
-  version: 1.4.4
+  version: 1.4.5
 ---
 
 # Presentation generation
@@ -268,6 +268,13 @@ Correct all of them at once and re-run. Do not fix one and retry. Density errors
 are not style advice — the fix is always to cut text or add a slide, never to
 make the type smaller.
 
+A generator exit of `1` means that output was not produced. Stay in the build
+loop: read every `ERROR:` line, correct the named fields in the spec, and rerun
+the same generator with the same spec and output path. Continue only after that
+run exits `0` and prints `OK: wrote <output>`. Editing the JSON does not update a
+previous output and delivery does not run the generator, so never try to promote
+the requested file between the failed render and the successful rerun.
+
 ## Task: check an existing deck
 
 ```bash
@@ -308,9 +315,11 @@ this skill did not produce — PowerPoint, Keynote, or Google Slides alike.
    stated in a phrase, the slide is doing two jobs. At the same time, note every
    format the request asked for — a deck, a PDF of it, a data file beside it.
 2. **Check the spec.** Write the spec, run `--validate-only`, fix every
-   `ERROR:` line.
+   `ERROR:` line, and rerun until the check exits `0`.
 3. **Render.** Build **every** format noted in step 1, not just the first, each
-   with its own command.
+   with its own command. If a render exits nonzero, correct the spec and rerun
+   that renderer. A repaired spec has produced nothing until this rerun exits
+   `0` and prints `OK: wrote <output>`.
 4. **Deliver.** Promote every file built in step 3. Delivery validates the deck
    with `skill-pptx.validate_pptx` and its PDF with `skill-pdf.validate_pdf`; if
    either is refused, fix the spec, render that file again and deliver it again.
