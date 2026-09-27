@@ -4,6 +4,8 @@
   "precedence": [
     "explicit_user_branding",
     "artifact_specific_branding",
+    "project_branding",
+    "project_default_template",
     "chainabit_default"
   ],
   "explicitSignals": [
@@ -26,7 +28,12 @@
         "sans-serif"
       ],
       "monospaceFamily": "Fira Code",
-      "weights": [400, 500, 600, 700]
+      "weights": [
+        400,
+        500,
+        600,
+        700
+      ]
     },
     "brandAnchor": "#489779",
     "lightPalette": {
@@ -51,7 +58,11 @@
     },
     "layout": {
       "spacingBasePx": 4,
-      "preferredRadiiPx": [8, 12, 18],
+      "preferredRadiiPx": [
+        8,
+        12,
+        18
+      ],
       "tone": "restrained, clear hierarchy, generous whitespace, and accessible contrast"
     },
     "logo": {
@@ -60,7 +71,7 @@
   },
   "ownership": {
     "informationExpert": "this profile owns distributed artifact-default values and precedence semantics",
-    "controller": "the composed artifact skill resolves the request into its format-specific spec before invoking a renderer",
+    "controller": "the host owns presentation and lifecycle decisions; a composed skill projects resolved appearance into its format-specific spec",
     "creator": "the format renderer creates its concrete theme from the resolved spec",
     "staticAssets": "the publishing runtime owns website shell metadata and browser assets, not generated content"
   }
