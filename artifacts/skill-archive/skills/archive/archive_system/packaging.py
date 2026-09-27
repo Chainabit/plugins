@@ -148,5 +148,21 @@ def write_archive(members: list[Member], destination: str) -> None:
     if parent:
         os.makedirs(parent, exist_ok=True)
     with zipfile.ZipFile(destination_absolute, "w", zipfile.ZIP_DEFLATED) as archive:
-        for member in members:
-            archive.write(member.source, member.name)
+        for member in sorted(members, key=lambda entry: entry.name):
+            # Source identity is bytes and executable intent, not host mtimes,
+            # uid/gid, umask or sandbox creation time. Normalize ZIP metadata.
+            mode = os.stat(member.source, follow_symlinks=False).st_mode
+            if not stat.S_ISREG(mode):
+                raise ArchiveError(ErrorCode.UNSAFE_INPUT, "member is no longer a regular file", {"member": member.name})
+            info = zipfile.ZipInfo(member.name, date_time=(1980, 1, 1, 0, 0, 0))
+            info.create_system = 3
+            info.compress_type = zipfile.ZIP_DEFLATED
+            permissions = 0o755 if mode & 0o111 else 0o644
+            info.external_attr = (stat.S_IFREG | permissions) << 16
+            # Refuse a file replaced by a symlink between selection and write.
+            descriptor = os.open(member.source, os.O_RDONLY | os.O_NOFOLLOW)
+            with os.fdopen(descriptor, "rb") as source, archive.open(info, "w") as target:
+                if not stat.S_ISREG(os.fstat(source.fileno()).st_mode):
+                    raise ArchiveError(ErrorCode.UNSAFE_INPUT, "member is no longer a regular file", {"member": member.name})
+                while chunk := source.read(64 * 1024):
+                    target.write(chunk)

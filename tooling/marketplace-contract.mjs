@@ -14,6 +14,24 @@ export const SEMVER_PATTERN =
 export const SHA256_PATTERN = /^[a-f0-9]{64}$/;
 export const COMMIT_PATTERN = /^[a-f0-9]{40}$/;
 
+/** Application expertise grants no execution, networking, or tenancy authority. */
+export function applicationCapabilityErrors(value) {
+  if (value === undefined) return [];
+  if (!value || typeof value !== "object" || Array.isArray(value)) return ["application must be an object"];
+  const errors = [];
+  const fields = new Set(["protocolVersion", "planProtocol", "technologyId", "operations", "previewKinds", "dependencyPolicy"]);
+  if (Object.keys(value).some(key => !fields.has(key))) errors.push("application contains an undeclared field");
+  if (value.protocolVersion !== "chainabit.application-capability/v1") errors.push("application protocolVersion is unsupported");
+  if (value.planProtocol !== "chainabit.application-plan/v1") errors.push("application planProtocol is unsupported");
+  if (typeof value.technologyId !== "string" || value.technologyId.length < 1 || value.technologyId.length > 128) errors.push("application technologyId must be 1-128 characters");
+  for (const [key, allowed] of [["operations", ["inspect", "build", "test", "preview", "package"]], ["previewKinds", ["static", "runtime"]]]) {
+    if (!Array.isArray(value[key]) || value[key].length < 1 || value[key].some(item => !allowed.includes(item)) || new Set(value[key]).size !== value[key].length)
+      errors.push(`application ${key} must contain unique supported operations`);
+  }
+  if (value.dependencyPolicy !== "offline-only") errors.push("application dependencyPolicy cannot grant network access");
+  return errors;
+}
+
 export const BUNDLE_EXTENSIONS = new Set([
   ".md", ".py", ".json", ".txt", ".css", ".csv",
   ".png", ".jpg", ".jpeg", ".webp", ".svg", ".woff", ".woff2",

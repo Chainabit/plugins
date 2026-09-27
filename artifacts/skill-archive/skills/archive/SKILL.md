@@ -3,7 +3,7 @@ name: archive
 description: Package a file or directory into one deterministic, bounded ZIP and verify the written container before delivering it. Package the smallest valid deliverable set, never a whole working tree.
 license: Apache-2.0
 metadata:
-  version: 1.0.0
+  version: 1.1.0
 ---
 
 # Archive packaging

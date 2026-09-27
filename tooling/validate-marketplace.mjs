@@ -15,6 +15,7 @@ import {
   resolveCompositionGraph, sourceFragment, validateAssetBytes,
   SKILL_DIR_PLACEHOLDER, declaredAssetPaths, declaredEntrypoints,
   instructionPortabilityErrors, scriptPortabilityErrors,
+  applicationCapabilityErrors,
 } from "./marketplace-contract.mjs";
 
 const MANIFEST = "chainabit-plugin.json";
@@ -234,6 +235,7 @@ export function validateMarketplace(root, { writeBundles = false } = {}) {
     for (const category of manifest.categories ?? []) if (!CATEGORIES.has(category)) fail(problems, folder, `unknown category ${JSON.stringify(category)}`);
     if (manifest.signature !== undefined) fail(problems, folder, "signature is deprecated; use an externally owned signed attestation");
     for (const error of permissionErrors(manifest)) fail(problems, folder, error);
+    for (const error of applicationCapabilityErrors(manifest.application)) fail(problems, folder, error);
     validateInstallation(manifest, folder, problems);
     validateDependenciesAndCapabilities(manifest, folder, problems);
     const components = manifest.components ?? {};

@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "skill-react",
   "name": "React",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Focused React paved road for component responsibility, state ownership, dependency boundaries, testing, performance, and build/run verification. Composes web and engineering foundations; it is not an execution allowlist.",
   "author": {
     "name": "Chainabit"
@@ -32,7 +32,8 @@
       "skill-project-bootstrap",
       "skill-git",
       "skill-project-documentation",
-      "skill-web-engineering"
+      "skill-web-engineering",
+      "skill-brand-defaults"
     ],
     "role": "technology"
   },
@@ -44,5 +45,22 @@
     "dangerousSkipPermissions": false,
     "permissionModelVersion": 2,
     "requested": []
+  },
+  "application": {
+    "protocolVersion": "chainabit.application-capability/v1",
+    "planProtocol": "chainabit.application-plan/v1",
+    "technologyId": "react",
+    "operations": [
+      "inspect",
+      "build",
+      "test",
+      "preview",
+      "package"
+    ],
+    "previewKinds": [
+      "static",
+      "runtime"
+    ],
+    "dependencyPolicy": "offline-only"
   }
 }

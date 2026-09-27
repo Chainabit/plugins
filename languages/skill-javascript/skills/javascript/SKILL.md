@@ -3,7 +3,7 @@ name: javascript
 description: JavaScript engineering for modules, runtime boundaries, async control flow, data validation, testing, and secure delivery.
 license: Apache-2.0
 metadata:
-  version: 1.0.0
+  version: 1.1.0
   discovery: "JavaScript engineering for modules, runtime boundaries, async control flow, data validation, testing, and secure delivery."
   layer: language
 ---
@@ -19,3 +19,7 @@ Inspect the repository's manifest, dependency and tool versions, build/test/lint
 Compare viable designs against compatibility, failure modes, security, operational cost, and maintainability. Keep technology-specific variation inside this capability; leave cross-cutting responsibility ownership to the relevant foundation. Preserve existing behavior unless the task requires a change, keep secrets out of output and source, and use least privilege, input validation, safe output encoding, and parameterized data access.
 
 Implement the smallest justified change with explicit ownership of state and lifecycle. Make repeated operations safe where practical and avoid hidden network calls or destructive actions. Validate the project's actual commands, tests, static checks, and runtime/build artifact; inspect failures to distinguish environment limitations from defects. Report evidence, unresolved risks, and any unvalidated assumption instead of claiming success without proof.
+
+## Application execution
+
+The application facet describes this technology’s expertise and supported preview kinds. Use the shared project-bootstrap application contract with commands and paths chosen from the actual workspace. Technology identity never prescribes a source directory tree or a visual palette.

@@ -2,8 +2,8 @@
   "schemaVersion": 2,
   "id": "skill-react-page",
   "name": "React Page",
-  "version": "1.0.0",
-  "description": "Builds a React page, app or slide presentation offline in the sandbox and delivers it as one self-contained HTML file. Source is ordinary React; the bundle, its CSS and its images are inlined, and nothing loads from another address.",
+  "version": "1.1.0",
+  "description": "Build an explicitly self-contained React page offline into one HTML file; comprehensive multi-file applications use the React application capability.",
   "author": {
     "name": "Chainabit"
   },
