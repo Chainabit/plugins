@@ -3,8 +3,14 @@
     {
       "path": "SKILL.md",
       "type": "instructions",
-      "sha256": "dd063d031e6191e495018f8ae083613bce2f6e48c17abd209ec538b8d627ef73",
-      "bytes": 1268
+      "sha256": "504acf4b41349a647fa3bdfcb6bf1304cf93dfa5042d1eed9cfef17cd4594047",
+      "bytes": 2865
+    },
+    {
+      "path": "references/application-plan.schema.json",
+      "type": "references",
+      "sha256": "81344fd40ab2d2995b6fa384ea2660156550e711be160dbc77e8fda2d668b397",
+      "bytes": 4953
     }
   ]
 }

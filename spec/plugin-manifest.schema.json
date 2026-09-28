@@ -171,6 +171,7 @@
         }
       }
     },
+    "application": { "$ref": "application-capability.schema.json" },
     "capabilities": { "$ref": "capabilities.schema.json" },
     "installation": { "$ref": "installation.schema.json" }
   },

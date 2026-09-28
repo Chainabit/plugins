@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "skill-javascript",
   "name": "JavaScript",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "JavaScript engineering for modules, runtime boundaries, async control flow, data validation, testing, and secure delivery.",
   "author": {
     "name": "Chainabit"
@@ -28,7 +28,9 @@
   },
   "composition": {
     "requires": [
-      "skill-software-engineering"
+      "skill-software-engineering",
+      "skill-brand-defaults",
+      "skill-project-bootstrap"
     ],
     "role": "language"
   },
@@ -40,5 +42,22 @@
     "dangerousSkipPermissions": false,
     "permissionModelVersion": 2,
     "requested": []
+  },
+  "application": {
+    "protocolVersion": "chainabit.application-capability/v1",
+    "planProtocol": "chainabit.application-plan/v1",
+    "technologyId": "javascript",
+    "operations": [
+      "inspect",
+      "build",
+      "test",
+      "preview",
+      "package"
+    ],
+    "previewKinds": [
+      "static",
+      "runtime"
+    ],
+    "dependencyPolicy": "offline-only"
   }
 }
