@@ -91,6 +91,13 @@ class LengthAndMathematicsContractTests(unittest.TestCase):
     again *before delivering*. Nothing bounded that loop, so eleven rewrites of
     a 26 KB program later the time was gone, the last render was refused for an
     equation, and no file existed. The instructions are the control here too.
+
+    A later run delivered a ten-page request as thirty-one pages, because the
+    instructions let a document run past its requested length "because the subject
+    needed the room" and nothing compared the count with the request. The renderer
+    now refuses an over-length document when it is told the count, so what these
+    assertions pin is the wording that tells the caller to pass it, and that a
+    stated length is a limit as well as a target.
     """
 
     def contains(self, sentence: str) -> None:
@@ -99,10 +106,32 @@ class LengthAndMathematicsContractTests(unittest.TestCase):
     def test_a_requested_length_is_planned_for_and_the_revision_is_bounded(self):
         self.contains("it is met by planning, not by repair.")
         self.contains("A page of this document system holds about 450 words of running text.")
-        self.contains("write the whole Markdown file once, and render it.")
-        self.contains("Within a page of the request, or beyond it because the subject needed the room: deliver the file.")
+        self.contains("write the whole Markdown file once, and render it with the count the user gave")
+        self.contains("Within a page of the request: deliver the file.")
         self.contains("Short by more than a page: revise once.")
         self.contains("There is no second revision.")
+        self.assertNotIn("beyond it because the subject needed the room", PROSE)
+
+    def test_a_stated_length_is_a_limit_the_renderer_enforces(self):
+        self.contains("It is a limit as well as a target")
+        self.contains("`--pages N` on `md_to_pdf.py` and on `report_pdf.py`")
+        self.contains("never drop or raise it to get a file out")
+        self.contains(
+            "Over the request by more than a page: the render is refused as invalid input"
+            " and nothing is written."
+        )
+        self.contains("A stated length is never outgrown because the subject needed the room.")
+        self.contains("cut sections and detail, never the type size")
+
+    def test_the_source_carries_real_line_breaks_and_no_front_matter(self):
+        self.contains("Line breaks in the source are real line breaks.")
+        self.contains("A Markdown source also carries no front matter")
+        self.contains(
+            "The renderer refuses a source with `\\n` escapes outside code, with a"
+            " front-matter block, or that repeats its own sentences to reach a length."
+        )
+        self.contains("It names every such problem at once, writes nothing")
+        self.contains("Do not pad with filler, repetition or blank pages.")
 
     def test_the_delivered_page_count_is_the_one_the_renderer_reported(self):
         self.contains("say the count the renderer reported.")
