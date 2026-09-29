@@ -9,6 +9,7 @@ from pathlib import Path
 from .errors import ErrorCode, PdfError
 from .models import Limits
 from .safety import image_payload_page
+from .source import front_matter_end
 
 @dataclass(frozen=True)
 class Verification:
@@ -181,6 +182,18 @@ def verify_pdf(
             f"PDF prints base64 image data as text on page {image_page}: an image "
             "reached the renderer as markup or inline data instead of an image "
             "file; regenerate the PDF with the image embedded from a file",
+        )
+    # A metadata block that reached the renderer as body text opens the document
+    # as characters (`---`, `title: ...`), yet the PDF is well formed, painted
+    # and font-complete. Only the first page can hold it: front matter is what a
+    # source starts with, and a later page may legitimately show YAML in a listing.
+    if texts and front_matter_end(texts[0].strip()):
+        raise PdfError(
+            ErrorCode.VALIDATION_FAILURE,
+            "PDF prints a front-matter block as text on page 1: the source's "
+            "metadata reached the renderer as body text; regenerate the PDF from "
+            "a source that starts with its content and carries the title and "
+            "language as options",
         )
     warnings = (
         ("blank_pages=" + ",".join(str(page) for page in blank_pages),)

@@ -10,6 +10,7 @@ extracting the PDF's text.
 """
 from __future__ import annotations
 
+import io
 import json
 import os
 import re
@@ -55,11 +56,14 @@ def production_available() -> bool:
     return fonts.joinpath("IBMPlexSans-Regular.ttf").is_file()
 
 
-def png_bytes(width: int = 160, height: int = 80) -> bytes:
-    """A valid PNG built with the standard library."""
-    rows = b"".join(
-        b"\x00" + bytes((x * 3 + y) % 256 for x in range(width * 3)) for y in range(height)
-    )
+def png_bytes(width: int = 160, height: int = 80, solid: bool = False) -> bytes:
+    """A valid PNG built with the standard library; ``solid`` trades the gradient for speed."""
+    if solid:
+        rows = (b"\x00" + b"\x40\x80\xc0" * width) * height
+    else:
+        rows = b"".join(
+            b"\x00" + bytes((x * 3 + y) % 256 for x in range(width * 3)) for y in range(height)
+        )
 
     def chunk(kind: bytes, data: bytes) -> bytes:
         crc = zlib.crc32(kind + data) & 0xFFFFFFFF
@@ -498,6 +502,134 @@ class MarkdownPdfTests(unittest.TestCase):
         self.assertIn("./build --release", text)
         self.assertIn("https://acme.example/checklist", links)
         self.assertGreaterEqual(images, 1)
+
+
+def picture_boxes(reader) -> list[tuple[int, float, float, float, float]]:
+    """(page, left, top, right, bottom) in points, measured from the page's top-left,
+    of every picture the PDF paints. The renderer places a picture with nested
+    ``cm`` transforms inside ``q``/``Q``, so the box is the unit square carried
+    through that whole chain."""
+    boxes = []
+    for number, page in enumerate(reader.pages, 1):
+        height = float(page.mediabox.height)
+        ctm, saved = (1.0, 0.0, 0.0, 1.0, 0.0, 0.0), []
+        for operands, operator in page.get_contents().operations:
+            if operator == b"q":
+                saved.append(ctm)
+            elif operator == b"Q":
+                ctm = saved.pop()
+            elif operator == b"cm":
+                a, b, c, d, e, f = (float(value) for value in operands)
+                A, B, C, D, E, F = ctm
+                ctm = (a * A + b * C, a * B + b * D, c * A + d * C, c * B + d * D,
+                       e * A + f * C + E, e * B + f * D + F)
+            elif operator == b"Do":
+                A, B, C, D, E, F = ctm
+                xs = [A * u + C * v + E for u in (0, 1) for v in (0, 1)]
+                ys = [B * u + D * v + F for u in (0, 1) for v in (0, 1)]
+                boxes.append((number, min(xs), height - max(ys), max(xs), height - min(ys)))
+    return boxes
+
+
+class PictureFitCssTests(unittest.TestCase):
+    def test_the_height_bound_is_the_printable_page_and_leaves_room_for_a_caption(self):
+        from unittest.mock import patch
+
+        from pdf_system.models import PageGeometry
+        from pdf_system.service import DEFAULT_PALETTE, PdfService
+
+        geometry = PageGeometry.from_spec(
+            {"width": 300, "height": 500}, "portrait",
+            {"top": 10, "right": 20, "bottom": 30, "left": 40},
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            service = PdfService(SecurityPolicy(Path(tmp), Path(tmp)))
+            with patch.object(PdfService, "_font_css", return_value=""):
+                document = service._html_document("<p>x</p>", "IBM Plex Sans", DEFAULT_PALETTE, True, geometry)
+        # 500 - 10 - 30 = 460 printable; a picture keeps its 2 x 14pt margin, a figure also its caption.
+        self.assertIn("max-width:100%;max-height:432.00pt;height:auto", document)
+        self.assertIn("figure img{max-height:380.00pt;margin:0 auto 6pt}", document)
+
+
+@unittest.skipUnless(production_available(), "production PDF dependencies/fonts not installed")
+class PictureFitPdfTests(unittest.TestCase):
+    """A cover taller than the page ran off its bottom edge and under the footer."""
+
+    # The delivered book's cover was 768 x 1376 pixels: 1.79 times taller than wide,
+    # so at the page's width it stood 887pt tall on a page with 740pt of room.
+    WIDTH, HEIGHT = 768, 1376
+    PAGE_WIDTH, PAGE_HEIGHT = 595.28, 841.89
+    TOP, RIGHT, BOTTOM, LEFT = 54.0, 50.0, 48.0, 50.0
+
+    def render(self, kind: str, source: str) -> "PdfReader":
+        from pypdf import PdfReader
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "cover.png").write_bytes(png_bytes(self.WIDTH, self.HEIGHT, solid=True))
+            name = "doc.md" if kind == "md" else "doc.json"
+            (root / name).write_text(source, encoding="utf-8")
+            script = "md_to_pdf.py" if kind == "md" else "report_pdf.py"
+            rendered = subprocess.run(
+                [sys.executable, str(ROOT / "scripts" / script), str(root / name), str(root / "out.pdf")],
+                capture_output=True, text=True, check=False,
+            )
+            self.assertEqual(rendered.returncode, 0, rendered.stderr)
+            return PdfReader(io.BytesIO((root / "out.pdf").read_bytes()))
+
+    def assert_inside_the_margins(self, box):
+        _, left, top, right, bottom = box
+        self.assertGreaterEqual(left, self.LEFT - 0.5)
+        self.assertLessEqual(right, self.PAGE_WIDTH - self.RIGHT + 0.5)
+        self.assertGreaterEqual(top, self.TOP - 0.5)
+        self.assertLessEqual(bottom, self.PAGE_HEIGHT - self.BOTTOM + 0.5, "the picture runs into the footer")
+
+    def assert_proportions_kept(self, box):
+        _, left, top, right, bottom = box
+        self.assertAlmostEqual((bottom - top) / (right - left), self.HEIGHT / self.WIDTH, delta=0.02)
+
+    def test_a_tall_markdown_image_fits_the_printable_page_at_its_own_proportions(self):
+        reader = self.render("md", "![Cover](cover.png)\n")
+        boxes = picture_boxes(reader)
+        self.assertEqual(len(boxes), 1, boxes)
+        self.assertEqual(len(reader.pages), 1)
+        self.assert_inside_the_margins(boxes[0])
+        self.assert_proportions_kept(boxes[0])
+
+    def test_a_tall_report_figure_fits_with_its_caption_on_one_page(self):
+        spec = {"title": "Cover", "blocks": [
+            {"type": "pagebreak"},
+            {"type": "image", "path": "cover.png", "caption": "The cover of the book"},
+        ]}
+        reader = self.render("report", json.dumps(spec))
+        boxes = picture_boxes(reader)
+        self.assertEqual(len(boxes), 1, boxes)
+        self.assert_inside_the_margins(boxes[0])
+        self.assert_proportions_kept(boxes[0])
+        # A figure is kept whole, so a picture that takes every point of the printable
+        # height leaves its caption under the footer: the picture keeps 80pt back
+        # for the caption and the figure's own spacing.
+        _, _, top, _, bottom = boxes[0]
+        self.assertLessEqual(bottom - top, self.PAGE_HEIGHT - self.TOP - self.BOTTOM - 80 + 0.5)
+        page = reader.pages[boxes[0][0] - 1].extract_text()
+        self.assertIn("The cover of the book", page)
+        self.assertEqual(len(reader.pages), boxes[0][0])
+
+    def test_a_small_image_is_not_stretched_to_fill_the_page(self):
+        from pypdf import PdfReader
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "small.png").write_bytes(png_bytes(120, 60, solid=True))
+            (root / "doc.md").write_text("![Chart](small.png)\n", encoding="utf-8")
+            rendered = subprocess.run(
+                [sys.executable, str(ROOT / "scripts/md_to_pdf.py"), str(root / "doc.md"), str(root / "out.pdf")],
+                capture_output=True, text=True, check=False,
+            )
+            self.assertEqual(rendered.returncode, 0, rendered.stderr)
+            (small,) = picture_boxes(PdfReader(io.BytesIO((root / "out.pdf").read_bytes())))
+        self.assertAlmostEqual(small[3] - small[1], 120 * 0.75, delta=1.0)
+        self.assertAlmostEqual(small[4] - small[2], 60 * 0.75, delta=1.0)
 
 
 if __name__ == "__main__":

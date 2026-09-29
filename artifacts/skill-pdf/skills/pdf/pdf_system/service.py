@@ -14,6 +14,7 @@ from typing import Any, Iterator
 
 from .backends import (CapabilityReport, PypdfManipulator,
                        ReportLabRenderer, WeasyPrintRenderer, capability_registry)
+from . import length
 from .errors import ErrorCode, PdfError, RETRYABLE_RUNTIME_ERRORS, failure_class
 from .models import DocumentRequirements, PageGeometry, SecurityPolicy, resolve_direction
 from .markdown_html import render_markdown
@@ -21,6 +22,7 @@ from .math_html import MATH_CSS
 from .safety import (IMAGE_FILE_FORMATS, bounded_read, image_as_text,
                      image_data_uri, local_asset, reject_active_markup,
                      safe_output, validate_image)
+from .source import check_source
 from .verification import Verification, verify_pdf
 
 DEFAULT_FONT_FAMILY = os.environ.get(
@@ -148,7 +150,9 @@ class PdfService:
         if written:
             raise PdfError(ErrorCode.UNSAFE_INPUT, f"Markdown contains {written}, which prints as characters rather than an image; save the image as a {IMAGE_FILE_FORMATS} file in the Markdown file's directory and reference it as ![description](relative/path.png)")
         reject_active_markup(text)
-    def generate_markdown(self, source: Path, destination: Path, title: str | None = None, lang: str = "und", page_size: object = "A4", orientation: str = "portrait", deterministic: bool = False, quality_profile: str = "quality", font: str | None = None, palette: object = None, margin: object = None) -> Verification:
+        check_source(text)
+    def generate_markdown(self, source: Path, destination: Path, title: str | None = None, lang: str = "und", page_size: object = "A4", orientation: str = "portrait", deterministic: bool = False, quality_profile: str = "quality", font: str | None = None, palette: object = None, margin: object = None, pages: object = None) -> Verification:
+        requested = length.requested_pages(pages, self.policy.limits.max_pages)
         raw = bounded_read(source, self.policy)
         try: text = raw.decode("utf-8")
         except UnicodeDecodeError as exc: raise PdfError(ErrorCode.INVALID_INPUT, "Markdown must be UTF-8") from exc
@@ -161,8 +165,9 @@ class PdfService:
         backend, self.last_decision = self.resolver.resolve(req)
         geometry = self._resolve_geometry(page_size, orientation, margin)
         document = self._markdown_html(text, self.policy, self._font_family(font), resolve_palette(palette), palette is None and font is None, geometry); metadata = {"Title": title or source.stem, "Lang": lang, "Creator": "chainabit-pdf"}
-        return self._render(document, backend, destination, metadata, geometry)
-    def generate_report(self, source: Path, destination: Path, quality_profile: str = "quality") -> Verification:
+        return self._render(document, backend, destination, metadata, geometry, requested)
+    def generate_report(self, source: Path, destination: Path, quality_profile: str = "quality", pages: object = None) -> Verification:
+        requested = length.requested_pages(pages, self.policy.limits.max_pages)
         raw = bounded_read(source, self.policy)
         try: spec = json.loads(raw)
         except (UnicodeDecodeError, json.JSONDecodeError) as exc: raise PdfError(ErrorCode.INVALID_INPUT, "report specification must be valid UTF-8 JSON") from exc
@@ -176,7 +181,7 @@ class PdfService:
         # renderer, while WeasyPrint receives its HTML projection.  This keeps
         # a user palette from silently mixing with renderer-local defaults.
         document = {**spec, "palette": palette} if backend.capabilities.name == "reportlab" else self._report_html(spec, self.policy, self._font_family(spec.get("font")), palette, spec.get("palette") is None and spec.get("font") is None, geometry); metadata = {"Title": spec["title"], "Author": spec.get("author", ""), "Subject": spec.get("subject", ""), "Lang": spec.get("language", "und"), "Creator": "chainabit-pdf"}
-        return self._render(document, backend, destination, metadata, geometry)
+        return self._render(document, backend, destination, metadata, geometry, requested)
     def manipulate(self, operation: str, sources: list[Path], destination: Path, options: dict) -> Verification:
         target = safe_output(destination, self.policy)
         for source in sources: bounded_read(source, self.policy)
@@ -185,7 +190,7 @@ class PdfService:
     def _resolve_geometry(self, page_size: object, orientation: str, margin: object) -> PageGeometry:
         try: return PageGeometry.from_spec(page_size, orientation, margin)
         except ValueError as exc: raise PdfError(ErrorCode.INVALID_INPUT, str(exc)) from exc
-    def _render(self, document: Any, backend: Any, destination: Path, metadata: dict[str, str], geometry: PageGeometry) -> Verification:
+    def _render(self, document: Any, backend: Any, destination: Path, metadata: dict[str, str], geometry: PageGeometry, pages: int | None = None) -> Verification:
         target = safe_output(destination, self.policy); started = time.monotonic()
         with TemporaryArtifact(self.policy) as temp:
             staged = temp / "result.pdf"
@@ -196,7 +201,11 @@ class PdfService:
             # caller's margin request was silently dropped for every WeasyPrint
             # document; see the fix that added this comment).
             backend.render(document, geometry, {k:v for k,v in metadata.items() if v}, staged, self.policy)
-            result = verify_pdf(staged, self.policy.limits); os.replace(staged, target); return Verification(result.bytes, result.pages, result.version, result.sha256, result.mime_type, result.warnings + (f"backend={backend.capabilities.name}", f"duration_ms={(time.monotonic()-started)*1000:.1f}"))
+            result = verify_pdf(staged, self.policy.limits)
+            # A length the user stated is checked where the pages are counted,
+            # before anything is persisted: a refusal leaves no file behind and
+            # an earlier file at this path untouched.
+            length.refuse_if_over(pages, result.pages); os.replace(staged, target); return Verification(result.bytes, result.pages, result.version, result.sha256, result.mime_type, result.warnings + (f"backend={backend.capabilities.name}", f"duration_ms={(time.monotonic()-started)*1000:.1f}"))
     def _markdown_html(self, text: str, policy: SecurityPolicy, font: str, palette: dict[str, str], show_chainabit_footer: bool, geometry: PageGeometry) -> str:
         # A form feed is the explicit page break this system already claims to
         # understand: models.py raises the `page_breaks` requirement when it
@@ -317,6 +326,11 @@ class PdfService:
         # rewrites a single character of `body`.
         brand_footer = 'content:"CHAINABIT";font:600 7pt "ChainabitArtifact";letter-spacing:1.5pt;' if show_chainabit_footer else 'content:"";'
         top, right, bottom, left = (f"{value:.2f}pt" for value in geometry.margin)
+        # A picture is scaled to the printable page in height as well as width.
+        # With only a width bound, a tall image ran off the bottom of the page
+        # and under the footer. A figure also keeps room for its caption.
+        printable = max(geometry.height - geometry.margin[0] - geometry.margin[2], 1.0)
+        picture_fit, figure_fit = max(printable - 28.0, 1.0), max(printable - 80.0, 1.0)
         # The stylesheet of the equations the Markdown reader lays out is owned
         # by math_html, next to the class names it emits; it is plain layout
         # over the document's own font and colour.
@@ -338,8 +352,8 @@ pre{{white-space:pre-wrap;background:{palette["ink"]};color:{palette["accentInk"
 code{{font-family:"Fira Code","Noto Sans Mono",monospace;background:{palette["surface"]};border-radius:2pt;padding:1pt 3pt}}pre code{{background:transparent;padding:0}}
 blockquote{{margin:14pt 0;padding:10pt 14pt;background:{palette["surface"]};border-inline-start:4pt solid {palette["accent"]};color:{palette["body"]}}}blockquote>:last-child{{margin-bottom:0}}
 hr{{border:0;border-top:1pt solid {palette["rule"]};margin:18pt 0}}li>ul,li>ol{{margin:4pt 0 0}}li>p{{margin:0 0 5pt}}
-.page-break{{break-before:page}}img{{display:block;max-width:100%;height:auto;margin:14pt auto;border-radius:5pt}}
-figure{{margin:14pt 0;text-align:center;page-break-inside:avoid}}figure img{{margin:0 auto 6pt}}
+.page-break{{break-before:page}}img{{display:block;max-width:100%;max-height:{picture_fit:.2f}pt;height:auto;margin:14pt auto;border-radius:5pt}}
+figure{{margin:14pt 0;text-align:center;page-break-inside:avoid}}figure img{{max-height:{figure_fit:.2f}pt;margin:0 auto 6pt}}
 figcaption{{font-size:8.5pt;color:{palette["muted"]};text-align:center}}
 '''
         return f'<!doctype html><html dir="{direction}"><head><meta charset="utf-8"><style>'+style+'</style></head><body>'+body+'</body></html>'

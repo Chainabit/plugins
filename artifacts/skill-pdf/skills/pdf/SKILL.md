@@ -3,7 +3,7 @@ name: pdf
 description: Create, validate, and manipulate secure PDF artifacts. Inspect required capabilities first and prefer the highest-quality available backend; never silently downgrade rich content.
 license: Apache-2.0
 metadata:
-  version: 5.4.1
+  version: 5.5.0
 ---
 
 # PDF artifact system
@@ -39,28 +39,36 @@ what the system volunteers about itself, never about what was requested.
 
 ## How long it is
 
-A length the user asked for, such as a page count, is part of the request, and
-it is met by planning, not by repair. A page of this document system holds about
-450 words of running text. Equations, tables, code blocks and headings take more
-room, so ten pages is roughly 3,500 to 4,500 words of prose alongside its
-equations, and a one-page summary is about 350 words. Outline the sections to
-that size, write the whole Markdown file once, and render it.
+A length the user asked for, such as a page count, is part of the request. It is a
+limit as well as a target, and it is met by planning, not by repair. A page of this
+document system holds about 450 words of running text. Equations, tables, code
+blocks and headings take more room, so ten pages is roughly 3,500 to 4,500 words of
+prose alongside its equations, and a one-page summary is about 350 words. Outline
+the sections to that size, write the whole Markdown file once, and render it with
+the count the user gave: `--pages N` on `md_to_pdf.py` and on `report_pdf.py`. Pass
+it whenever the request states a length, and never drop or raise it to get a file
+out.
 
-The renderer reports the page count of every PDF it writes (`output.pages`).
-Compare it with the request:
+The renderer counts the pages it writes and reports them (`output.pages`). With
+`--pages` it also judges them (`length.status`), allowing a page either way:
 
-- Within a page of the request, or beyond it because the subject needed the
-  room: deliver the file. An exact count is not chased.
-- Short by more than a page: revise once. Add the substance the subject
-  supports, such as a worked example, a section that was only named, a table or
-  a figure, write the file again with those sections in place, render, and
-  deliver whatever that render reports. There is no second revision. Rewriting a
-  long document takes real time, and a delivered document a page or two short
-  serves the reader better than a run that ends with no document.
+- Within a page of the request: deliver the file. An exact count is not chased.
+- Over the request by more than a page: the render is refused as invalid input and
+  nothing is written. A stated length is never outgrown because the subject needed
+  the room. The refusal names the measured page count and how much of the source to
+  keep; cut sections and detail, never the type size, and render again with the same
+  `--pages`.
+- Short by more than a page: revise once. Add the substance the subject supports,
+  such as a worked example, a section that was only named, a table or a figure,
+  write the file again with those sections in place, render, and deliver whatever
+  that render reports. There is no second revision. Rewriting a long document takes
+  real time, and a delivered document a page or two short serves the reader better
+  than a run that ends with no document.
 - When the delivered count differs from the request, say the count the renderer
   reported. Never state a page count the renderer did not report.
 
-Do not pad with filler, repetition or blank pages.
+Do not pad with filler, repetition or blank pages. The renderer refuses a source in
+which most of the sentences repeat an earlier sentence word for word.
 
 `skill-brand-defaults` is a composed foundation. Resolve visual identity before
 choosing an entrypoint. With no visual identity, this skill uses the Chainabit
@@ -73,7 +81,7 @@ and a complete custom palette into the report spec.
 ```bash
 python3 {{SKILL_DIR}}/scripts/pdf_tool.py capabilities
 python3 {{SKILL_DIR}}/scripts/pdf_tool.py diagnose markdown report.md
-python3 {{SKILL_DIR}}/scripts/md_to_pdf.py report.md report.pdf
+python3 {{SKILL_DIR}}/scripts/md_to_pdf.py report.md report.pdf --title "Title" --lang en --pages 10
 python3 {{SKILL_DIR}}/scripts/report_pdf.py report.json report.pdf
 python3 {{SKILL_DIR}}/scripts/validate_pdf.py report.pdf
 ```
@@ -92,6 +100,17 @@ literals rewrite backslashes (`\f`, `\b`, `\n` and `\t` inside `\frac`, `\beta`,
 `\nabla` and `\theta` become control characters), and a program that runs the
 generator on your behalf hides its exit status, so a refused render can look like
 success. Output produced that way also cannot be published.
+
+Line breaks in the source are real line breaks. A `\n` typed inside an `echo` or
+`printf` argument, a JSON string or a program's string literal is a backslash and
+the letter n, so a document written that way is one unbroken line that prints
+`\n\n#` where its headings were. A Markdown source also carries no front matter:
+the title is `--title` and the language is `--lang`, and a leading `---` block
+would print as text at the top of the first page. The renderer refuses a source
+with `\n` escapes outside code, with a front-matter block, or that repeats its own
+sentences to reach a length. It names every such problem at once, writes nothing,
+and `pdf_tool.py diagnose` reports the same refusal before rendering. Rerunning the
+same source cannot succeed.
 
 Run each generator as its own command: the interpreter, the script, the source
 and the output, with no shell wrapper and nothing chained before or after it.

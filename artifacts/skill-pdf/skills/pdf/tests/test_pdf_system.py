@@ -63,7 +63,9 @@ class PdfSystemTests(unittest.TestCase):
  def test_larger_margin_forces_more_pages(self):
   """An end-to-end proof that a requested margin shrinks the real printable area."""
   if not production_dependencies_available():self.skipTest('production PDF dependencies/fonts not installed')
-  body='\n\n'.join(f'Paragraph {i}. ' + 'word '*40 for i in range(24))
+  # Every paragraph is its own text: a source that repeats one sentence to fill
+  # its pages is padding, and the renderer refuses it before any margin matters.
+  body='\n\n'.join(f'Paragraph {i}. ' + ' '.join(f'word{i}x{j}' for j in range(40)) for i in range(24))
   src=self.source/'m.md';src.write_text('# Report\n\n'+body)
   narrow=PdfService(self.policy).generate_markdown(src,self.output/'narrow-margin.pdf',margin=10)
   wide=PdfService(self.policy).generate_markdown(src,self.output/'wide-margin.pdf',margin=200)
