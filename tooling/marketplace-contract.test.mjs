@@ -62,6 +62,8 @@ test("visual artifact skills compose one brand-default policy and renderer proje
   assert.deepEqual(profile.precedence, [
     "explicit_user_branding",
     "artifact_specific_branding",
+    "project_branding",
+    "project_default_template",
     "chainabit_default",
   ]);
   assert.equal(profile.default.typography.primaryFamily, "IBM Plex Sans");

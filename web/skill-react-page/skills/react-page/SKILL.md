@@ -1,9 +1,9 @@
 ---
 name: react-page
-description: Build a React page, app, dashboard or slide presentation offline in the sandbox and deliver it as one self-contained HTML file. Use it whenever the user asks for React; use static-website only for plain pages with no scripting.
+description: Build a React page, app, dashboard or slide presentation offline in the sandbox and deliver it as one self-contained HTML file. Use it when a self-contained file is required; comprehensive applications use the React application capability.
 license: Apache-2.0
 metadata:
-  version: 1.0.0
+  version: 1.1.0
   discovery: "React page or app built offline into one self-contained HTML file"
   layer: implementation
   requires: "skill-brand-defaults, skill-react, skill-web-engineering"
@@ -24,9 +24,12 @@ working directory, which is the workspace root.
 
 ## Choose this skill when
 
-The user asks for React, or for anything that needs scripting or components: an
-app, a tool, a dashboard, a game, an interactive slide presentation, a page with
-state. A page with no scripting at all is `static-website`. Do not load React,
+The requested deliverable is one self-contained HTML file with React components,
+such as an offline page or an interactive slide presentation. React alone does
+not imply this delivery format. For a comprehensive application with separate
+modules, routing, build configuration or server behavior, inspect the React
+application capability and choose its actual structure. A small inline-capable
+conversation experience need not create a file. Do not load React,
 Babel or any library from a CDN, and do not paste a library into a tool call:
 the file is served where nothing can be fetched.
 

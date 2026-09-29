@@ -94,6 +94,19 @@ def run_validate(archive: Path) -> Result:
 
 
 class ArchiveProgramTest(unittest.TestCase):
+    def test_same_source_bytes_produce_identical_zip_despite_mtime_and_permission_changes(self) -> None:
+        first = self.file("src/chosen/module.js", "export const result = 42;")
+        os.utime(first, (1_600_000_000, 1_600_000_000))
+        os.chmod(first, 0o600)
+        a = run_build(self.root / "src", self.root / "a.zip")
+        self.assertEqual(a.code, 0, a.stderr)
+        os.utime(first, (1_700_000_000, 1_700_000_000))
+        os.chmod(first, 0o644)
+        b = run_build(self.root / "src", self.root / "b.zip")
+        self.assertEqual(b.code, 0, b.stderr)
+        self.assertEqual(a.report["output"]["sha256"], b.report["output"]["sha256"])
+        self.assertEqual((self.root / "a.zip").read_bytes(), (self.root / "b.zip").read_bytes())
+
     def setUp(self) -> None:
         self.root = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, self.root, ignore_errors=True)

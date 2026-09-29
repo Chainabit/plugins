@@ -243,7 +243,11 @@ BRACKETED_STAND_IN = re.compile(
     rf"|(?:{STAND_IN})[^\)\]\}}>]*?(?:{FIGURE_NOUN}))[^\)\]\}}>]*[\)\]\}}>]",
     re.IGNORECASE,
 )
-BARE_STAND_IN = re.compile(r"\b(?:TODO|TBD|FIXME|lorem ipsum)\b", re.IGNORECASE)
+# Preserve legacy unresolved-field validation without rejecting ordinary prose
+# about these tokens. Media completeness is checked structurally below.
+BARE_STAND_IN = re.compile(
+    r"^\s*(?:(?:TODO|TBD|FIXME)(?:\s*:|\s*$)|lorem ipsum\b)", re.IGNORECASE
+)
 
 
 # --- validation -------------------------------------------------------------------
@@ -615,6 +619,24 @@ def validate_slide(
 
     problems = text_field(slide.get("title"), f"{where}.title", required=True)
     problems.extend(text_field(slide.get("notes"), f"{where}.notes", required=False))
+
+    required_visuals = slide.get("requiredVisuals", [])
+    if (
+        not isinstance(required_visuals, list)
+        or len(required_visuals) > 2
+        or any(not isinstance(kind, str) or kind not in {"image", "chart"} for kind in required_visuals)
+        or len(set(required_visuals)) != len(required_visuals)
+    ):
+        problems.append(f"{where}.requiredVisuals: must be a unique list of image/chart requirements")
+    else:
+        for kind in required_visuals:
+            visual_facts = {
+                "image": (layout in IMAGE_LAYOUTS or layout == "chart") and slide.get("image") is not None,
+                "chart": layout == "chart" and (slide.get("chart") is not None or slide.get("image") is not None),
+            }
+            carries_visual = visual_facts[kind]
+            if not carries_visual:
+                problems.append(f"{where}.requiredVisuals: required {kind} must be carried by its media layout")
 
     # A layout that declares a figure must carry one. This is the check that
     # makes a stand-in impossible rather than merely discouraged: there is no

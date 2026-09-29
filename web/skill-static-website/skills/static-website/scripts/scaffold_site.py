@@ -1267,13 +1267,13 @@ def render_stylesheet(site: dict) -> str:
     dark_tokens = DARK_TOKENS.format(**dark)
     font_family = json.dumps(site["font"], ensure_ascii=False)
     primary_faces = (
-            "@font-face {{ font-family: 'IBM Plex Sans'; font-style: normal; "
+            "@font-face { font-family: 'IBM Plex Sans'; font-style: normal; "
             f"font-weight: {weight}; font-display: swap; "
             f"src: url('fonts/{filename}') format('woff2'); }}"
             for filename, weight in FONT_FILES.items()
     )
     fallback_faces = (
-            "@font-face {{ font-family: 'IBM Plex Sans Arabic'; font-style: normal; "
+            "@font-face { font-family: 'IBM Plex Sans Arabic'; font-style: normal; "
             f"font-weight: {weight}; font-display: swap; "
             f"src: url('fonts/{filename}') format('woff2'); }}"
             for filename, weight in FALLBACK_FONT_FILES.items()

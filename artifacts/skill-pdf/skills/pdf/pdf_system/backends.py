@@ -212,7 +212,8 @@ class ReportLabRenderer(PdfRenderer):
                 kind = block["type"]
                 if kind == "heading": flow.append(Paragraph(escape_report(block["text"]), heading))
                 elif kind == "paragraph": flow.append(Paragraph(escape_report(block["text"]), body))
-                elif kind in {"bullets", "numbered"}: flow.extend(Paragraph(("• " if kind == "bullets" else "1. ") + escape_report(item), body) for item in block["items"])
+                elif kind in {"bullets", "numbered"}:
+                    flow.extend(Paragraph(("• " if kind == "bullets" else f"{index}. ") + escape_report(item), body) for index, item in enumerate(block["items"], start=1))
                 elif kind == "table":
                     rows = [[Paragraph(escape_report(str(x)), body) for x in block["columns"]]] + [[Paragraph(escape_report(str(x)), body) for x in row] for row in block["rows"]]
                     table = Table(rows, repeatRows=1, hAlign="LEFT"); table.setStyle(TableStyle([("BACKGROUND", (0,0), (-1,0), colors.HexColor(palette["surface"])), ("GRID", (0,0), (-1,-1), .5, colors.HexColor(palette["rule"])), ("VALIGN", (0,0), (-1,-1), "TOP"), ("LEFTPADDING", (0,0), (-1,-1), 5)])); flow.append(table)

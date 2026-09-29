@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "skill-python",
   "name": "Python",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Language-level Python practices for package structure, isolated environments, dependencies, typing, errors, configuration, testing, and maintainable architecture. Framework-neutral.",
   "author": {
     "name": "Chainabit"
@@ -28,7 +28,9 @@
   },
   "composition": {
     "requires": [
-      "skill-software-engineering"
+      "skill-software-engineering",
+      "skill-brand-defaults",
+      "skill-project-bootstrap"
     ],
     "role": "language"
   },
@@ -40,5 +42,21 @@
     "dangerousSkipPermissions": false,
     "permissionModelVersion": 2,
     "requested": []
+  },
+  "application": {
+    "protocolVersion": "chainabit.application-capability/v1",
+    "planProtocol": "chainabit.application-plan/v1",
+    "technologyId": "python",
+    "operations": [
+      "inspect",
+      "build",
+      "test",
+      "preview",
+      "package"
+    ],
+    "previewKinds": [
+      "runtime"
+    ],
+    "dependencyPolicy": "offline-only"
   }
 }
