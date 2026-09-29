@@ -156,5 +156,26 @@ class LengthAndMathematicsContractTests(unittest.TestCase):
         self.contains("an equation is never replaced by its source text, by a picture or by a plainer version of itself.")
 
 
+class PictureLetteringContractTests(unittest.TestCase):
+    """A Turkish book's generated cover was lettered in English, with an invented title.
+
+    An image model letters whatever title it imagines, and no validator can read a
+    picture, so the instruction is the only control: pictures carry no lettering,
+    and the document's own title is text the renderer sets.
+    """
+
+    def contains(self, sentence: str) -> None:
+        self.assertIn(" ".join(sentence.split()), PROSE, sentence)
+
+    def test_a_picture_carries_no_lettering_and_the_title_is_real_text(self):
+        self.contains("Lettering inside a picture is a claim about the document.")
+        self.contains("Generate the picture with no lettering at all")
+        self.contains("asking the image tool to exclude text, words and letters")
+        self.contains("set the title, the author the user named and every label as real text in the document")
+
+    def test_a_picture_that_must_carry_lettering_carries_the_documents_words(self):
+        self.contains("A picture that must carry lettering carries exactly the words and language the document uses.")
+
+
 if __name__ == "__main__":
     unittest.main()
