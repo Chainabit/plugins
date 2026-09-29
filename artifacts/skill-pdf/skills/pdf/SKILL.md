@@ -3,7 +3,7 @@ name: pdf
 description: Create, validate, and manipulate secure PDF artifacts. Inspect required capabilities first and prefer the highest-quality available backend; never silently downgrade rich content.
 license: Apache-2.0
 metadata:
-  version: 5.5.0
+  version: 5.5.1
 ---
 
 # PDF artifact system
@@ -191,6 +191,16 @@ named. Fix the path or move the file; rerunning the same render cannot succeed. 
 tag and an inline `data:image/…;base64,` URI are rejected before rendering,
 because either would print as characters instead of a picture. The validator
 also rejects any PDF that prints image data as text.
+
+Lettering inside a picture is a claim about the document. A generated cover for a
+Turkish-language book came back lettered in English, with a title the document does
+not have above an author nobody named, because an image model writes whatever title
+it imagines. Generate the
+picture with no lettering at all, asking the image tool to exclude text, words and
+letters, and set the title, the author the user named and every label as real text
+in the document, where it is in the document's own language and typeface and can be
+selected and searched. A picture that must carry lettering carries exactly the
+words and language the document uses.
 
 Before rendering, infer the document's requirements: Unicode and fonts, Turkish/RTL/CJK shaping, images, tables, Markdown/HTML/CSS, pagination, headers/footers, mathematics, vector graphics, typography, colors, print quality, metadata, accessibility, or manipulation. Resolve a backend only if it advertises every required capability and has tests for that behavior. Missing dependencies and unsupported features are actionable machine-readable failures; do not print raw math, replace glyphs, omit images, flatten tables, or fall back to the text renderer.
 

@@ -1,7 +1,7 @@
 """A source that prints its own markup, or repeats itself to length, is never rendered.
 
 A request for a ten-page book came back as thirty-one pages. Page one read
-``---\\ntitle: "..."\\nauthor: "BookCraft PDF Agent"``, every heading after it
+``---\\ntitle: "..."\\nauthor: "Example Agent"``, every heading after it
 printed as ``\\n\\n#``, and the body recycled forty-three sentences. The renderer
 called it a success and the validator called it valid: the file was well formed
 and the document was wrong.
@@ -74,7 +74,7 @@ def unique_paragraphs(count: int) -> str:
 
 # Front matter, a cover and a body whose line breaks are all the two characters
 # backslash and n -- what the delivered book's source was.
-ESCAPED_FRONT = '---\\ntitle: "Sentient: Bir Yapay Zekanın Aşkı"\\nauthor: "BookCraft PDF Agent"\\nlanguage: "tr"\\n---\\n\\n'
+ESCAPED_FRONT = '---\\ntitle: "Örnek Kitap: Bir Yapay Zeka Hikâyesi"\\nauthor: "Example Agent"\\nlanguage: "tr"\\n---\\n\\n'
 INCIDENT = (
     ESCAPED_FRONT
     + "\n![Kapak](cover.png)\n"
@@ -92,8 +92,8 @@ class EscapedLineBreakTests(unittest.TestCase):
         self.assertIn("front-matter block (line 1)", message)
         self.assertIn("repeat an earlier sentence word for word", message)
         # The message locates the problem and never quotes the document.
-        self.assertNotIn("Sentient", message)
-        self.assertNotIn("BookCraft", message)
+        self.assertNotIn("Örnek Kitap", message)
+        self.assertNotIn("Example Agent", message)
 
     def test_an_escaped_break_is_counted_and_located_outside_code(self):
         found = escaped_line_breaks("Birinci satır\n\nİkinci\\n\\nÜçüncü\\n1. Dördüncü\n")
@@ -173,7 +173,7 @@ class FrontMatterTests(unittest.TestCase):
             self.assertIsNone(front_matter_end(source), source)
 
     def test_a_document_that_opens_on_its_title_is_clean(self):
-        check_source("# Sentient\n\nAn opening paragraph that says something real.\n")
+        check_source("# Örnek Kitap\n\nAn opening paragraph that says something real.\n")
 
 
 class RepeatedSentenceTests(unittest.TestCase):
@@ -280,7 +280,7 @@ class DeliveredBookReplayTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             source, output = Path(tmp) / "book.md", Path(tmp) / "book.pdf"
             source.write_text(
-                '---\ntitle: "Sentient"\nauthor: "BookCraft PDF Agent"\nlanguage: "tr"\n---\n\n# Sentient\n\nBody.\n',
+                '---\ntitle: "Örnek Kitap"\nauthor: "Example Agent"\nlanguage: "tr"\n---\n\n# Örnek Kitap\n\nBody.\n',
                 encoding="utf-8",
             )
             rendered = self.run_script("md_to_pdf.py", str(source), str(output))
@@ -295,13 +295,13 @@ class DeliveredBookReplayTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             source, output = Path(tmp) / "book.md", Path(tmp) / "book.pdf"
             source.write_text(
-                "# Sentient: Bir Yapay Zekanın Aşkı\n\n## Bölüm 1: Soğuk Başlangıç\n\n"
+                "# Örnek Kitap: Bir Yapay Zeka Hikâyesi\n\n## Bölüm 1: Soğuk Başlangıç\n\n"
                 + unique_paragraphs(6) + "\n",
                 encoding="utf-8",
             )
             rendered = self.run_script(
                 "md_to_pdf.py", str(source), str(output),
-                "--title", "Sentient: Bir Yapay Zekanın Aşkı", "--lang", "tr",
+                "--title", "Örnek Kitap: Bir Yapay Zeka Hikâyesi", "--lang", "tr",
             )
             self.assertEqual(rendered.returncode, 0, rendered.stderr)
             validated = self.run_script("validate_pdf.py", str(output))
@@ -311,12 +311,12 @@ class DeliveredBookReplayTests(unittest.TestCase):
             reader = PdfReader(str(output))
             first = reader.pages[0].extract_text().strip()
             everything = "\n".join(page.extract_text() for page in reader.pages)
-            self.assertTrue(first.startswith("Sentient: Bir Yapay Zekanın Aşkı"), first[:80])
-            for leaked in ("---", "title:", "author:", "language:", "BookCraft"):
+            self.assertTrue(first.startswith("Örnek Kitap: Bir Yapay Zeka Hikâyesi"), first[:80])
+            for leaked in ("---", "title:", "author:", "language:", "Example Agent"):
                 self.assertNotIn(leaked, everything)
             self.assertIsNone(re.search(r"\\n", everything), "an escape sequence printed")
             self.assertNotIn("#", everything)
-            self.assertEqual(reader.metadata.title, "Sentient: Bir Yapay Zekanın Aşkı")
+            self.assertEqual(reader.metadata.title, "Örnek Kitap: Bir Yapay Zeka Hikâyesi")
 
 
 @unittest.skipUnless(production_available(), "production PDF dependencies/fonts not installed")

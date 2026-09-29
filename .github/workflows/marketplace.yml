@@ -62,3 +62,13 @@ jobs:
             echo "Potential credential material found; review and remove it before merge."
             exit 1
           fi
+
+  skill-pdf-production:
+    name: skill-pdf on the production renderer
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Run skill-pdf tests on the sandbox renderer pins, failing on any skip
+        run: bash tooling/run-skill-pdf-production-tests.sh

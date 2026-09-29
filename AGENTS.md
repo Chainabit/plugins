@@ -42,7 +42,10 @@ node tooling/validate-marketplace.mjs --write-bundles   # regenerate bundle.json
 ```
 
 CI runs exactly these five, plus a credential-pattern scan, on PRs and pushes to `main`,
-`development`, `development-rebased`.
+`development`, `development-rebased`. A second job, `skill-pdf-production`, runs
+`bash tooling/run-skill-pdf-production-tests.sh`: skill-pdf's tests on the sandbox renderer pins
+(WeasyPrint, pypdf, IBM Plex), failing if any test is skipped. The script installs packages and
+fonts system-wide, so run it in a throwaway container, not on a workstation.
 
 A skill's `tests/` directory is executed, not just packaged. `run-skill-tests.mjs` discovers
 every `<category>/<plugin>/skills/<skill>/tests/` holding `test_*.py` and runs it with
