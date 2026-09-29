@@ -24,6 +24,32 @@ const docxSkillRoot = resolve('artifacts/skill-docx/skills/docx');
 const xlsxSkillRoot = resolve('artifacts/skill-xlsx/skills/xlsx');
 const websiteSkillRoot = resolve('web/skill-static-website/skills/static-website');
 
+// The Turkish fixture is the smoke's own input. It used to be read from the
+// skill's tests/fixtures directory, which the official bundle stopped shipping,
+// so the nightly smoke failed before it rendered anything.
+const TURKISH_FIXTURE = `# Aziz Sancar ve DNA Onarımı
+
+Türkçe karakter doğrulaması: **ğüşöçıİĞÜŞÖÇ**.
+
+## Bilimsel katkı
+
+- Fotoliyaz enziminin işleyişi
+- Nükleotid eksizyon onarımı
+- Sirkadiyen ritim ve DNA onarımı
+
+| Dönem | Çalışma | Etki |
+|---|---|---|
+| 1970'ler | Fotoliyaz | UV hasarının onarımı |
+| 2015 | Nobel Kimya Ödülü | DNA onarım haritası |
+
+Sonuç: Bilimsel sebat, ölçülebilir ve kalıcı etki üretir.
+`;
+// A source written with the two characters backslash and n for its line breaks,
+// and a four-page source held to a one-page request: the shipped renderer must
+// refuse both and write nothing.
+const ESCAPED_SOURCE = String.raw`---\ntitle: "Başlık"\n---\n\n# Başlık\n\nBir paragraf.\n\n## Bölüm\n\nBir paragraf daha.`;
+const FOUR_PAGE_SOURCE = ['# Bir', '# İki', '# Üç', '# Dört'].join('\f');
+
 async function request(path, init = {}) {
   const response = await fetch(`${baseUrl}${path}`, {
     ...init,
@@ -118,7 +144,7 @@ try {
   await materializeSkill(sandboxId, xlsxSkillRoot, 'skill-xlsx-xlsx');
   await materializeSkill(sandboxId, websiteSkillRoot, 'skill-static-website-static-website');
   evidence.skillPreparationMs = Math.round(performance.now() - skillPreparationStartedAt);
-  const fixture = await readFile(resolve(skillRoot, 'tests/fixtures/turkish.md'));
+  const fixture = Buffer.from(TURKISH_FIXTURE, 'utf8');
   await request(`/v1/sandbox/${sandboxId}/file/workspace/report.md`, {
     method: 'PUT',
     headers: { 'content-type': 'application/octet-stream' },
@@ -173,6 +199,43 @@ try {
     'empty.pdf',
   ]);
   assert(evidence.inputRejection.exitCode === 1, 'invalid input was not exit 1', evidence.inputRejection);
+
+  for (const [name, body] of [
+    ['escaped.md', ESCAPED_SOURCE],
+    ['four-pages.md', FOUR_PAGE_SOURCE],
+  ]) {
+    await request(`/v1/sandbox/${sandboxId}/file/workspace/${name}`, {
+      method: 'PUT',
+      headers: { 'content-type': 'application/octet-stream' },
+      body,
+    });
+  }
+  evidence.escapedRejection = await exec(sandboxId, [
+    'python3',
+    '.skills/skill-pdf-pdf/scripts/md_to_pdf.py',
+    'escaped.md',
+    'escaped.pdf',
+  ]);
+  assert(evidence.escapedRejection.exitCode === 1, 'an escaped source was not refused as invalid input', evidence.escapedRejection);
+  assert(
+    lastJsonLine(evidence.escapedRejection.stderr).error.code === 'invalid_input',
+    'escaped source rejection code mismatch',
+    evidence.escapedRejection,
+  );
+  evidence.lengthRejection = await exec(sandboxId, [
+    'python3',
+    '.skills/skill-pdf-pdf/scripts/md_to_pdf.py',
+    'four-pages.md',
+    'four-pages.pdf',
+    '--pages',
+    '1',
+  ]);
+  assert(evidence.lengthRejection.exitCode === 1, 'a document over its stated length was not refused', evidence.lengthRejection);
+  assert(
+    /renders to 4 pages but 1 were requested/.test(lastJsonLine(evidence.lengthRejection.stderr).error.message),
+    'length rejection did not name the measured pages',
+    evidence.lengthRejection,
+  );
 
   evidence.missingDependency = await exec(sandboxId, [
     'python3',

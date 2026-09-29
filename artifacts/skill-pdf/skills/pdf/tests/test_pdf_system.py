@@ -13,6 +13,11 @@ def production_dependencies_available():
   import weasyprint, pypdf  # noqa: F401
   return Path(__import__('os').environ.get('CHAINABIT_ARTIFACT_FONT_DIR','')).joinpath('IBMPlexSans-Regular.ttf').is_file()
  except Exception:return False
+def pillow_available():
+ try:
+  import PIL  # noqa: F401
+  return True
+ except ImportError:return False
 class PdfSystemTests(unittest.TestCase):
  def setUp(self):
   self.tmp=tempfile.TemporaryDirectory(); self.root=Path(self.tmp.name); self.source=self.root/'in'; self.output=self.root/'out'; self.source.mkdir(); self.output.mkdir(); self.policy=SecurityPolicy(self.source,self.output)
@@ -63,7 +68,9 @@ class PdfSystemTests(unittest.TestCase):
  def test_larger_margin_forces_more_pages(self):
   """An end-to-end proof that a requested margin shrinks the real printable area."""
   if not production_dependencies_available():self.skipTest('production PDF dependencies/fonts not installed')
-  body='\n\n'.join(f'Paragraph {i}. ' + 'word '*40 for i in range(24))
+  # Every paragraph is its own text: a source that repeats one sentence to fill
+  # its pages is padding, and the renderer refuses it before any margin matters.
+  body='\n\n'.join(f'Paragraph {i}. ' + ' '.join(f'word{i}x{j}' for j in range(40)) for i in range(24))
   src=self.source/'m.md';src.write_text('# Report\n\n'+body)
   narrow=PdfService(self.policy).generate_markdown(src,self.output/'narrow-margin.pdf',margin=10)
   wide=PdfService(self.policy).generate_markdown(src,self.output/'wide-margin.pdf',margin=200)
@@ -328,6 +335,7 @@ class PdfSystemTests(unittest.TestCase):
   with out.open('wb') as handle:writer.write(handle)
   result=subprocess.run([sys.executable,str(ROOT/'scripts/validate_pdf.py'),str(out)],capture_output=True,text=True,check=False)
   self.assertEqual(result.returncode,1);message=json.loads(result.stderr);self.assertEqual(message['error']['class'],'produced_artifact_rejected')
+@unittest.skipUnless(pillow_available(),'Pillow is not installed')
 class ImageReferenceResolutionTests(unittest.TestCase):
  """An image reference that names no file is an authoring error the author can fix.
 
