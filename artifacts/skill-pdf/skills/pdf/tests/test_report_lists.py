@@ -17,6 +17,15 @@ from pdf_system.models import PageGeometry
 from pdf_system.service import DEFAULT_PALETTE
 
 
+def renderer_available() -> bool:
+    try:
+        import pypdf  # noqa: F401
+        import reportlab  # noqa: F401
+    except ImportError:
+        return False
+    return True
+
+
 class ReportListTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
@@ -43,6 +52,7 @@ class ReportListTests(unittest.TestCase):
         self.assertEqual(html.count('<ul>'), 1)
         self.assertIn('<ol><li>Build &lt;source&gt;</li><li>Validate</li><li>Publish</li></ol>', html)
 
+    @unittest.skipUnless(renderer_available(), 'ReportLab and pypdf are not installed')
     def test_reportlab_numbers_items_and_restarts_each_list(self):
         import reportlab
         from pypdf import PdfReader
