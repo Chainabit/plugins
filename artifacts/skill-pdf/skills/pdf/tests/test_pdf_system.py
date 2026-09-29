@@ -13,6 +13,11 @@ def production_dependencies_available():
   import weasyprint, pypdf  # noqa: F401
   return Path(__import__('os').environ.get('CHAINABIT_ARTIFACT_FONT_DIR','')).joinpath('IBMPlexSans-Regular.ttf').is_file()
  except Exception:return False
+def pillow_available():
+ try:
+  import PIL  # noqa: F401
+  return True
+ except ImportError:return False
 class PdfSystemTests(unittest.TestCase):
  def setUp(self):
   self.tmp=tempfile.TemporaryDirectory(); self.root=Path(self.tmp.name); self.source=self.root/'in'; self.output=self.root/'out'; self.source.mkdir(); self.output.mkdir(); self.policy=SecurityPolicy(self.source,self.output)
@@ -330,6 +335,7 @@ class PdfSystemTests(unittest.TestCase):
   with out.open('wb') as handle:writer.write(handle)
   result=subprocess.run([sys.executable,str(ROOT/'scripts/validate_pdf.py'),str(out)],capture_output=True,text=True,check=False)
   self.assertEqual(result.returncode,1);message=json.loads(result.stderr);self.assertEqual(message['error']['class'],'produced_artifact_rejected')
+@unittest.skipUnless(pillow_available(),'Pillow is not installed')
 class ImageReferenceResolutionTests(unittest.TestCase):
  """An image reference that names no file is an authoring error the author can fix.
 
