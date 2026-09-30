@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "skill-xlsx",
   "name": "Excel Workbook Skill",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Builds real .xlsx workbooks from a JSON spec — typed cells, a styled header row, column widths, and number formats — and validates the result. Ships two Python scripts that run in the sandbox against the pre-installed openpyxl; no network access at any point.",
   "author": {
     "name": "NEXUS Community"
