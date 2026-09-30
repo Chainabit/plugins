@@ -53,7 +53,10 @@ jobs:
       - name: Run semantic contract fixtures
         run: node --test tooling/marketplace-contract.test.mjs
       - name: Guard production smoke coverage
-        run: node --test tooling/production-smoke-contract.test.mjs
+        run: >-
+          node --test
+          tooling/production-smoke-contract.test.mjs
+          tooling/api-system-skill-pin-consistency.test.mjs
       - name: Resolve representative composition
         run: node tooling/resolve-skills.mjs skill-pdf
       - name: Run executable skill tests
