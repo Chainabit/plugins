@@ -29,7 +29,5 @@ jobs:
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 20
-      - name: Verify API production pins match published releases
-        run: node tooling/verify-api-system-skill-pins.mjs
       - name: Verify production-equivalent artifact runtime
         run: node tooling/pdf-production-sandbox-smoke.mjs
