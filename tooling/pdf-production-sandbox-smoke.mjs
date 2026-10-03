@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { createHash } from 'node:crypto';
 import { readFile, readdir } from 'node:fs/promises';
 import { resolve, relative, sep } from 'node:path';
 
@@ -22,6 +23,7 @@ const skillRoot = resolve(process.argv[2] ?? 'artifacts/skill-pdf/skills/pdf');
 const pptxSkillRoot = resolve('artifacts/skill-pptx/skills/pptx');
 const docxSkillRoot = resolve('artifacts/skill-docx/skills/docx');
 const xlsxSkillRoot = resolve('artifacts/skill-xlsx/skills/xlsx');
+const archiveSkillRoot = resolve('artifacts/skill-archive/skills/archive');
 const websiteSkillRoot = resolve('web/skill-static-website/skills/static-website');
 
 // The Turkish fixture is the smoke's own input. It used to be read from the
@@ -142,6 +144,7 @@ try {
   await materializeSkill(sandboxId, pptxSkillRoot, 'skill-pptx-pptx');
   await materializeSkill(sandboxId, docxSkillRoot, 'skill-docx-docx');
   await materializeSkill(sandboxId, xlsxSkillRoot, 'skill-xlsx-xlsx');
+  await materializeSkill(sandboxId, archiveSkillRoot, 'skill-archive-archive');
   await materializeSkill(sandboxId, websiteSkillRoot, 'skill-static-website-static-website');
   evidence.skillPreparationMs = Math.round(performance.now() - skillPreparationStartedAt);
   const fixture = Buffer.from(TURKISH_FIXTURE, 'utf8');
@@ -434,6 +437,41 @@ try {
     validatedWebsite,
   );
 
+  const archiveInput = await exec(sandboxId, [
+    'python3', '-c',
+    'from pathlib import Path; p=Path("archive-input/nested"); p.mkdir(parents=True); (p/"todo.txt").write_text("Representative archive payload\\n"); Path("archive-input/readme.txt").write_text("Archive contract fixture\\n")',
+  ]);
+  assert(archiveInput.exitCode === 0, 'archive fixture creation failed', archiveInput);
+  evidence.archiveRender = await exec(sandboxId, [
+    'python3', '.skills/skill-archive-archive/scripts/build_archive.py',
+    'archive-input', 'archive.zip', '{}', '1000', '67108864', '16777216',
+  ]);
+  assert(evidence.archiveRender.exitCode === 0, 'official archive generator failed', evidence.archiveRender);
+  const renderedArchive = lastJsonLine(evidence.archiveRender.stdout);
+  evidence.archiveInspect = await exec(sandboxId, [
+    'python3', '-c',
+    'import io,json,hashlib,zipfile; b=open("archive.zip","rb").read(); z=zipfile.ZipFile(io.BytesIO(b)); print(json.dumps(dict(bytes=len(b),sha256=hashlib.sha256(b).hexdigest(),entries=z.namelist(),corrupt=z.testzip())))',
+  ]);
+  assert(evidence.archiveInspect.exitCode === 0, 'archive reopen failed', evidence.archiveInspect);
+  const inspectedArchive = lastJsonLine(evidence.archiveInspect.stdout);
+  assert(inspectedArchive.bytes > 0 && inspectedArchive.corrupt === null &&
+    inspectedArchive.entries.includes('nested/todo.txt') && inspectedArchive.entries.includes('readme.txt'),
+    'archive entry identity mismatch', inspectedArchive);
+  evidence.archiveValidate = await exec(sandboxId, [
+    'python3', '.skills/skill-archive-archive/scripts/validate_archive.py', 'archive.zip',
+  ]);
+  assert(evidence.archiveValidate.exitCode === 0, 'authoritative archive validator failed', evidence.archiveValidate);
+  const validatedArchive = lastJsonLine(evidence.archiveValidate.stdout);
+  const readBack = Buffer.from(await (await request(`/v1/sandbox/${sandboxId}/file/workspace/archive.zip`)).arrayBuffer());
+  const readBackHash = createHash('sha256').update(readBack).digest('hex');
+  assert(renderedArchive.output.sha256 === inspectedArchive.sha256 &&
+    validatedArchive.subject.sha256 === inspectedArchive.sha256 && readBackHash === inspectedArchive.sha256 &&
+    validatedArchive.subject.bytes === readBack.length && readBack.length === inspectedArchive.bytes &&
+    validatedArchive.subject.mime === 'application/zip', 'archive byte custody mismatch', {
+      generated: renderedArchive.output, inspected: inspectedArchive, validated: validatedArchive.subject,
+      readBackBytes: readBack.length, readBackHash,
+    });
+
   report = {
     ok: true,
     sandboxRuntime: JSON.parse(evidence.runtime.stdout.trim()),
@@ -447,6 +485,8 @@ try {
     docx: validatedDocx.subject,
     xlsx: validatedXlsx.subject,
     website: validatedWebsite.subject,
+    archive: validatedArchive.subject,
+    archiveReadBackHash: readBackHash,
     timingsMs: {
       sandboxStartup: evidence.sandboxStartupMs,
       skillPreparation: evidence.skillPreparationMs,
@@ -461,14 +501,18 @@ try {
       xlsxValidation: evidence.xlsxValidate.durationMs,
       websiteGeneration: evidence.websiteRender.durationMs,
       websiteValidation: evidence.websiteValidate.durationMs,
+      archiveGeneration: evidence.archiveRender.durationMs,
+      archiveInspection: evidence.archiveInspect.durationMs,
+      archiveValidation: evidence.archiveValidate.durationMs,
     },
   };
 } finally {
   const cleanupStartedAt = performance.now();
-  await fetch(`${baseUrl}/v1/sandbox/${sandboxId}`, {
+  const cleanup = await fetch(`${baseUrl}/v1/sandbox/${sandboxId}`, {
     method: 'DELETE',
     headers,
-  }).catch(() => undefined);
+  });
+  assert(cleanup.ok, 'synthetic sandbox cleanup failed', { status: cleanup.status });
   if (report) {
     report.timingsMs.cleanup = Math.round(performance.now() - cleanupStartedAt);
     report.timingsMs.total = Math.round(performance.now() - smokeStartedAt);
