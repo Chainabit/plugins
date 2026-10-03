@@ -53,10 +53,10 @@
       "id": "skill-pdf",
       "source": "https://github.com/chainabit/plugins.git#artifacts/skill-pdf",
       "version": "5.5.4",
-      "revision": "72700554715b8b37ec560f6d048ade4c492f736d",
+      "revision": "59d9c01a021b5e54b76ad7541d3eaf4ffca0ba6c",
       "integrity": {
         "algorithm": "sha256",
-        "packageSha256": "f3686d52c9b047c12c915acb76fe5b398527dd98a15c2be6ada43504041cd9a2"
+        "packageSha256": "19f72d8b3c2cfa77b0a9271dd8427f2a1ac5e3d10af485ceac0fdb52e5a038dd"
       }
     },
     {
