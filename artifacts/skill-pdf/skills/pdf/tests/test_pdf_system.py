@@ -25,6 +25,16 @@ class PdfSystemTests(unittest.TestCase):
  def test_markdown_and_geometry(self):
   if not production_dependencies_available():self.skipTest('production PDF dependencies/fonts not installed')
   src=self.source/'a.md';src.write_text('Heading\n\nbody');one=self.output/'one.pdf';s=PdfService(self.policy);s.generate_markdown(src,one,title='T');self.assertEqual(verify_pdf(one,self.policy.limits).pages,1)
+ def test_code_identifiers_render_and_reopen_as_valid_pdf(self):
+  if not production_dependencies_available():self.skipTest('production PDF dependencies/fonts not installed')
+  src=self.source/'examples.md';src.write_text('# Code examples\n\n```python\ncondition_index = 1\nconnection_count = 2\n```\n\n`onload = handler` is displayed source code.')
+  output=self.output/'examples.pdf';result=PdfService(self.policy).generate_markdown(src,output)
+  self.assertGreater(result.bytes,0)
+  self.assertEqual(hashlib.sha256(output.read_bytes()).hexdigest(),result.sha256)
+  reopened=verify_pdf(output,self.policy.limits);self.assertEqual(reopened.sha256,result.sha256)
+  from pypdf import PdfReader
+  text='\n'.join(page.extract_text() or '' for page in PdfReader(str(output)).pages)
+  self.assertIn('condition_index',text);self.assertIn('connection_count',text)
  def test_landscape_and_custom_geometry_validation(self):
   self.assertGreater(PageGeometry.from_spec('A4','landscape').width,PageGeometry.from_spec('A4').width)
   with self.assertRaises(ValueError): PageGeometry.from_spec({'width':-1,'height':4})
