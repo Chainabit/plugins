@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import base64
 import json
+import importlib.util
 import os
 import random
 import shutil
@@ -136,6 +137,7 @@ class InputBoundaryTests(unittest.TestCase):
             PdfService(self.policy).generate_markdown(source, self.output / "report.pdf")
         return caught.exception
 
+    @unittest.skipUnless(importlib.util.find_spec('markdown'), 'markdown is not installed')
     def test_markdown_image_markup_names_the_supported_syntax(self):
         error = self.markdown_error(
             '# Revenue\n\n<img src="data:image/png;base64,' + CHART + '">\n'
@@ -145,6 +147,7 @@ class InputBoundaryTests(unittest.TestCase):
         self.assertIn(SUPPORTED_MARKDOWN, error.message)
         self.assertNotIn(CHART[:32], error.message)
 
+    @unittest.skipUnless(importlib.util.find_spec('markdown'), 'markdown is not installed')
     def test_markdown_inline_image_data_is_rejected_rather_than_printed(self):
         # As an image target a data: URI used to fail as a retryable
         # filesystem error; as a link or bare text it was printed.

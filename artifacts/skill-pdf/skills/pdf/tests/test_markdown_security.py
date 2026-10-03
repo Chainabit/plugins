@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+import importlib.util
 import tempfile
 import unittest
 from html.parser import HTMLParser
@@ -23,6 +24,7 @@ class RenderedMarkup(HTMLParser):
         self.elements.append((tag, dict(attrs)))
 
 
+@unittest.skipUnless(importlib.util.find_spec('markdown'), 'markdown is not installed')
 class MarkdownSecurityTests(unittest.TestCase):
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()
