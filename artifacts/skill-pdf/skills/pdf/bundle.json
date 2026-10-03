@@ -4,7 +4,7 @@
     {
       "path": "SKILL.md",
       "type": "instructions",
-      "sha256": "fbf288d54787402d6f26c55e2567dab637955d7ba33df1e684c10f4558e2ca67",
+      "sha256": "5cb3d892ec4e93dc15b51fc491a58b96706c31493f55273f7fa6cf1ef7aa08bc",
       "bytes": 14981,
       "mode": "0644"
     },
@@ -151,7 +151,7 @@
     {
       "path": "scripts/validate_pdf.py",
       "type": "scripts",
-      "sha256": "36e90c845de686c00257ac87d10c19ad461207733b718e0a8663b31f3f1be02a",
+      "sha256": "d96b6014a13da25359987ac08e2f104000ba58cf615e8ed51387d416d27eb829",
       "bytes": 1906,
       "mode": "0644"
     },
