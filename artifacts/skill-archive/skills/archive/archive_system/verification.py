@@ -7,6 +7,7 @@ come from one implementation, or the two can disagree about one artifact.
 from __future__ import annotations
 
 import hashlib
+import io
 import os
 import zipfile
 from dataclasses import dataclass
@@ -29,14 +30,6 @@ class ArchiveFacts:
     mime_type: str = MIME_TYPE
 
 
-def sha256_of(path: str) -> str:
-    digest = hashlib.sha256()
-    with open(path, "rb") as handle:
-        for chunk in iter(lambda: handle.read(_READ_CHUNK_BYTES), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
-
-
 def verify_archive(path: str, limits: Limits) -> ArchiveFacts:
     """Reopen a written package and prove it reads back before reporting it.
 
@@ -48,10 +41,31 @@ def verify_archive(path: str, limits: Limits) -> ArchiveFacts:
     if not os.path.isfile(absolute):
         raise ArchiveError(ErrorCode.CORRUPTED_OUTPUT, "archive was not written")
 
+    chunks: list[bytes] = []
+    written_bytes = 0
+    with open(absolute, "rb") as handle:
+        while True:
+            chunk = handle.read(min(_READ_CHUNK_BYTES, limits.max_file_bytes - written_bytes + 1))
+            if not chunk:
+                break
+            written_bytes += len(chunk)
+            if written_bytes > limits.max_file_bytes:
+                raise ArchiveError(
+                    ErrorCode.RESOURCE_LIMIT,
+                    "archive exceeds the per-file size limit",
+                    {"bytes": str(written_bytes)},
+                )
+            chunks.append(chunk)
+    captured = b"".join(chunks)
+
     try:
-        with zipfile.ZipFile(absolute) as archive:
-            broken = archive.testzip()
+        with zipfile.ZipFile(io.BytesIO(captured)) as archive:
             infos = archive.infolist()
+            if not infos:
+                raise ArchiveError(
+                    ErrorCode.MALFORMED_ARTIFACT, "archive contains no entries"
+                )
+            broken = archive.testzip()
     except zipfile.BadZipFile as error:
         raise ArchiveError(
             ErrorCode.MALFORMED_ARTIFACT, "archive is not a readable container"
@@ -87,17 +101,9 @@ def verify_archive(path: str, limits: Limits) -> ArchiveFacts:
             {"expandedBytes": str(expanded_bytes)},
         )
 
-    written_bytes = os.path.getsize(absolute)
-    if written_bytes > limits.max_file_bytes:
-        raise ArchiveError(
-            ErrorCode.RESOURCE_LIMIT,
-            "archive exceeds the per-file size limit",
-            {"bytes": str(written_bytes)},
-        )
-
     return ArchiveFacts(
         path=absolute,
-        sha256=sha256_of(absolute),
+        sha256=hashlib.sha256(captured).hexdigest(),
         bytes=written_bytes,
         entry_count=len(names),
         entries=tuple(names),

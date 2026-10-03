@@ -38,6 +38,7 @@ from __future__ import annotations
 import argparse
 import colorsys
 import hashlib
+import io
 import json
 import math
 import os
@@ -996,12 +997,23 @@ def main(argv: list[str] | None = None) -> int:
         print(f"ERROR: file: {path} is a directory, expected a .pptx file", file=sys.stderr)
         return 1
 
-    size = os.path.getsize(path)
+    # Parsing and evidence describe one captured byte sequence, even if the
+    # producer replaces its path during validation.
+    try:
+        with open(path, "rb") as handle:
+            captured = handle.read(256 * 1024 * 1024 + 1)
+    except OSError:
+        print("ERROR: file: artifact input could not be read", file=sys.stderr)
+        return 2
+    size = len(captured)
+    if size > 256 * 1024 * 1024:
+        print("ERROR: file: artifact exceeds the supported byte limit", file=sys.stderr)
+        return 1
     if size == 0:
         print(f"ERROR: file: {path} is empty (0 bytes)", file=sys.stderr)
         return 1
 
-    if not zipfile.is_zipfile(path):
+    if not zipfile.is_zipfile(io.BytesIO(captured)):
         print(
             f"ERROR: container: {path} is not a ZIP archive, so it is not a .pptx. "
             "Whatever produced this wrote something else, or renamed a file that was "
@@ -1011,7 +1023,7 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     try:
-        archive = zipfile.ZipFile(path)
+        archive = zipfile.ZipFile(io.BytesIO(captured))
     except zipfile.BadZipFile as exc:
         print(f"ERROR: container: {path} is a corrupt ZIP ({exc})", file=sys.stderr)
         return 1
@@ -1148,8 +1160,7 @@ def main(argv: list[str] | None = None) -> int:
     pictures = sum(report.pictures for report in reports)
     charts = sum(report.charts for report in reports)
     print(f"  deck: {pictures} embedded picture(s), {charts} chart(s)")
-    with open(path, "rb") as handle:
-        digest = hashlib.sha256(handle.read()).hexdigest()
+    digest = hashlib.sha256(captured).hexdigest()
     print(json.dumps({
         "schema": VALIDATION_SCHEMA,
         "valid": True,
@@ -1165,7 +1176,7 @@ def main(argv: list[str] | None = None) -> int:
             "media_inventory",
         ],
         "subject": {
-            "path": os.path.realpath(path),
+            "path": os.path.normpath(path),
             "shape": "file",
             "sha256": digest,
             "mime": "application/vnd.openxmlformats-officedocument.presentationml.presentation",

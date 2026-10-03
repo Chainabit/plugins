@@ -4,7 +4,7 @@
     {
       "path": "SKILL.md",
       "type": "instructions",
-      "sha256": "8fc84e067a42b697e994ac29216aff1dabab40c37c043a2250e3c1a8492fe389",
+      "sha256": "8d24423349a46a12579d8e8d738a2680d7e0066f7d275e2c8c70e59fa210e9cb",
       "bytes": 3181,
       "mode": "0644"
     },
@@ -46,8 +46,8 @@
     {
       "path": "archive_system/verification.py",
       "type": "metadata",
-      "sha256": "730d8596b3b4612a6d75782776897bc8d16947cee31a76d4f683baf2ad37a9a8",
-      "bytes": 3358,
+      "sha256": "5d9730055e31a968229cfae603f38191a4850d725462af891a678c75aeb2e2a3",
+      "bytes": 3686,
       "mode": "0644"
     },
     {
@@ -60,15 +60,15 @@
     {
       "path": "scripts/validate_archive.py",
       "type": "scripts",
-      "sha256": "72168a1f5f2c4c0669bf3012e9dc50d818c7664d50f50572e5153c751262fe4d",
-      "bytes": 1962,
+      "sha256": "a9a7d0804e45bb4fc84d3368b5afdd4c5209802f82cead63e31c0ea889e72060",
+      "bytes": 1987,
       "mode": "0644"
     },
     {
       "path": "tests/test_archive_system.py",
       "type": "metadata",
-      "sha256": "a6d39e0982d2d694c483461627b089be092931ae65dbe9c5b99f00989617a4ee",
-      "bytes": 17171,
+      "sha256": "2c60aa78676ff5c4014f35df361cffa86036cd5080572c64bc1361c2f212cafa",
+      "bytes": 18864,
       "mode": "0644"
     }
   ]

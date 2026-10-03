@@ -258,15 +258,27 @@ def collect_files(root: str) -> set[str]:
     return found
 
 
-def tree_identity(root: str, files: set[str]) -> tuple[str, int]:
-    entries: list[bytes] = []
-    total = 0
+def capture_files(root: str, files: set[str]) -> dict[str, bytes]:
+    """One bounded read per input; parsing and hashing share this snapshot."""
+    snapshot: dict[str, bytes] = {}
+    remaining = 256 * 1024 * 1024
     for relative in sorted(files):
         absolute = os.path.join(root, *relative.split("/"))
         if os.path.islink(absolute) or not os.path.isfile(absolute):
             raise OSError(f"unsupported or unsafe site entry: {relative}")
         with open(absolute, "rb") as handle:
-            data = handle.read()
+            data = handle.read(remaining + 1)
+        if len(data) > remaining:
+            raise OSError("site exceeds the supported byte limit")
+        remaining -= len(data)
+        snapshot[relative] = data
+    return snapshot
+
+
+def tree_identity(files: dict[str, bytes]) -> tuple[str, int]:
+    entries: list[bytes] = []
+    total = 0
+    for relative, data in sorted(files.items()):
         total += len(data)
         entries.append(
             relative.encode("utf-8") + b"\0" + hashlib.sha256(data).hexdigest().encode("ascii")
@@ -275,12 +287,11 @@ def tree_identity(root: str, files: set[str]) -> tuple[str, int]:
     return hashlib.sha256(b"".join(entries)).hexdigest(), total
 
 
-def read_contract(root: str, files: set[str]) -> tuple[dict | None, str | None]:
+def read_contract(files: dict[str, bytes]) -> tuple[dict | None, str | None]:
     if CONTRACT_FILE not in files:
         return None, f"missing {CONTRACT_FILE}; the site has no declared format/runtime contract"
     try:
-        with open(os.path.join(root, CONTRACT_FILE), encoding="utf-8") as handle:
-            contract = json.load(handle)
+        contract = json.loads(files[CONTRACT_FILE].decode("utf-8"))
     except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
         return None, f"invalid {CONTRACT_FILE}: {exc}"
     if not isinstance(contract, dict) or contract.get("schema") != CONTRACT_SCHEMA:
@@ -293,13 +304,13 @@ def read_contract(root: str, files: set[str]) -> tuple[dict | None, str | None]:
     return contract, None
 
 
-def check_contract(root: str, files: set[str], stylesheets: list[str], contract: dict) -> list[str]:
+def check_contract(files: dict[str, bytes], stylesheets: list[str], contract: dict) -> list[str]:
     errors: list[str] = []
     typography = contract["typography"]
     family = typography["family"].strip()
     source = typography.get("source")
     css_text = "\n".join(
-        read_text(os.path.join(root, *path.split("/"))) or "" for path in stylesheets
+        read_text(files[path]) or "" for path in stylesheets
     )
     if json.dumps(family, ensure_ascii=False) not in css_text and f"'{family}'" not in css_text:
         errors.append(f"declared font family {family!r} is not present in generated CSS")
@@ -319,16 +330,15 @@ def check_contract(root: str, files: set[str], stylesheets: list[str], contract:
             if relative not in files:
                 errors.append(f"canonical offline font asset is missing: {relative}")
                 continue
-            with open(os.path.join(root, *relative.split("/")), "rb") as handle:
-                if handle.read(4) != b"wOF2":
-                    errors.append(f"canonical font asset is not a WOFF2 file: {relative}")
+            if files[relative][:4] != b"wOF2":
+                errors.append(f"canonical font asset is not a WOFF2 file: {relative}")
     runtime = contract.get("runtime")
     if runtime != {"network": "offline", "javascript": False}:
         errors.append("site runtime contract must be offline and JavaScript-free")
     if any(path.lower().endswith((".js", ".mjs", ".cjs")) for path in files):
         errors.append("canonical static website contains JavaScript despite its no-script contract")
     if "@media (min-width:" not in css_text or "viewport" not in " ".join(
-        (read_text(os.path.join(root, *page.split("/"))) or "")
+        (read_text(files[page]) or "")
         for page in files if page.lower().endswith(PAGE_SUFFIXES)
     ):
         errors.append("site does not prove both responsive CSS and viewport configuration")
@@ -570,19 +580,18 @@ def check_stylesheet(css_path: str, text: str, files: set[str]) -> Report:
     return report
 
 
-def read_text(path: str) -> str | None:
+def read_text(data: bytes) -> str | None:
     try:
-        with open(path, encoding="utf-8") as handle:
-            return handle.read()
-    except (UnicodeDecodeError, OSError):
+        return data.decode("utf-8")
+    except UnicodeDecodeError:
         return None
 
 
-def collect_anchors(root: str, pages: list[str]) -> dict[str, set[str]]:
+def collect_anchors(files: dict[str, bytes], pages: list[str]) -> dict[str, set[str]]:
     """Every fragment target on every page, so cross-page fragments can be checked."""
     anchors: dict[str, set[str]] = {}
     for page in pages:
-        text = read_text(os.path.join(root, *page.split("/")))
+        text = read_text(files[page])
         if text is None:
             anchors[page] = set()
             continue
@@ -643,7 +652,12 @@ def main(argv: list[str] | None = None) -> int:
         print(f"ERROR: site: {root} is empty", file=sys.stderr)
         return 1
 
-    contract, contract_error = read_contract(root, files)
+    try:
+        files = capture_files(root, files)
+    except OSError as exc:
+        print(f"ERROR: site_input: {exc}", file=sys.stderr)
+        return 2
+    contract, contract_error = read_contract(files)
     if contract_error:
         print(f"ERROR: {root}: {contract_error}", file=sys.stderr)
         return 1
@@ -683,13 +697,13 @@ def main(argv: list[str] | None = None) -> int:
     pages = sorted(path for path in files if path.lower().endswith(PAGE_SUFFIXES))
     stylesheets = sorted(path for path in files if path.lower().endswith(".css"))
 
-    anchors = collect_anchors(root, pages)
+    anchors = collect_anchors(files, pages)
 
     reports: list[Report] = []
     linked_from_anywhere: set[str] = {entry}
 
     for page in pages:
-        text = read_text(os.path.join(root, *page.split("/")))
+        text = read_text(files[page])
         if text is None:
             report = Report(page)
             report.error("is not readable as UTF-8 text, so a browser cannot render it")
@@ -700,7 +714,7 @@ def main(argv: list[str] | None = None) -> int:
         linked_from_anywhere.update(linked)
 
     for stylesheet in stylesheets:
-        text = read_text(os.path.join(root, *stylesheet.split("/")))
+        text = read_text(files[stylesheet])
         if text is None:
             report = Report(stylesheet)
             report.error("is not readable as UTF-8 text")
@@ -709,7 +723,7 @@ def main(argv: list[str] | None = None) -> int:
         reports.append(check_stylesheet(stylesheet, text, files))
 
     contract_report = Report(CONTRACT_FILE)
-    for message in check_contract(root, files, stylesheets, contract):
+    for message in check_contract(files, stylesheets, contract):
         contract_report.error(message)
     reports.append(contract_report)
 
@@ -744,7 +758,7 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     try:
-        digest, total_bytes = tree_identity(root, files)
+        digest, total_bytes = tree_identity(files)
     except OSError as exc:
         print(f"ERROR: site_identity: {exc}", file=sys.stderr)
         return 2
@@ -762,7 +776,7 @@ def main(argv: list[str] | None = None) -> int:
         "validator": "skill-static-website.validate_site",
         "classification": "authoritative",
         "subject": {
-            "path": os.path.realpath(root),
+            "path": os.path.normpath(root),
             "shape": "tree",
             "mime": "application/vnd.chainabit.static-site",
             "sha256": digest,

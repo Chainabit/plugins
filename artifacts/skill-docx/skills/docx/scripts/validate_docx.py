@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import io
 import json
 import os
 import re
@@ -239,12 +240,23 @@ def main() -> int:
         print(f"ERROR: file: no permission to read {path}", file=sys.stderr)
         return 1
 
-    size = os.path.getsize(path)
+    # Parsing and evidence describe one captured byte sequence, even if the
+    # producer replaces its path during validation.
+    try:
+        with open(path, "rb") as handle:
+            captured = handle.read(256 * 1024 * 1024 + 1)
+    except OSError:
+        print("ERROR: file: artifact input could not be read", file=sys.stderr)
+        return 2
+    size = len(captured)
+    if size > 256 * 1024 * 1024:
+        print("ERROR: file: artifact exceeds the supported byte limit", file=sys.stderr)
+        return 1
     if size == 0:
         print(f"ERROR: file: {path} is empty (0 bytes)", file=sys.stderr)
         return 1
 
-    if not zipfile.is_zipfile(path):
+    if not zipfile.is_zipfile(io.BytesIO(captured)):
         print(
             f"ERROR: format: {path} is not a ZIP container, so it is not a "
             ".docx. A .docx is a ZIP of XML parts -- Markdown or plain text "
@@ -254,7 +266,7 @@ def main() -> int:
         return 1
 
     try:
-        archive = zipfile.ZipFile(path)
+        archive = zipfile.ZipFile(io.BytesIO(captured))
     except zipfile.BadZipFile as exc:
         print(
             f"ERROR: format: {path} is a corrupt ZIP container ({exc})",
@@ -360,15 +372,14 @@ def main() -> int:
 
     for line in summary:
         print(line)
-    with open(path, "rb") as handle:
-        digest = hashlib.sha256(handle.read()).hexdigest()
+    digest = hashlib.sha256(captured).hexdigest()
     print(json.dumps({
         "schema": "chainabit.docx.validation/v1",
         "valid": True,
         "validator": "skill-docx.validate_docx",
         "classification": "authoritative",
         "subject": {
-            "path": os.path.realpath(path),
+            "path": os.path.normpath(path),
             "shape": "file",
             "mime": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             "sha256": digest,
