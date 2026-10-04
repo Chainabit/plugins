@@ -4,7 +4,7 @@
     {
       "path": "SKILL.md",
       "type": "instructions",
-      "sha256": "30b90cdf57fc506f4eacd17b75d746bcc0c270cdd44528ee316ad1e141f0e2c4",
+      "sha256": "29aba2779d4034c018c2081f49bbfffb5d3d8fff70d64541942db5df82123ef6",
       "bytes": 7571,
       "mode": "0644"
     },
@@ -18,15 +18,15 @@
     {
       "path": "scripts/validate_docx.py",
       "type": "scripts",
-      "sha256": "3f3d2d3e308569240bdc01f1dd0f164be447f08843323d4c9dea94b942ea1955",
-      "bytes": 13574,
+      "sha256": "8bd257d38163b7d5b16e7c01d781c7f0ee8580699ea45215d642d34c7a546992",
+      "bytes": 14054,
       "mode": "0644"
     },
     {
       "path": "tests/test_artifact_contract.py",
       "type": "metadata",
-      "sha256": "df253b7516caeedb0348db6d78915ee9bff14908cdcafd15c8d7d4631015bc51",
-      "bytes": 2223,
+      "sha256": "4f8e50f9ad45bac43e3a1d713f94126023636e9e8382a0ce396f75956b327d19",
+      "bytes": 4429,
       "mode": "0644"
     }
   ]

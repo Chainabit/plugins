@@ -55,6 +55,31 @@ per axis. Symlinks, unsupported extensions, malformed signatures, and remote ass
 rejected. These limits are package-contract limits, not a claim that every consuming runtime uses
 the same storage or rendering limits.
 
+## Artifact byte and execution ownership
+
+An artifact generator reports the output path, byte length, content hash and
+format of the file it actually wrote and reopened. A generator does not claim
+that the artifact has been promoted. The consuming host owns execution placement,
+validation, persistence and cleanup; a plugin must not independently select a
+different workspace or create promotion records.
+
+A declared validator inspects the supplied target without modifying it. Its
+successful subject identifies the supplied relative path selector (independent
+of the sandbox mount), shape, byte length and SHA-256 of the
+same captured bytes that were parsed. Tree validators use the complete selected
+file set, including validation metadata, with paths sorted by their UTF-8 bytes.
+Each tree identity record is `path`, NUL, the file's SHA-256, NUL, its decimal
+byte length, and a newline. File validators hash the file bytes directly.
+Reopening a path to compute identity after parsing is unsafe: a concurrent
+producer may replace the file between those operations.
+
+The host binds that subject to its captured output before promotion. A missing
+target, changed bytes, unavailable execution context or validator rejection
+must stop promotion with a structured failure. Successful process exit alone
+does not establish byte identity. Validator tests must include replacement of
+the producer's path after capture and verify that parsing and reported identity
+still refer to the same bytes.
+
 ## Trust model
 
 File integrity, package integrity, publisher identity, publisher trust, security review, and

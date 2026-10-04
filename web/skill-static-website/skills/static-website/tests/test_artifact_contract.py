@@ -18,6 +18,43 @@ FONT_FILES = (
 
 
 class StaticWebsiteArtifactContractTests(unittest.TestCase):
+    def test_validation_identity_survives_a_producer_edit_after_parsing(self) -> None:
+        import contextlib
+        import importlib.util
+        import io
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            site = root / "site"
+            printed = subprocess.run([sys.executable, str(ROOT / "scripts/scaffold_site.py"), "--template", "landing", "--print-spec"], capture_output=True, text=True, check=True)
+            spec = json.loads(printed.stdout)
+            spec["site"]["font"] = "Inter"
+            spec["site"]["theme"] = "light"
+            spec["site"]["palette"] = {"light": {"background":"#FFFFFF", "surface":"#FDFBFF", "ink":"#2D123D", "body":"#4C2C5B", "muted":"#6B4C7A", "rule":"#DEC9EA", "accent":"#6D28D9", "accentInk":"#FFFFFF"}}
+            source = root / "spec.json"
+            source.write_text(json.dumps(spec), encoding="utf-8")
+            built = subprocess.run([sys.executable, str(ROOT / "scripts/scaffold_site.py"), "--spec", str(source), str(site)], capture_output=True, text=True, check=False)
+            self.assertEqual(built.returncode, 0, built.stderr)
+            produced = json.loads(built.stdout.strip().splitlines()[-1])
+            module_spec = importlib.util.spec_from_file_location("site_byte_identity_validator", ROOT / "scripts/validate_site.py")
+            validator = importlib.util.module_from_spec(module_spec)
+            sys.modules[module_spec.name] = validator
+            module_spec.loader.exec_module(validator)
+            check_contract = validator.check_contract
+
+            def edit_after_checks(*args, **kwargs):
+                result = check_contract(*args, **kwargs)
+                (site / "index.html").write_text("different invalid website", encoding="utf-8")
+                return result
+
+            stdout, stderr = io.StringIO(), io.StringIO()
+            with patch.object(validator, "check_contract", side_effect=edit_after_checks), contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                result = validator.main([str(site), "--strict"])
+            self.assertEqual(result, 0, stderr.getvalue())
+            checked = json.loads(stdout.getvalue().strip().splitlines()[-1])
+            self.assertEqual(checked["subject"]["sha256"], produced["output"]["sha256"])
+            self.assertEqual(checked["subject"]["bytes"], produced["output"]["bytes"])
+
     def test_exact_tree_identity_default_override_and_external_asset_rejection(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

@@ -1,5 +1,7 @@
 from __future__ import annotations
 import hashlib, json, subprocess, sys, tempfile, unittest
+import importlib.util
+from unittest.mock import patch
 from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]; sys.path.insert(0, str(ROOT))
 from pdf_system import PdfService, SecurityPolicy
@@ -25,6 +27,16 @@ class PdfSystemTests(unittest.TestCase):
  def test_markdown_and_geometry(self):
   if not production_dependencies_available():self.skipTest('production PDF dependencies/fonts not installed')
   src=self.source/'a.md';src.write_text('Heading\n\nbody');one=self.output/'one.pdf';s=PdfService(self.policy);s.generate_markdown(src,one,title='T');self.assertEqual(verify_pdf(one,self.policy.limits).pages,1)
+ def test_code_identifiers_render_and_reopen_as_valid_pdf(self):
+  if not production_dependencies_available():self.skipTest('production PDF dependencies/fonts not installed')
+  src=self.source/'examples.md';src.write_text('# Code examples\n\n```python\ncondition_index = 1\nconnection_count = 2\n```\n\n`onload = handler` is displayed source code.')
+  output=self.output/'examples.pdf';result=PdfService(self.policy).generate_markdown(src,output)
+  self.assertGreater(result.bytes,0)
+  self.assertEqual(hashlib.sha256(output.read_bytes()).hexdigest(),result.sha256)
+  reopened=verify_pdf(output,self.policy.limits);self.assertEqual(reopened.sha256,result.sha256)
+  from pypdf import PdfReader
+  text='\n'.join(page.extract_text() or '' for page in PdfReader(str(output)).pages)
+  self.assertIn('condition_index',text);self.assertIn('connection_count',text)
  def test_landscape_and_custom_geometry_validation(self):
   self.assertGreater(PageGeometry.from_spec('A4','landscape').width,PageGeometry.from_spec('A4').width)
   with self.assertRaises(ValueError): PageGeometry.from_spec({'width':-1,'height':4})
@@ -75,13 +87,20 @@ class PdfSystemTests(unittest.TestCase):
   narrow=PdfService(self.policy).generate_markdown(src,self.output/'narrow-margin.pdf',margin=10)
   wide=PdfService(self.policy).generate_markdown(src,self.output/'wide-margin.pdf',margin=200)
   self.assertGreater(wide.pages,narrow.pages)
- def test_path_traversal_and_active_html_are_rejected(self):
+ def test_path_traversal_is_rejected(self):
   outside=self.root/'outside.md';outside.write_text('x')
   with self.assertRaises(PdfError) as e: PdfService(self.policy).generate_markdown(outside,self.output/'x.pdf')
   self.assertEqual(e.exception.code,ErrorCode.UNSAFE_INPUT)
+ @unittest.skipUnless(importlib.util.find_spec('markdown'), 'markdown is not installed')
+ def test_active_html_is_rejected_before_rendering(self):
   src=self.source/'x.md';src.write_text('<script>alert(1)</script>')
   with self.assertRaises(PdfError) as e: PdfService(self.policy).generate_markdown(src,self.output/'x.pdf')
   self.assertEqual(e.exception.code,ErrorCode.UNSAFE_INPUT)
+ def test_missing_markdown_parser_is_dependency_failure_without_rendering(self):
+  with patch.dict(sys.modules,{'markdown':None}):
+   result=PdfService(self.policy)._preflight('markdown','Ordinary prose with connection_count = 2.')
+  self.assertFalse(result['ok']);self.assertEqual(result['error']['code'],ErrorCode.DEPENDENCY_UNAVAILABLE.value)
+  self.assertEqual(list(self.output.iterdir()),[])
  def test_report_image_caption_is_visible_not_only_alt_text(self):
   """A report image block's `caption` used to reach only the <img alt>
   attribute -- accessibility metadata no renderer paints onto the page -- so

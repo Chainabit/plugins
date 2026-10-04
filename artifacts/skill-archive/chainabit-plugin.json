@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "skill-archive",
   "name": "Archive Packaging Skill",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Packages a selected file or directory into one deterministic, bounded ZIP archive and verifies the written container reads back before reporting it.",
   "author": {
     "name": "NEXUS Community"
