@@ -20,7 +20,7 @@ from .models import DocumentRequirements, PageGeometry, SecurityPolicy, resolve_
 from .markdown_html import render_markdown
 from .math_html import MATH_CSS
 from .safety import (IMAGE_FILE_FORMATS, bounded_read, image_as_text,
-                     image_data_uri, local_asset, reject_active_markup,
+                     image_data_uri, local_asset,
                      safe_output, validate_image)
 from .source import check_source
 from .verification import Verification, verify_pdf
@@ -146,10 +146,6 @@ class PdfService:
             return {"ok": False, "error": {"code": error.code.value, "class": failure_class(error), "message": error.message, "retryable": error.code in RETRYABLE_RUNTIME_ERRORS}}
         return {"ok": True}
     def _check_markdown_text(self, text: str) -> None:
-        written = image_as_text(text)
-        if written:
-            raise PdfError(ErrorCode.UNSAFE_INPUT, f"Markdown contains {written}, which prints as characters rather than an image; save the image as a {IMAGE_FILE_FORMATS} file in the Markdown file's directory and reference it as ![description](relative/path.png)")
-        reject_active_markup(text)
         check_source(text)
     def generate_markdown(self, source: Path, destination: Path, title: str | None = None, lang: str = "und", page_size: object = "A4", orientation: str = "portrait", deterministic: bool = False, quality_profile: str = "quality", font: str | None = None, palette: object = None, margin: object = None, pages: object = None) -> Verification:
         requested = length.requested_pages(pages, self.policy.limits.max_pages)

@@ -373,7 +373,7 @@ class CommonMarkStructureTests(unittest.TestCase):
         self.assertTrue(all(not span.attrib for span in paragraph.iter("span")))
 
     def test_raw_html_is_printed_as_text(self):
-        paragraph = self.tree("x <b>bold</b> <span style='color:red'>s</span> y<br>z").find("p")
+        paragraph = self.tree("x <b>bold</b> <span class='sample'>s</span> y<br>z").find("p")
         self.assertEqual([child.tag for child in paragraph], ["br"])
         self.assertIn("<b>bold</b>", "".join(paragraph.itertext()))
 

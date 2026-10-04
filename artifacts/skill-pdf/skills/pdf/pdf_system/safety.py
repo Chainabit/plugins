@@ -6,6 +6,7 @@ import json
 import os
 import re
 from pathlib import Path
+from html.parser import HTMLParser
 from typing import Iterator, Sequence
 from urllib.parse import urlparse
 
@@ -107,11 +108,41 @@ def local_asset(reference: str, policy: SecurityPolicy) -> Path:
     return path
 
 
-def reject_active_markup(text: str) -> None:
-    # Markdown is converted by a deliberately restricted parser; raw HTML/CSS is
-    # rejected rather than rendered by a browser engine with ambient file access.
-    if re.search(r"<\s*(script|iframe|object|embed|svg|img|link|style)\b|on\w+\s*=|javascript:\s*", text, re.I):
+class _ActiveMarkup(HTMLParser):
+    """Read attributes as markup, never as substrings of displayed identifiers."""
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag in {"script", "iframe", "frame", "frameset", "object", "embed", "svg", "img", "link", "style", "base", "meta"}:
+            self._refuse()
+        for name, value in attrs:
+            if name.startswith("on") or name in {"style", "srcdoc"}:
+                self._refuse()
+            if name in {"href", "src", "action", "formaction", "data", "xlink:href"} and value:
+                # HTMLParser has decoded attribute entities. URL parsing also
+                # normalizes ASCII tabs/newlines, as an HTML consumer does.
+                if urlparse(value).scheme.lower() in {"javascript", "vbscript", "data", "file"}:
+                    self._refuse()
+
+    @staticmethod
+    def _refuse() -> None:
         raise PdfError(ErrorCode.UNSAFE_INPUT, "active HTML, SVG, CSS, or event handlers are not accepted")
+
+
+def reject_active_markup(text: str) -> None:
+    """Inspect a non-code Markdown text node before its final HTML escaping.
+
+    The Markdown parser owns code boundaries and supplies only visible prose.
+    Raw HTML remains disabled in that parser independently of this refusal.
+    """
+    parser = _ActiveMarkup()
+    parser.feed(text)
+    parser.close()
+
+
+def reject_markdown_image_text(text: str) -> None:
+    written = image_as_text(text)
+    if written:
+        raise PdfError(ErrorCode.UNSAFE_INPUT, f"Markdown contains {written}, which prints as characters rather than an image; save the image as a {IMAGE_FILE_FORMATS} file in the Markdown file's directory and reference it as ![description](relative/path.png)")
 
 
 def _compact(run: str) -> str:

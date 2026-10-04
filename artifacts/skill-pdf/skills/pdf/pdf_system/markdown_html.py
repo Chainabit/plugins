@@ -35,13 +35,14 @@ from __future__ import annotations
 
 import re
 import string
+from html import unescape
 from dataclasses import dataclass
 from urllib.parse import unquote, urlparse
 
 from .errors import ErrorCode, PdfError
 from .math_html import MathError, render_math
 from .models import SecurityPolicy
-from .safety import image_data_uri, safe_asset_uri
+from .safety import image_data_uri, reject_active_markup, reject_markdown_image_text, safe_asset_uri
 
 _THEMATIC_BREAK = re.compile(r"^(?:(?:\*[ ]*){3,}|(?:-[ ]*){3,}|(?:_[ ]*){3,})$")
 _SETEXT_UNDERLINE = re.compile(r"^(?:=+|-+)[ ]*$")
@@ -379,6 +380,7 @@ class _BlockNormalizer:
 
 
 def _embedded_image(uri: str, policy: SecurityPolicy) -> str:
+    reject_markdown_image_text(uri)
     path = safe_asset_uri(unquote(uri), policy)
     if path is None:
         raise PdfError(
@@ -389,7 +391,7 @@ def _embedded_image(uri: str, policy: SecurityPolicy) -> str:
 
 
 def _linkable(href: str) -> bool:
-    return urlparse(href).scheme.lower() in LINK_SCHEMES
+    return urlparse(unescape(href)).scheme.lower() in LINK_SCHEMES
 
 
 class _Equations:
@@ -454,7 +456,7 @@ def render_markdown(text: str, policy: SecurityPolicy, first_line: int = 1) -> s
         from markdown.inlinepatterns import InlineProcessor, SimpleTagInlineProcessor
         from markdown.preprocessors import Preprocessor
         from markdown.treeprocessors import Treeprocessor
-        from markdown.util import AtomicString
+        from markdown.util import AtomicString, HTML_PLACEHOLDER_RE
     except ImportError as exc:
         raise PdfError(
             ErrorCode.DEPENDENCY_UNAVAILABLE,
@@ -571,10 +573,33 @@ def render_markdown(text: str, policy: SecurityPolicy, first_line: int = 1) -> s
 
     class ExternalResources(Treeprocessor):
         def run(self, root):
+            def inspect(node):
+                if node.tag in {"code", "pre"}:
+                    return
+                for text in (node.text, *(child.tail for child in node)):
+                    if not text:
+                        continue
+                    reject_markdown_image_text(text)
+                    # The parser temporarily stashes character references.
+                    # Restore those references for attribute decoding, while
+                    # leaving fenced code and trusted math projections stashed.
+                    def entity(match):
+                        original = self.md.htmlStash.rawHtmlBlocks[int(match.group(1))]
+                        return original if original.startswith("&") and original.endswith(";") else match.group(0)
+
+                    reject_active_markup(HTML_PLACEHOLDER_RE.sub(entity, text))
+                for child in node:
+                    inspect(child)
+
+            inspect(root)
             for image in root.iter("img"):
                 image.set("src", _embedded_image(image.get("src", ""), policy))
             for link in root.iter("a"):
+                reject_markdown_image_text(link.get("href", ""))
                 if not _linkable(link.get("href", "")):
+                    scheme = urlparse(unescape(link.get("href", ""))).scheme.lower()
+                    if scheme in {"javascript", "vbscript", "data", "file"}:
+                        raise PdfError(ErrorCode.UNSAFE_INPUT, "dangerous link URI is disabled by policy")
                     link.tag = "span"
                     link.attrib.clear()
 
