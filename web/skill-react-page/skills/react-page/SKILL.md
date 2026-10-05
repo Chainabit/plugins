@@ -87,10 +87,9 @@ Promote the one file with `artifact.create`, `outputPath` set to the `--out` pat
 folder and not a ZIP. Do not use `artifact.write` for it: that tool stores only
 text you typed, and a bundled page is far larger than that.
 
-The platform checks the file against the single-file page contract; the script
-already applies the same rules, so a refusal here means the source did
-something the build could not see, such as creating an `<img>` with a remote
-address at run time. Remove it and build again.
+If `artifact.create` refuses the file, the source did something the build could
+not see, such as creating an `<img>` with a remote address at run time. Remove
+it and build again.
 
 Tell the user what was built and that it opens as a single file; describe what
 you verified. The script proves the page is self-contained and well formed. It
