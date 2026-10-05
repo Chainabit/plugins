@@ -2,8 +2,8 @@
   "schemaVersion": 2,
   "id": "skill-website",
   "name": "Static Website Compatibility",
-  "version": "1.0.0",
-  "description": "Deprecated compatibility alias for skill-static-website. New installations should select the canonical static website capability.",
+  "version": "1.0.1",
+  "description": "Use only to resolve an existing skill-website installation to static-website for HTML/CSS websites, including multi-page sites with no build step. Do not select this compatibility alias for new installations; use static-website, or react-page for an explicitly requested single-file offline React deliverable.",
   "author": {
     "name": "NEXUS Community"
   },
