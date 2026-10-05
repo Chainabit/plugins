@@ -57,6 +57,32 @@ test("skill-website keeps one canonical implementation and an explicit compatibi
   assert.equal(existsSync(join(root, "skill-website", "chainabit-plugin.json")), false);
 });
 
+// These fixtures protect the signals supplied to a model, not a keyword router.
+// A deterministic test cannot prove a real model's semantic selection quality.
+test("website selection descriptions distinguish representative delivery requests", () => {
+  const manifests = {
+    "react-page": json(join(root, "web/skill-react-page/chainabit-plugin.json")),
+    "static-website": json(join(root, "web/skill-static-website/chainabit-plugin.json")),
+  };
+  const cases = [
+    { prompt: "Build a multi-page HTML quiz and Anki website", expected: "static-website", signals: ["quiz", "Anki", "multi-page", "no build step"] },
+    { prompt: "Çok sayfalı HTML/CSS web sitesi ve gezinme bağlantıları oluştur", expected: "static-website", signals: ["HTML/CSS website", "separate pages", "navigation links"] },
+    { prompt: "Build an offline React dashboard as one self-contained HTML file", expected: "react-page", signals: ["React", "dashboard", "one self-contained HTML file", "build step"] },
+  ];
+  for (const { prompt, expected, signals } of cases) {
+    const manifest = manifests[expected];
+    const source = readFileSync(join(root, `web/skill-${expected}/skills/${expected}/SKILL.md`), "utf8");
+    assert.ok(source.includes(`description: ${manifest.description}\n`), "catalog and loaded skill must agree");
+    const [positive, excluded] = manifest.description.split("Do not use");
+    assert.ok(positive.startsWith("Use when"));
+    for (const signal of signals) assert.ok(positive.includes(signal), `${prompt}: ${expected} must advertise ${signal}`);
+    assert.ok(excluded.includes(expected === "react-page" ? "static-website" : "react-page"));
+  }
+  const alias = json(join(root, "artifacts/skill-website/chainabit-plugin.json"));
+  assert.ok(alias.description.includes("Do not select this compatibility alias for new installations"));
+  assert.deepEqual(alias.components, {});
+});
+
 test("visual artifact skills compose one brand-default policy and renderer projections stay anchored", () => {
   const profile = json(join(root, "foundations", "skill-brand-defaults", "skills", "brand-defaults", "references", "brand-profile.json"));
   assert.deepEqual(profile.precedence, [

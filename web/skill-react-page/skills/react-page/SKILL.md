@@ -1,10 +1,10 @@
 ---
 name: react-page
-description: Build a React page, app, dashboard or slide presentation offline in the sandbox and deliver it as one self-contained HTML file. Use it when a self-contained file is required; comprehensive applications use the React application capability.
+description: Use when the user explicitly wants a React page, interactive dashboard or presentation delivered as one self-contained HTML file that opens offline; React source is compiled with a build step. Do not use for a multi-page HTML/CSS website with separate pages and links, or when no build step is wanted (use static-website), or for a comprehensive React application (use react).
 license: Apache-2.0
 metadata:
-  version: 1.1.0
-  discovery: "React page or app built offline into one self-contained HTML file"
+  version: 1.1.2
+  discovery: "Explicit single-file offline React deliverable with a build step; multi-page HTML/CSS sites use static-website"
   layer: implementation
   requires: "skill-brand-defaults, skill-react, skill-web-engineering"
 ---

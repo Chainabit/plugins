@@ -1,10 +1,10 @@
 ---
 name: static-website
-description: Static HTML/CSS implementation with servability, deterministic output, and link/asset checks; one website variation, not a universal web rule.
+description: Use when the user wants a static HTML/CSS website, landing page, portfolio, blog, quiz or Anki study site, including a multi-page website with separate pages and navigation links, or to validate an existing site's links and assets. The output opens in a browser with no build step. Do not use for an explicitly requested single-file offline React deliverable (use react-page), a framework application, a PDF report, a slide deck or a spreadsheet.
 license: Apache-2.0
 metadata:
-  version: 1.3.6
-  discovery: "static HTML/CSS implementation and servability checks"
+  version: 1.3.7
+  discovery: "Static HTML/CSS websites, including multi-page quiz and Anki study sites, with no build step"
   layer: implementation
   requires: "skill-software-engineering, skill-project-bootstrap, skill-git, skill-project-documentation, skill-web-engineering"
 ---
