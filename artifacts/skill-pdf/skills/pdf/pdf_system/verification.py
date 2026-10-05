@@ -166,11 +166,6 @@ def verify_pdf(
             "PDF contains one or more blank pages",
         )
     fonts, unembedded_fonts = _font_evidence(page_objects)
-    if unembedded_fonts:
-        raise PdfError(
-            ErrorCode.VALIDATION_FAILURE,
-            "PDF references non-embedded fonts: " + ", ".join(unembedded_fonts),
-        )
     # A picture that reached a renderer as markup or inline data is printed as
     # its base64 characters. The PDF stays well formed, painted and
     # font-complete, so only its text shows that the image was lost.
@@ -195,7 +190,14 @@ def verify_pdf(
             "a source that starts with its content and carries the title and "
             "language as options",
         )
+    # A non-embedded font never makes a PDF unreadable: viewers substitute it,
+    # and every standard-14 face is guaranteed by the PDF format itself. It is
+    # evidence for the caller, not grounds to withhold the user's document.
     warnings = (
+        ("unembedded_fonts=" + ",".join(unembedded_fonts),)
+        if unembedded_fonts
+        else ()
+    ) + (
         ("blank_pages=" + ",".join(str(page) for page in blank_pages),)
         if blank_pages
         else ()

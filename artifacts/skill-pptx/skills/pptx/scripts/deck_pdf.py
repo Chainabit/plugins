@@ -640,7 +640,10 @@ def build_pdf(
     width_pt = geometry['slide'][0] * 72.0
     height_pt = geometry['slide'][1] * 72.0
 
-    document = pdf_canvas.Canvas(output, pagesize=(width_pt, height_pt))
+    # The canvas otherwise opens every page in Helvetica, a face this deck never uses.
+    document = pdf_canvas.Canvas(
+        output, pagesize=(width_pt, height_pt), initialFontName=fonts[0]
+    )
     document.setTitle(spec['title'])
     document.setAuthor(spec.get('author') or '')
     document.setSubject(spec.get('subtitle') or '')
