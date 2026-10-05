@@ -221,8 +221,8 @@
     {
       "path": "tests/test_unembedded_fonts.py",
       "type": "metadata",
-      "sha256": "18fb41686227569509e557a54eba703c60bc129767385dbd200c9aa720b21dfa",
-      "bytes": 1023,
+      "sha256": "aa130eb166cc2b92cbdecc8b0d03df5088f877c52f061c00115ed33784c42680",
+      "bytes": 1317,
       "mode": "0644"
     }
   ]
