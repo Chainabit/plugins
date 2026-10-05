@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "skill-react-page",
   "name": "React Page",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Build an explicitly self-contained React page offline into one HTML file; comprehensive multi-file applications use the React application capability.",
   "author": {
     "name": "Chainabit"
