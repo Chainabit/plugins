@@ -4,7 +4,7 @@
     {
       "path": "SKILL.md",
       "type": "instructions",
-      "sha256": "365b75c03f0fe7119955dc6fe6896298aa3d5c626e6b97fab1bdd267f67c4d3b",
+      "sha256": "7a904b9bc6bcb3327569fcbc7c75a9396dd88b401d4570fd07e7ef0e2b2791be",
       "bytes": 18948,
       "mode": "0644"
     },
@@ -18,8 +18,8 @@
     {
       "path": "scripts/deck_pdf.py",
       "type": "scripts",
-      "sha256": "ddadb143348377a1934dc4cf61be457696fc197256c8155cdf63ec76fba692a2",
-      "bytes": 32981,
+      "sha256": "41c7ddeb3de7385b8b48249510d0d878ab61ea7af8effb3db14dd8daef08e553",
+      "bytes": 33108,
       "mode": "0644"
     },
     {
