@@ -2,8 +2,8 @@
   "schemaVersion": 2,
   "id": "skill-static-website",
   "name": "Static Website",
-  "version": "1.3.6",
-  "description": "Static-site implementation variation for producing servable HTML/CSS sites with deterministic scaffolding and validation. Composes web engineering and software foundations; it does not define all websites.",
+  "version": "1.3.7",
+  "description": "Use when the user wants a static HTML/CSS website, landing page, portfolio, blog, quiz or Anki study site, including a multi-page website with separate pages and navigation links, or to validate an existing site's links and assets. The output opens in a browser with no build step. Do not use for an explicitly requested single-file offline React deliverable (use react-page), a framework application, a PDF report, a slide deck or a spreadsheet.",
   "author": {
     "name": "Chainabit"
   },
