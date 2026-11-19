@@ -31,6 +31,13 @@ just becomes unreadable. Both scripts therefore name a family explicitly:
   with `font_failure` when coverage or embedding cannot be verified; it must never
   silently substitute another default for Turkish content.
 
+A PDF drawn by hand through a standard face (`Helvetica`, `Times-Roman`, ReportLab's
+default canvas font) is not embedded and covers only Latin-1: `ç ö ü` print, but `ğ ş ı İ Ş Ğ`
+come out as filled squares while the file still parses and paints. Verification reads
+the text back and refuses such a file (`validation_failure`, "filled squares in place of
+letters"); the fix is to regenerate it through `md_to_pdf.py` or `report_pdf.py`, never to
+draw Turkish text through a standard font.
+
 Verify by generating a document containing `Çağrı Şişli İğne ıspanak öğün ürün`
 and reading the glyphs back out of the PDF, not by trusting exit code 0.
 
