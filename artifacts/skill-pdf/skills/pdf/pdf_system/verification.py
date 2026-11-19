@@ -94,6 +94,22 @@ def _page_texts(page_objects: list[object]) -> tuple[list[str], tuple[int, ...]]
     return texts, tuple(unreadable)
 
 
+# A non-embedded standard face has no glyph for most of Turkish (ğ ş ı İ Ş Ğ):
+# a producer that writes such text through it gets a filled square in place of
+# each letter, and pypdf reads that square (U+25A0) back as the text. A square
+# touching a letter is therefore a lost glyph, not a bullet or a marker; an
+# embedded face is excluded by the caller because there U+25A0 is real text.
+_LOST_GLYPH_IN_WORD = re.compile(r"(?<=[^\W\d_])\u25a0|\u25a0(?=[^\W\d_])")
+
+
+def _lost_glyph_page(texts: list[str]) -> int | None:
+    """First page whose text shows a square standing where a letter was lost."""
+    for index, text in enumerate(texts, 1):
+        if _LOST_GLYPH_IN_WORD.search(text):
+            return index
+    return None
+
+
 def verify_pdf(
     path: Path,
     limits: Limits,
@@ -166,10 +182,26 @@ def verify_pdf(
             "PDF contains one or more blank pages",
         )
     fonts, unembedded_fonts = _font_evidence(page_objects)
+    texts, unreadable_text = _page_texts(page_objects)
+    # Viewers substitute a non-embedded font, but a face that has no glyph for a
+    # letter prints a square for it, and the file still parses, paints and
+    # carries its fonts. Only the text shows that characters were lost, so a
+    # document in that state is refused rather than delivered unreadable.
+    lost_glyph_page = _lost_glyph_page(texts) if unembedded_fonts else None
+    if lost_glyph_page is not None:
+        raise PdfError(
+            ErrorCode.VALIDATION_FAILURE,
+            f"PDF prints filled squares in place of letters on page {lost_glyph_page}: "
+            "text was written through a non-embedded font ("
+            + ", ".join(unembedded_fonts)
+            + ") that has no glyph for characters such as Turkish ğ ş ı İ Ş Ğ; "
+            "regenerate the PDF with this skill's md_to_pdf.py or report_pdf.py, "
+            "which embed IBM Plex Sans, instead of drawing text through a "
+            "standard font",
+        )
     # A picture that reached a renderer as markup or inline data is printed as
     # its base64 characters. The PDF stays well formed, painted and
     # font-complete, so only its text shows that the image was lost.
-    texts, unreadable_text = _page_texts(page_objects)
     image_page = image_payload_page(texts)
     if image_page is not None:
         raise PdfError(
