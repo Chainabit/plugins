@@ -102,8 +102,8 @@
     {
       "path": "pdf_system/verification.py",
       "type": "metadata",
-      "sha256": "fae3731dad0241f20545cae48c55e433f7949e97563648b58ef9957e77273267",
-      "bytes": 10198,
+      "sha256": "08ab88f24e2f96b64374462088b9fa00fef783275ba19e067a1acd3fc78072d4",
+      "bytes": 13225,
       "mode": "0644"
     },
     {
@@ -221,8 +221,8 @@
     {
       "path": "tests/test_unembedded_fonts.py",
       "type": "metadata",
-      "sha256": "339736b40fddfd49d4d8fdf13fd4e4dac769c44551d8aad913c711723152a7c8",
-      "bytes": 2648,
+      "sha256": "eb86b2a104d1538811ca716fb6dac588fe0ae935729209148f8c9f4a6a73abf6",
+      "bytes": 4157,
       "mode": "0644"
     }
   ]

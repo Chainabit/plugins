@@ -51,6 +51,71 @@ def _page_is_painted(page: object) -> bool:
             return True
 
 
+# One pass over a content stream: literal strings are skipped whole (their text
+# may spell an operator), a font selection sets the current font, and a text
+# showing operator marks the current font as one that drew something.
+_TEXT_STREAM = re.compile(
+    rb"\((?:\\.|[^\\()])*\)"
+    rb"|/(?P<font>[^\s/\[\]()<>{}%]+)\s+[-+]?[\d.]+\s+Tf\b"
+    rb"|(?P<show>\bT[jJ]\b)",
+    re.DOTALL,
+)
+
+
+def _fonts_that_drew_text(content: bytes) -> set[bytes]:
+    current: bytes | None = None
+    drew: set[bytes] = set()
+    for match in _TEXT_STREAM.finditer(content):
+        if match.group("font") is not None:
+            current = match.group("font")
+        elif match.group("show") is not None and current is not None:
+            drew.add(current)
+    return drew
+
+
+def _font_is_embedded(font: object) -> bool:
+    font_object = font.get_object() if hasattr(font, "get_object") else font
+    descendants = font_object.get("/DescendantFonts") or []  # type: ignore[attr-defined]
+    for candidate in [font_object] + [
+        item.get_object() if hasattr(item, "get_object") else item
+        for item in descendants
+    ]:
+        descriptor = candidate.get("/FontDescriptor") if hasattr(candidate, "get") else None
+        descriptor = descriptor.get_object() if hasattr(descriptor, "get_object") else descriptor
+        if descriptor and any(
+            descriptor.get(key) is not None for key in ("/FontFile", "/FontFile2", "/FontFile3")
+        ):
+            return True
+    return False
+
+
+def _pages_drawing_with_unembedded_fonts(page_objects: list[object]) -> frozenset[int]:
+    """Pages whose text a non-embedded font drew, not merely listed or selected.
+
+    A page's resources name every font the producer registered, and ReportLab
+    selects Helvetica at the start of every page, used or not, so only a font
+    that was current when text was shown can have drawn it.
+    """
+    drawing: set[int] = set()
+    for index, page in enumerate(page_objects, 1):
+        try:
+            fonts = (page.get("/Resources") or {}).get("/Font") or {}  # type: ignore[attr-defined]
+            unembedded = {
+                str(key).lstrip("/").encode("latin-1", "replace")
+                for key, font in fonts.items()
+                if not _font_is_embedded(font)
+            }
+            if not unembedded:
+                continue
+            contents = page.get_contents()  # type: ignore[attr-defined]
+            used = _fonts_that_drew_text(contents.get_data()) if contents is not None else set()
+            if used & unembedded:
+                drawing.add(index)
+        except Exception:
+            continue
+    return frozenset(drawing)
+
+
 def _font_evidence(page_objects: list[object]) -> tuple[tuple[str, ...], tuple[str, ...]]:
     names: set[str] = set()
     unembedded: set[str] = set()
@@ -102,10 +167,11 @@ def _page_texts(page_objects: list[object]) -> tuple[list[str], tuple[int, ...]]
 _LOST_GLYPH_IN_WORD = re.compile(r"(?<=[^\W\d_])\u25a0|\u25a0(?=[^\W\d_])")
 
 
-def _lost_glyph_page(texts: list[str]) -> int | None:
-    """First page whose text shows a square standing where a letter was lost."""
-    for index, text in enumerate(texts, 1):
-        if _LOST_GLYPH_IN_WORD.search(text):
+def _lost_glyph_page(texts: list[str], candidates: frozenset[int]) -> int | None:
+    """First candidate page whose text shows a square standing where a letter was lost."""
+    for index in sorted(candidates):
+        text = texts[index - 1] if index <= len(texts) else ""
+        if "\u25a0" in text and _LOST_GLYPH_IN_WORD.search(text):
             return index
     return None
 
@@ -186,14 +252,20 @@ def verify_pdf(
     # Viewers substitute a non-embedded font, but a face that has no glyph for a
     # letter prints a square for it, and the file still parses, paints and
     # carries its fonts. Only the text shows that characters were lost, so a
-    # document in that state is refused rather than delivered unreadable.
-    lost_glyph_page = _lost_glyph_page(texts) if unembedded_fonts else None
+    # page drawn through such a font and showing that square is refused rather
+    # than delivered unreadable. A square on a page drawn only with embedded
+    # fonts is text (a legend, a separator) and is left alone.
+    lost_glyph_page = (
+        _lost_glyph_page(texts, _pages_drawing_with_unembedded_fonts(page_objects))
+        if unembedded_fonts
+        else None
+    )
     if lost_glyph_page is not None:
         raise PdfError(
             ErrorCode.VALIDATION_FAILURE,
             f"PDF prints filled squares in place of letters on page {lost_glyph_page}: "
             "text was written through a non-embedded font ("
-            + ", ".join(unembedded_fonts)
+            + ", ".join(name[:64] for name in unembedded_fonts[:5])
             + ") that has no glyph for characters such as Turkish ğ ş ı İ Ş Ğ; "
             "regenerate the PDF with this skill's md_to_pdf.py or report_pdf.py, "
             "which embed IBM Plex Sans, instead of drawing text through a "
