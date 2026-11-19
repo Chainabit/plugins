@@ -4,7 +4,7 @@
     {
       "path": "SKILL.md",
       "type": "instructions",
-      "sha256": "9973428fe490cccfeff6b47f7ace66822b31e6a9c0115666043a22f2006831ab",
+      "sha256": "387b561d7d78b19499dc4d64b7642726a37e2c49405d6f0c425012e2c40adda9",
       "bytes": 14981,
       "mode": "0644"
     },
@@ -102,8 +102,8 @@
     {
       "path": "pdf_system/verification.py",
       "type": "metadata",
-      "sha256": "7e205f12bfab9b541ff3b6d06781a1433345573564a7a589e11293ad0dc6be1b",
-      "bytes": 8495,
+      "sha256": "08ab88f24e2f96b64374462088b9fa00fef783275ba19e067a1acd3fc78072d4",
+      "bytes": 13225,
       "mode": "0644"
     },
     {
@@ -123,8 +123,8 @@
     {
       "path": "references/typography.md",
       "type": "references",
-      "sha256": "921a2a062ccddea56434ba667bcfb0dd3aa937d110cbe0dc89693e663127d0f6",
-      "bytes": 5790,
+      "sha256": "50dce29d22fad667eda466129917aa1f855883323177b401aa95cd4b1cd44ea0",
+      "bytes": 6289,
       "mode": "0644"
     },
     {
@@ -221,8 +221,8 @@
     {
       "path": "tests/test_unembedded_fonts.py",
       "type": "metadata",
-      "sha256": "aa130eb166cc2b92cbdecc8b0d03df5088f877c52f061c00115ed33784c42680",
-      "bytes": 1317,
+      "sha256": "eb86b2a104d1538811ca716fb6dac588fe0ae935729209148f8c9f4a6a73abf6",
+      "bytes": 4157,
       "mode": "0644"
     }
   ]
