@@ -192,11 +192,11 @@
     {
       "id": "skill-react-page",
       "source": "https://github.com/chainabit/plugins.git#web/skill-react-page",
-      "version": "1.1.2",
-      "revision": "38dfe2bcdf81299731aa296094d6570c9d4d389a",
+      "version": "1.2.0",
+      "revision": "6404d003932e28a362aa9cc0cf8f61ffcfda9611",
       "integrity": {
         "algorithm": "sha256",
-        "packageSha256": "95718ff3eeb10a4efcb21e8aa232b987048e69c27b29e8a3f91986836ba458ca"
+        "packageSha256": "72aca43336519c087cc74f28f80f0fb841ac02795784286e5616461753dc6018"
       }
     },
     {
