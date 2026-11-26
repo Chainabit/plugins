@@ -40,13 +40,16 @@ if css:
 """
 
 
-def make_toolchain(root: Path) -> Path:
+def make_toolchain(root: Path, with_three: bool = False) -> Path:
     modules = root / "node_modules"
     (modules / ".bin").mkdir(parents=True)
     binary = modules / ".bin" / "esbuild"
     binary.write_text(FAKE_ESBUILD, encoding="utf-8")
     binary.chmod(binary.stat().st_mode | stat.S_IXUSR)
-    for package, version in (("react", "19.0.0"), ("react-dom", "19.0.0"), ("esbuild", "0.25.0")):
+    packages = [("react", "19.0.0"), ("react-dom", "19.0.0"), ("esbuild", "0.25.0")]
+    if with_three:
+        packages.append(("three", "0.187.0"))
+    for package, version in packages:
         (modules / package).mkdir()
         (modules / package / "package.json").write_text(json.dumps({"name": package, "version": version}), encoding="utf-8")
     return root
@@ -122,6 +125,42 @@ class RuntimeAssetTests(Workspace):
         self.assertEqual(missing.returncode, 2)
         self.assertIn("fonts.ibm-plex", missing.stderr)
         self.assertEqual(self.build("--font", "none", CHAINABIT_ARTIFACT_FONT_DIR=str(empty)).returncode, 0)
+
+
+class ThreeJsTests(Workspace):
+    def write_three_source(self) -> None:
+        self.entry.write_text(
+            "import * as THREE from 'three';\n"
+            "import { OrbitControls } from 'three/addons/controls/OrbitControls.js';\n"
+            "export default function App() { return null; }\n",
+            encoding="utf-8",
+        )
+
+    def test_a_toolchain_without_three_refuses_a_page_that_imports_it_and_forbids_a_cdn(self) -> None:
+        self.write_three_source()
+        result = self.build()
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("three", result.stderr)
+        self.assertIn("CDN", result.stderr)
+        self.assertFalse((self.root / "page" / "index.html").exists())
+
+    def test_a_page_that_does_not_import_three_still_builds_without_it(self) -> None:
+        result = self.build()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("three", json.loads(result.stdout.strip().splitlines()[-1])["toolchain"])
+
+    def test_the_toolchain_record_names_the_installed_three_version(self) -> None:
+        self.write_three_source()
+        toolchain = make_toolchain(self.root / "with-three", with_three=True)
+        result = self.build(CHAINABIT_WEB_TOOLCHAIN_DIR=str(toolchain))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(json.loads(result.stdout.strip().splitlines()[-1])["toolchain"]["three"], "0.187.0")
+
+    def test_only_a_module_specifier_counts_as_an_import(self) -> None:
+        self.entry.write_text("// three words\nconst three = 3; export default () => three;\n", encoding="utf-8")
+        self.assertFalse(page.imports_three(self.entry))
+        self.write_three_source()
+        self.assertTrue(page.imports_three(self.entry))
 
 
 class PipelineTests(Workspace):
@@ -260,6 +299,47 @@ class RealToolchainTests(unittest.TestCase):
             self.assertIn("main{padding:2rem}", text)
             self.assertIn("data:image/svg+xml", text)
             # Counted as elements, not substrings: React DOM's own text mentions "<script".
+            self.assertEqual(script_elements(text), 1)
+            self.assertEqual(page.audit(text, ""), [])
+
+
+@unittest.skipUnless(
+    (REAL_TOOLCHAIN / "node_modules/three/package.json").is_file(), "three.js is not installed in the web toolchain"
+)
+class RealThreeJsTests(unittest.TestCase):
+    def test_bundles_three_and_an_addon_into_one_self_contained_page(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "app").mkdir()
+            (root / "app" / "App.jsx").write_text(
+                "import { useEffect, useRef } from 'react';\n"
+                "import * as THREE from 'three';\n"
+                "import { OrbitControls } from 'three/addons/controls/OrbitControls.js';\n"
+                "export default function App() {\n"
+                "  const ref = useRef(null);\n"
+                "  useEffect(() => {\n"
+                "    const renderer = new THREE.WebGLRenderer({ canvas: ref.current });\n"
+                "    const scene = new THREE.Scene();\n"
+                "    const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 100);\n"
+                "    const controls = new OrbitControls(camera, ref.current);\n"
+                "    scene.add(new THREE.Mesh(new THREE.BoxGeometry(), new THREE.MeshNormalMaterial()));\n"
+                "    renderer.render(scene, camera);\n"
+                "    return () => { controls.dispose(); renderer.dispose(); };\n"
+                "  }, []);\n"
+                "  return <canvas ref={ref} />;\n"
+                "}\n",
+                encoding="utf-8",
+            )
+            result = subprocess.run(
+                [sys.executable, str(SCRIPT), "--entry", "app/App.jsx", "--out", "page/index.html", "--lang", "en",
+                 "--title", "Cube", "--font", "none"],
+                cwd=root, capture_output=True, text=True, check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            record = json.loads(result.stdout.strip().splitlines()[-1])
+            self.assertIn("three", record["toolchain"])
+            self.assertLess(record["output"]["bytes"], page.MAX_PAGE_BYTES)
+            text = (root / "page" / "index.html").read_text(encoding="utf-8")
             self.assertEqual(script_elements(text), 1)
             self.assertEqual(page.audit(text, ""), [])
 
