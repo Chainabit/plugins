@@ -2,8 +2,8 @@
   "schemaVersion": 2,
   "id": "skill-react-page",
   "name": "React Page",
-  "version": "1.1.2",
-  "description": "Use when the user explicitly wants a React page, interactive dashboard or presentation delivered as one self-contained HTML file that opens offline; React source is compiled with a build step. Do not use for a multi-page HTML/CSS website with separate pages and links, or when no build step is wanted (use static-website), or for a comprehensive React application (use react).",
+  "version": "1.2.0",
+  "description": "Use when the user explicitly wants a React page, interactive dashboard or presentation, or a 3D scene, WebGL animation or three.js game, delivered as one self-contained HTML file that opens offline; React source is compiled with a build step and three.js is available offline. Do not use for a multi-page HTML/CSS website with separate pages and links, or when no build step is wanted (use static-website), or for a comprehensive React application (use react).",
   "author": {
     "name": "Chainabit"
   },
@@ -17,7 +17,12 @@
     "single-file",
     "html",
     "presentation",
-    "dashboard"
+    "dashboard",
+    "three.js",
+    "webgl",
+    "3d",
+    "game",
+    "animation"
   ],
   "compatibility": {
     "minVersion": "0.9.0"

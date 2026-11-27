@@ -4,22 +4,22 @@
     {
       "path": "SKILL.md",
       "type": "instructions",
-      "sha256": "3921c714d5ce09b807f6d0d7382ccd1d8e5ab75a9c2b59ab4cce6d039dac46bf",
-      "bytes": 5163,
+      "sha256": "70df3252c754cf4140582b9266e0cd3d77a65c768818a30c24a8c7d9e0ab5d43",
+      "bytes": 8527,
       "mode": "0644"
     },
     {
       "path": "scripts/build_react_page.py",
       "type": "scripts",
-      "sha256": "3131354298bc7ad33a77d50bd251bd905f3374f077f70ca23e78a615debf6c47",
-      "bytes": 14284,
+      "sha256": "8f5bb013b97978febc3ebebb93e2acc96a5c7888d73705b92b0524f508cc4228",
+      "bytes": 15826,
       "mode": "0644"
     },
     {
       "path": "tests/test_build_react_page.py",
       "type": "metadata",
-      "sha256": "d0dbe8767f35653a05800cb4413a8c6d41a3c132cad99f298ab3776ee11f3037",
-      "bytes": 12955,
+      "sha256": "33e0371d3fe05bcdd2f979849dce3a9fe14eaab470cc1b76af0231658fd080eb",
+      "bytes": 17102,
       "mode": "0644"
     }
   ]

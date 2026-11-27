@@ -22,6 +22,7 @@ import base64
 import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -40,6 +41,11 @@ FONT_DEFAULT = "/opt/chainabit/artifact-fonts/ibm-plex-sans"
 # refused at delivery for its size.
 MAX_PAGE_BYTES = 4 * 1024 * 1024
 BUILD_TIMEOUT_SECONDS = 120
+
+# An import of the 3D library, bare or one of its addon paths. Judged on the
+# module specifier only, never on what the page is about.
+THREE_IMPORT = re.compile(r"""(?:from|import)\s*\(?\s*["']three(?:/[^"']*)?["']""")
+SOURCE_SUFFIXES = (".jsx", ".tsx", ".js", ".ts", ".mjs")
 
 ENTRY_SUFFIXES = (".jsx", ".tsx", ".js", ".ts")
 # Local assets a component may import; each becomes a data: URI in the bundle.
@@ -114,12 +120,37 @@ def resolve_toolchain() -> tuple[Path, Path, dict[str, str]]:
         )
     versions: dict[str, str] = {}
     for package in ("react", "react-dom", "esbuild"):
-        try:
-            manifest = json.loads((modules / package / "package.json").read_text(encoding="utf-8"))
-        except (OSError, ValueError):
+        version = installed_version(modules, package)
+        if version is None:
             raise BuildError(2, f"runtime asset web.toolchain is incomplete: {package} is not installed under {root}.")
-        versions[package] = str(manifest.get("version", "unknown"))
+        versions[package] = version
+    # three.js is optional: a toolchain without it still builds every page that
+    # does not import it, and the record says only what is actually installed.
+    three = installed_version(modules, "three")
+    if three is not None:
+        versions["three"] = three
     return esbuild, modules, versions
+
+
+def installed_version(modules: Path, package: str) -> str | None:
+    try:
+        manifest = json.loads((modules / package / "package.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    return str(manifest.get("version", "unknown"))
+
+
+def imports_three(entry: Path) -> bool:
+    """True when any source file beside the entry imports `three`."""
+    for path in sorted(entry.parent.rglob("*")):
+        if path.suffix not in SOURCE_SUFFIXES or not path.is_file() or "node_modules" in path.parts:
+            continue
+        try:
+            if THREE_IMPORT.search(path.read_text(encoding="utf-8")):
+                return True
+        except (OSError, UnicodeDecodeError):
+            continue
+    return False
 
 
 def load_fonts(lang: str, font_dir: Path) -> list[tuple[str, int, str]]:
@@ -294,6 +325,12 @@ def build(args: argparse.Namespace) -> dict[str, object]:
         raise BuildError(1, "--title must not be empty")
 
     esbuild, modules, versions = resolve_toolchain()
+    if "three" not in versions and imports_three(entry):
+        raise BuildError(
+            2,
+            "runtime asset web.toolchain has no three.js: the source imports 'three' but it is not installed "
+            "in this toolchain. This build has no network fallback, so do not load three.js from a CDN instead.",
+        )
     fonts = load_fonts(args.lang, Path(args.font_dir or os.environ.get(FONT_ENV) or FONT_DEFAULT)) if args.font == "ibm-plex" else []
 
     js, page_css = bundle(entry, esbuild, modules)
