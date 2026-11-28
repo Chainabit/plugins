@@ -545,7 +545,7 @@ class PictureFitCssTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             service = PdfService(SecurityPolicy(Path(tmp), Path(tmp)))
             with patch.object(PdfService, "_font_css", return_value=""):
-                document = service._html_document("<p>x</p>", "IBM Plex Sans", DEFAULT_PALETTE, True, geometry)
+                document = service._html_document("<p>x</p>", "IBM Plex Sans", DEFAULT_PALETTE, geometry)
         # 500 - 10 - 30 = 460 printable; a picture keeps its 2 x 14pt margin, a figure also its caption.
         self.assertIn("max-width:100%;max-height:432.00pt;height:auto", document)
         self.assertIn("figure img{max-height:380.00pt;margin:0 auto 6pt}", document)

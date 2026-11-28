@@ -56,14 +56,14 @@ class PdfSystemTests(unittest.TestCase):
   custom_geometry=PageGeometry.from_spec({'width':300,'height':500},'portrait',{'top':10,'right':20,'bottom':30,'left':40})
   service=PdfService(self.policy)
   with patch.object(PdfService,'_font_css',return_value=''):
-   document=service._html_document('<p>x</p>','IBM Plex Sans',DEFAULT_PALETTE,True,custom_geometry)
+   document=service._html_document('<p>x</p>','IBM Plex Sans',DEFAULT_PALETTE,custom_geometry)
   self.assertIn('@page{size:300.00pt 500.00pt;margin:10.00pt 20.00pt 30.00pt 40.00pt',document)
  def test_geometry_is_resolved_before_html_is_built_and_carries_through(self):
   """A regression guard that needs no renderer: only string assembly and plumbing."""
   from unittest.mock import patch
   from types import SimpleNamespace
   captured={}
-  def fake_html_document(self,body,font,palette,show_footer,geometry,direction="ltr"):
+  def fake_html_document(self,body,font,palette,geometry,direction="ltr"):
    captured['geometry']=geometry
    return f'<html dir="{direction}"><style>@page{{size:{geometry.width:.2f}pt {geometry.height:.2f}pt;margin:{geometry.margin[0]:.2f}pt {geometry.margin[1]:.2f}pt {geometry.margin[2]:.2f}pt {geometry.margin[3]:.2f}pt}}</style></html>'
   def fake_render(document,geometry,metadata,destination,policy):
@@ -237,13 +237,13 @@ class PdfSystemTests(unittest.TestCase):
   from pdf_system.service import DEFAULT_PALETTE
   service=PdfService(self.policy)
   geometry=PageGeometry.from_spec('A4','portrait')
-  rtl_document=service._markdown_html('مرحبا بكم في التقرير الفصلي لهذا العام',self.policy,'IBM Plex Sans',DEFAULT_PALETTE,True,geometry)
+  rtl_document=service._markdown_html('مرحبا بكم في التقرير الفصلي لهذا العام',self.policy,'IBM Plex Sans',DEFAULT_PALETTE,geometry)
   self.assertIn('<html dir="rtl">',rtl_document)
   self.assertIn('direction:rtl',rtl_document)
   self.assertIn('text-align:start',rtl_document)
   self.assertIn('border-inline-start',rtl_document)
   self.assertNotIn('border-left:4pt',rtl_document)
-  ltr_document=service._markdown_html('Quarterly report body, in English.',self.policy,'IBM Plex Sans',DEFAULT_PALETTE,True,geometry)
+  ltr_document=service._markdown_html('Quarterly report body, in English.',self.policy,'IBM Plex Sans',DEFAULT_PALETTE,geometry)
   self.assertIn('<html dir="ltr">',ltr_document)
   self.assertIn('direction:ltr',ltr_document)
  def test_report_html_direction_ignores_json_structural_keys(self):
@@ -257,7 +257,7 @@ class PdfSystemTests(unittest.TestCase):
   service=PdfService(self.policy)
   geometry=PageGeometry.from_spec('A4','portrait')
   spec={'title':'تقرير الأداء الفصلي','blocks':[{'type':'paragraph','text':'مرحبا بكم في هذا التقرير'}]}
-  self.assertIn('<html dir="rtl">',service._report_html(spec,self.policy,'IBM Plex Sans',DEFAULT_PALETTE,True,geometry))
+  self.assertIn('<html dir="rtl">',service._report_html(spec,self.policy,'IBM Plex Sans',DEFAULT_PALETTE,geometry))
  def test_with_metadata_inserts_lang_alongside_an_existing_dir_attribute(self):
   """`_html_document` now always emits `<html dir="...">`; the metadata step
   that adds `lang` afterwards must not assume a bare `<html>` it can no

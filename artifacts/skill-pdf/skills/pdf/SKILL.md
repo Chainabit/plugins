@@ -123,8 +123,9 @@ For a structured report, encode an explicit visual override in the JSON spec:
 `font` selects a safe installed family and `palette` supplies every `#RRGGBB`
 role — `background`, `surface`, `ink`, `body`, `muted`, `rule`, `accent`, and
 `accentInk`. A complete palette replaces the default rather than inheriting any
-Chainabit role; when a custom palette is used the automatic `CHAINABIT` footer
-is omitted. A non-Chainabit `font` without that complete palette is rejected.
+Chainabit role. No document prints a Chainabit mark: the automatic page footer is
+a page counter only, and the producer is recorded in the PDF's `Creator` metadata
+field, never on the page. A non-Chainabit `font` without that complete palette is rejected.
 Use a report spec rather than unsafe custom CSS for a branded PDF.
 
 Markdown sources are read as CommonMark with GFM pipe tables: ATX and setext

@@ -46,7 +46,7 @@ class ReportListTests(unittest.TestCase):
     def test_html_preserves_ordered_and_unordered_lists(self):
         with patch.object(PdfService, '_font_css', return_value=''):
             html = PdfService(self.policy)._report_html(
-                self.report, self.policy, 'IBM Plex Sans', DEFAULT_PALETTE, False, self.geometry
+                self.report, self.policy, 'IBM Plex Sans', DEFAULT_PALETTE, self.geometry
             )
         self.assertEqual(html.count('<ol>'), 2)
         self.assertEqual(html.count('<ul>'), 1)

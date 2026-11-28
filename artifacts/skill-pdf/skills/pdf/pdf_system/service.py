@@ -160,7 +160,7 @@ class PdfService:
         self._check_markdown_text(text); req = DocumentRequirements.infer("markdown", text, "basic" if deterministic else quality_profile)
         backend, self.last_decision = self.resolver.resolve(req)
         geometry = self._resolve_geometry(page_size, orientation, margin)
-        document = self._markdown_html(text, self.policy, self._font_family(font), resolve_palette(palette), palette is None and font is None, geometry); metadata = {"Title": title or source.stem, "Lang": lang, "Creator": "chainabit-pdf"}
+        document = self._markdown_html(text, self.policy, self._font_family(font), resolve_palette(palette), geometry); metadata = {"Title": title or source.stem, "Lang": lang, "Creator": "chainabit-pdf"}
         return self._render(document, backend, destination, metadata, geometry, requested)
     def generate_report(self, source: Path, destination: Path, quality_profile: str = "quality", pages: object = None) -> Verification:
         requested = length.requested_pages(pages, self.policy.limits.max_pages)
@@ -176,7 +176,7 @@ class PdfService:
         # receive that same immutable result: ReportLab is a structured
         # renderer, while WeasyPrint receives its HTML projection.  This keeps
         # a user palette from silently mixing with renderer-local defaults.
-        document = {**spec, "palette": palette} if backend.capabilities.name == "reportlab" else self._report_html(spec, self.policy, self._font_family(spec.get("font")), palette, spec.get("palette") is None and spec.get("font") is None, geometry); metadata = {"Title": spec["title"], "Author": spec.get("author", ""), "Subject": spec.get("subject", ""), "Lang": spec.get("language", "und"), "Creator": "chainabit-pdf"}
+        document = {**spec, "palette": palette} if backend.capabilities.name == "reportlab" else self._report_html(spec, self.policy, self._font_family(spec.get("font")), palette, geometry); metadata = {"Title": spec["title"], "Author": spec.get("author", ""), "Subject": spec.get("subject", ""), "Lang": spec.get("language", "und"), "Creator": "chainabit-pdf"}
         return self._render(document, backend, destination, metadata, geometry, requested)
     def manipulate(self, operation: str, sources: list[Path], destination: Path, options: dict) -> Verification:
         target = safe_output(destination, self.policy)
@@ -202,7 +202,7 @@ class PdfService:
             # before anything is persisted: a refusal leaves no file behind and
             # an earlier file at this path untouched.
             length.refuse_if_over(pages, result.pages); os.replace(staged, target); return Verification(result.bytes, result.pages, result.version, result.sha256, result.mime_type, result.warnings + (f"backend={backend.capabilities.name}", f"duration_ms={(time.monotonic()-started)*1000:.1f}"))
-    def _markdown_html(self, text: str, policy: SecurityPolicy, font: str, palette: dict[str, str], show_chainabit_footer: bool, geometry: PageGeometry) -> str:
+    def _markdown_html(self, text: str, policy: SecurityPolicy, font: str, palette: dict[str, str], geometry: PageGeometry) -> str:
         # A form feed is the explicit page break this system already claims to
         # understand: models.py raises the `page_breaks` requirement when it
         # sees one, which constrains backend selection. It was then destroyed
@@ -216,7 +216,7 @@ class PdfService:
             pages.append(self._markdown_blocks(page, line)); line += page.count("\n")
         return self._html_document(
             '<div class="page-break"></div>'.join(pages),
-            font, palette, show_chainabit_footer, geometry, resolve_direction(text),
+            font, palette, geometry, resolve_direction(text),
         )
     def _markdown_blocks(self, text: str, first_line: int = 1) -> str:
         # One page of Markdown. The Markdown dialect (CommonMark blocks plus
@@ -225,7 +225,7 @@ class PdfService:
         return render_markdown(text, self.policy, first_line)
     def _image_tag(self, alt: str, uri: str) -> str:
         return f'<img alt="{html.escape(alt,quote=True)}" src="{image_data_uri(local_asset(uri, self.policy), self.policy)}">'
-    def _report_html(self, spec: dict, policy: SecurityPolicy, font: str, palette: dict[str, str], show_chainabit_footer: bool, geometry: PageGeometry) -> str:
+    def _report_html(self, spec: dict, policy: SecurityPolicy, font: str, palette: dict[str, str], geometry: PageGeometry) -> str:
         chunks=[f"<h1>{html.escape(spec['title'])}</h1>"]
         for b in spec["blocks"]:
             kind=b["type"]
@@ -255,7 +255,7 @@ class PdfService:
         # and every other JSON key as Latin filler and understate an
         # otherwise Arabic/Hebrew report.
         direction = resolve_direction(" ".join(value for _, value in _report_strings(spec)))
-        return self._html_document(prefix + "".join(chunks), font, palette, show_chainabit_footer, geometry, direction).replace("</style>", ".running-header{position:running(header)}.running-footer{position:running(footer)}@page{@top-center{content:element(header)}@bottom-center{content:element(footer)}};</style>")
+        return self._html_document(prefix + "".join(chunks), font, palette, geometry, direction).replace("</style>", ".running-header{position:running(header)}.running-footer{position:running(footer)}@page{@top-center{content:element(header)}@bottom-center{content:element(footer)}};</style>")
     def _font_family(self, requested: object) -> str:
         if requested is None:
             return DEFAULT_FONT_FAMILY
@@ -298,7 +298,7 @@ class PdfService:
             encoded=base64.b64encode(path.read_bytes()).decode("ascii")
             faces.append(f'@font-face{{font-family:"ChainabitArtifactArabic";font-style:normal;font-weight:{weight};src:url(data:font/ttf;base64,{encoded}) format("truetype")}}')
         return "".join(faces)
-    def _html_document(self, body: str, font: str, palette: dict[str, str], show_chainabit_footer: bool, geometry: PageGeometry, direction: str = "ltr") -> str:
+    def _html_document(self, body: str, font: str, palette: dict[str, str], geometry: PageGeometry, direction: str = "ltr") -> str:
         # One audited, print-first design system.  Callers choose content and
         # page geometry, not arbitrary CSS; that keeps professional output
         # deterministic and prevents a prompt from becoming a styling/security
@@ -320,7 +320,11 @@ class PdfService:
         # renderer's Unicode Bidi implementation still does 100% of the
         # actual character shaping and reordering; nothing here reverses or
         # rewrites a single character of `body`.
-        brand_footer = 'content:"CHAINABIT";font:600 7pt "ChainabitArtifact";letter-spacing:1.5pt;' if show_chainabit_footer else 'content:"";'
+        # The page furniture is a page counter and nothing else. A document is
+        # the customer's, so it carries no Chainabit mark -- not by default and
+        # not after a palette is chosen. Provenance travels as the PDF's own
+        # `Creator` metadata field (see generate_markdown/generate_report), where
+        # it is available to a verifier without being printed on the page.
         top, right, bottom, left = (f"{value:.2f}pt" for value in geometry.margin)
         # A picture is scaled to the printable page in height as well as width.
         # With only a width bound, a tall image ran off the bottom of the page
@@ -332,7 +336,6 @@ class PdfService:
         # over the document's own font and colour.
         style = self._font_css(font) + MATH_CSS + f'''
 @page{{size:{geometry.width:.2f}pt {geometry.height:.2f}pt;margin:{top} {right} {bottom} {left};background:{palette["background"]};
- @bottom-left{{{brand_footer}color:{palette["muted"]}}}
  @bottom-right{{content:counter(page) " / " counter(pages);font:8pt "ChainabitArtifact";color:{palette["muted"]}}}}}
 *{{box-sizing:border-box}}body{{direction:{direction};font-family:"ChainabitArtifact","ChainabitArtifactArabic",sans-serif;color:{palette["body"]};font-size:10.5pt;line-height:1.58;margin:0;text-align:start}}
 h1,h2,h3,h4,h5,h6{{page-break-after:avoid;line-height:1.16;color:{palette["ink"]};margin:22pt 0 9pt}}
