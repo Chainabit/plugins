@@ -154,6 +154,12 @@ class ReportHtmlTests(unittest.TestCase):
         for rule in ("font-size:21pt;line-height:1.58", "h1{font-size:56pt;", "h2{font-size:36pt;", "h3{font-size:27pt;", "font-size:18pt;border:1pt", "figcaption{font-size:17pt;"):
             self.assertIn(rule, css)
 
+    def test_null_columns_and_font_size_mean_the_default_not_a_crash(self):
+        self.assertEqual(PdfService.validate_report(spec(columns=None, fontSize=None)), [])
+        body = self.html([{"type": "paragraph", "text": "a"}], columns=None, fontSize=None)
+        self.assertNotIn('class="columns', body)
+        self.assertIn("font-size:10.5pt;line-height:1.58", body)
+
     def test_a_report_font_size_reaches_the_stylesheet(self):
         self.assertIn("font-size:14pt;line-height:1.58", self.html([{"type": "paragraph", "text": "a"}], fontSize=14))
 

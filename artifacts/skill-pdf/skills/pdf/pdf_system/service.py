@@ -272,14 +272,14 @@ class PdfService:
         # The title always spans the page. `columns` flows the blocks that follow it;
         # a pagebreak block ends one set of columns and starts the next page.
         title = f"<h1>{html.escape(spec['title'])}</h1>"
-        columns = spec.get("columns", 1)
+        columns = spec.get("columns") or 1
         if columns > 1:
             segments = [[]]
             for chunk in chunks:
                 if chunk == PAGE_BREAK: segments.append([])
                 else: segments[-1].append(chunk)
             chunks = [PAGE_BREAK.join(f'<div class="columns columns-{columns}">{"".join(segment)}</div>' for segment in segments)]
-        body_size = float(spec.get("fontSize", DEFAULT_BODY_SIZE))
+        body_size = float(spec.get("fontSize") or DEFAULT_BODY_SIZE)
         return self._html_document(prefix + title + "".join(chunks), font, palette, geometry, direction, body_size).replace("</style>", ".running-header{position:running(header)}.running-footer{position:running(footer)}@page{@top-center{content:element(header)}@bottom-center{content:element(footer)}};</style>")
     def _font_family(self, requested: object) -> str:
         if requested is None:
