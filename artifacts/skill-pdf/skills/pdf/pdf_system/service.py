@@ -51,6 +51,20 @@ DEFAULT_PALETTE = {
 }
 PALETTE_KEYS = tuple(DEFAULT_PALETTE)
 
+# fontconfig weights of the two faces the stylesheet declares. A face is asked for
+# by weight, not by a `style=Semibold` name: only a family that happens to call its
+# bold face "Semibold" answers that, so DejaVu Serif was resolved to its regular
+# file and every heading and strong run in a serif document printed unemboldened.
+FONT_WEIGHTS = {"Regular": 80, "Semibold": 180}
+
+# Running text is 10.5pt unless a report asks for another size; every other size in
+# the stylesheet (headings, tables, captions, code) is a fixed multiple of it, so one
+# number makes the whole page larger or smaller and the proportions never drift.
+DEFAULT_BODY_SIZE = 10.5
+BODY_SIZE_RANGE = (8.0, 24.0)
+MAX_COLUMNS = 3
+PAGE_BREAK = '<div class="page-break"></div>'
+
 
 def validate_palette(value: object) -> list[str]:
     if value is None:
@@ -160,7 +174,7 @@ class PdfService:
         self._check_markdown_text(text); req = DocumentRequirements.infer("markdown", text, "basic" if deterministic else quality_profile)
         backend, self.last_decision = self.resolver.resolve(req)
         geometry = self._resolve_geometry(page_size, orientation, margin)
-        document = self._markdown_html(text, self.policy, self._font_family(font), resolve_palette(palette), palette is None and font is None, geometry); metadata = {"Title": title or source.stem, "Lang": lang, "Creator": "chainabit-pdf"}
+        document = self._markdown_html(text, self.policy, self._font_family(font), resolve_palette(palette), geometry); metadata = {"Title": title or source.stem, "Lang": lang, "Creator": "chainabit-pdf"}
         return self._render(document, backend, destination, metadata, geometry, requested)
     def generate_report(self, source: Path, destination: Path, quality_profile: str = "quality", pages: object = None) -> Verification:
         requested = length.requested_pages(pages, self.policy.limits.max_pages)
@@ -176,7 +190,7 @@ class PdfService:
         # receive that same immutable result: ReportLab is a structured
         # renderer, while WeasyPrint receives its HTML projection.  This keeps
         # a user palette from silently mixing with renderer-local defaults.
-        document = {**spec, "palette": palette} if backend.capabilities.name == "reportlab" else self._report_html(spec, self.policy, self._font_family(spec.get("font")), palette, spec.get("palette") is None and spec.get("font") is None, geometry); metadata = {"Title": spec["title"], "Author": spec.get("author", ""), "Subject": spec.get("subject", ""), "Lang": spec.get("language", "und"), "Creator": "chainabit-pdf"}
+        document = {**spec, "palette": palette} if backend.capabilities.name == "reportlab" else self._report_html(spec, self.policy, self._font_family(spec.get("font")), palette, geometry); metadata = {"Title": spec["title"], "Author": spec.get("author", ""), "Subject": spec.get("subject", ""), "Lang": spec.get("language", "und"), "Creator": "chainabit-pdf"}
         return self._render(document, backend, destination, metadata, geometry, requested)
     def manipulate(self, operation: str, sources: list[Path], destination: Path, options: dict) -> Verification:
         target = safe_output(destination, self.policy)
@@ -202,7 +216,7 @@ class PdfService:
             # before anything is persisted: a refusal leaves no file behind and
             # an earlier file at this path untouched.
             length.refuse_if_over(pages, result.pages); os.replace(staged, target); return Verification(result.bytes, result.pages, result.version, result.sha256, result.mime_type, result.warnings + (f"backend={backend.capabilities.name}", f"duration_ms={(time.monotonic()-started)*1000:.1f}"))
-    def _markdown_html(self, text: str, policy: SecurityPolicy, font: str, palette: dict[str, str], show_chainabit_footer: bool, geometry: PageGeometry) -> str:
+    def _markdown_html(self, text: str, policy: SecurityPolicy, font: str, palette: dict[str, str], geometry: PageGeometry) -> str:
         # A form feed is the explicit page break this system already claims to
         # understand: models.py raises the `page_breaks` requirement when it
         # sees one, which constrains backend selection. It was then destroyed
@@ -216,7 +230,7 @@ class PdfService:
             pages.append(self._markdown_blocks(page, line)); line += page.count("\n")
         return self._html_document(
             '<div class="page-break"></div>'.join(pages),
-            font, palette, show_chainabit_footer, geometry, resolve_direction(text),
+            font, palette, geometry, resolve_direction(text),
         )
     def _markdown_blocks(self, text: str, first_line: int = 1) -> str:
         # One page of Markdown. The Markdown dialect (CommonMark blocks plus
@@ -225,8 +239,8 @@ class PdfService:
         return render_markdown(text, self.policy, first_line)
     def _image_tag(self, alt: str, uri: str) -> str:
         return f'<img alt="{html.escape(alt,quote=True)}" src="{image_data_uri(local_asset(uri, self.policy), self.policy)}">'
-    def _report_html(self, spec: dict, policy: SecurityPolicy, font: str, palette: dict[str, str], show_chainabit_footer: bool, geometry: PageGeometry) -> str:
-        chunks=[f"<h1>{html.escape(spec['title'])}</h1>"]
+    def _report_html(self, spec: dict, policy: SecurityPolicy, font: str, palette: dict[str, str], geometry: PageGeometry) -> str:
+        chunks=[]
         for b in spec["blocks"]:
             kind=b["type"]
             if kind=="heading": chunks.append(f"<h2>{html.escape(b['text'])}</h2>")
@@ -244,7 +258,7 @@ class PdfService:
                 # was. <figcaption> is the element WeasyPrint actually
                 # renders as body text.
                 chunks.append(f'<figure>{tag}<figcaption>{html.escape(caption)}</figcaption></figure>' if caption else tag)
-            elif kind=="pagebreak": chunks.append('<div class="page-break"></div>')
+            elif kind=="pagebreak": chunks.append(PAGE_BREAK)
             elif kind=="spacer": chunks.append(f'<div style="height:{int(b.get("height",12))}pt"></div>')
         header = html.escape(str(spec.get("header", ""))); footer = html.escape(str(spec.get("footer", "")))
         prefix = (f'<div class="running-header">{header}</div>' if header else "") + (f'<div class="running-footer">{footer}</div>' if footer else "")
@@ -255,7 +269,18 @@ class PdfService:
         # and every other JSON key as Latin filler and understate an
         # otherwise Arabic/Hebrew report.
         direction = resolve_direction(" ".join(value for _, value in _report_strings(spec)))
-        return self._html_document(prefix + "".join(chunks), font, palette, show_chainabit_footer, geometry, direction).replace("</style>", ".running-header{position:running(header)}.running-footer{position:running(footer)}@page{@top-center{content:element(header)}@bottom-center{content:element(footer)}};</style>")
+        # The title always spans the page. `columns` flows the blocks that follow it;
+        # a pagebreak block ends one set of columns and starts the next page.
+        title = f"<h1>{html.escape(spec['title'])}</h1>"
+        columns = spec.get("columns") or 1
+        if columns > 1:
+            segments = [[]]
+            for chunk in chunks:
+                if chunk == PAGE_BREAK: segments.append([])
+                else: segments[-1].append(chunk)
+            chunks = [PAGE_BREAK.join(f'<div class="columns columns-{columns}">{"".join(segment)}</div>' for segment in segments)]
+        body_size = float(spec.get("fontSize") or DEFAULT_BODY_SIZE)
+        return self._html_document(prefix + title + "".join(chunks), font, palette, geometry, direction, body_size).replace("</style>", ".running-header{position:running(header)}.running-footer{position:running(footer)}@page{@top-center{content:element(header)}@bottom-center{content:element(footer)}};</style>")
     def _font_family(self, requested: object) -> str:
         if requested is None:
             return DEFAULT_FONT_FAMILY
@@ -269,7 +294,7 @@ class PdfService:
         else:
             try:
                 result = subprocess.run(
-                    ["fc-match", "-f", "%{family}\n%{file}\n", f"{family}:style={style}"],
+                    ["fc-match", "-f", "%{family}\n%{file}\n", f"{family}:weight={FONT_WEIGHTS[style]}"],
                     capture_output=True, text=True, check=False, timeout=5,
                 )
             except (OSError, subprocess.SubprocessError) as exc:
@@ -298,7 +323,7 @@ class PdfService:
             encoded=base64.b64encode(path.read_bytes()).decode("ascii")
             faces.append(f'@font-face{{font-family:"ChainabitArtifactArabic";font-style:normal;font-weight:{weight};src:url(data:font/ttf;base64,{encoded}) format("truetype")}}')
         return "".join(faces)
-    def _html_document(self, body: str, font: str, palette: dict[str, str], show_chainabit_footer: bool, geometry: PageGeometry, direction: str = "ltr") -> str:
+    def _html_document(self, body: str, font: str, palette: dict[str, str], geometry: PageGeometry, direction: str = "ltr", body_size: float = DEFAULT_BODY_SIZE) -> str:
         # One audited, print-first design system.  Callers choose content and
         # page geometry, not arbitrary CSS; that keeps professional output
         # deterministic and prevents a prompt from becoming a styling/security
@@ -320,8 +345,14 @@ class PdfService:
         # renderer's Unicode Bidi implementation still does 100% of the
         # actual character shaping and reordering; nothing here reverses or
         # rewrites a single character of `body`.
-        brand_footer = 'content:"CHAINABIT";font:600 7pt "ChainabitArtifact";letter-spacing:1.5pt;' if show_chainabit_footer else 'content:"";'
+        # The page furniture is a page counter and nothing else. A document is
+        # the customer's, so it carries no Chainabit mark -- not by default and
+        # not after a palette is chosen. Provenance travels as the PDF's own
+        # `Creator` metadata field (see generate_markdown/generate_report), where
+        # it is available to a verifier without being printed on the page.
         top, right, bottom, left = (f"{value:.2f}pt" for value in geometry.margin)
+        def size(points: float) -> str:
+            return f"{points * body_size / DEFAULT_BODY_SIZE:g}pt"
         # A picture is scaled to the printable page in height as well as width.
         # With only a width bound, a tall image ran off the bottom of the page
         # and under the footer. A figure also keeps room for its caption.
@@ -332,25 +363,25 @@ class PdfService:
         # over the document's own font and colour.
         style = self._font_css(font) + MATH_CSS + f'''
 @page{{size:{geometry.width:.2f}pt {geometry.height:.2f}pt;margin:{top} {right} {bottom} {left};background:{palette["background"]};
- @bottom-left{{{brand_footer}color:{palette["muted"]}}}
  @bottom-right{{content:counter(page) " / " counter(pages);font:8pt "ChainabitArtifact";color:{palette["muted"]}}}}}
-*{{box-sizing:border-box}}body{{direction:{direction};font-family:"ChainabitArtifact","ChainabitArtifactArabic",sans-serif;color:{palette["body"]};font-size:10.5pt;line-height:1.58;margin:0;text-align:start}}
+*{{box-sizing:border-box}}body{{direction:{direction};font-family:"ChainabitArtifact","ChainabitArtifactArabic",sans-serif;color:{palette["body"]};font-size:{size(10.5)};line-height:1.58;margin:0;text-align:start}}
 h1,h2,h3,h4,h5,h6{{page-break-after:avoid;line-height:1.16;color:{palette["ink"]};margin:22pt 0 9pt}}
-h1{{font-size:28pt;letter-spacing:-.7pt;margin-top:0;padding:0 0 13pt;border-bottom:4pt solid {palette["accent"]}}}
-h2{{font-size:18pt;letter-spacing:-.25pt;padding-inline-start:11pt;border-inline-start:4pt solid {palette["accent"]}}}
-h3{{font-size:13.5pt;color:{palette["accent"]}}}p{{margin:0 0 10pt;orphans:3;widows:3}}
+h1{{font-size:{size(28)};letter-spacing:-.7pt;margin-top:0;padding:0 0 13pt;border-bottom:4pt solid {palette["accent"]}}}
+h2{{font-size:{size(18)};letter-spacing:-.25pt;padding-inline-start:11pt;border-inline-start:4pt solid {palette["accent"]}}}
+h3{{font-size:{size(13.5)};color:{palette["accent"]}}}p{{margin:0 0 10pt;orphans:3;widows:3}}
 strong{{color:{palette["ink"]}}}a{{color:{palette["accent"]};text-decoration:none;border-bottom:.5pt solid {palette["rule"]}}}
 ul,ol{{margin:6pt 0 14pt;padding-inline-start:20pt}}li{{margin:0 0 5pt}}li::marker{{color:{palette["accent"]}}}
-table{{width:100%;border-collapse:separate;border-spacing:0;margin:14pt 0 18pt;font-size:9pt;border:1pt solid {palette["rule"]};border-radius:5pt}}
+table{{width:100%;border-collapse:separate;border-spacing:0;margin:14pt 0 18pt;font-size:{size(9)};border:1pt solid {palette["rule"]};border-radius:5pt}}
 th{{background:{palette["ink"]};color:{palette["accentInk"]};font-weight:700}}th,td{{padding:7pt 8pt;text-align:start;vertical-align:top;border-inline-end:.5pt solid {palette["rule"]};border-bottom:.5pt solid {palette["rule"]}}}
 th:last-child,td:last-child{{border-inline-end:0}}tr:last-child td{{border-bottom:0}}tbody tr:nth-child(even){{background:{palette["surface"]}}}thead{{display:table-header-group}}tr{{page-break-inside:avoid}}
-pre{{white-space:pre-wrap;background:{palette["ink"]};color:{palette["accentInk"]};border-inline-start:4pt solid {palette["accent"]};border-radius:5pt;padding:11pt 13pt;font-size:8.5pt;line-height:1.45;page-break-inside:avoid}}
+pre{{white-space:pre-wrap;background:{palette["ink"]};color:{palette["accentInk"]};border-inline-start:4pt solid {palette["accent"]};border-radius:5pt;padding:11pt 13pt;font-size:{size(8.5)};line-height:1.45;page-break-inside:avoid}}
 code{{font-family:"Fira Code","Noto Sans Mono",monospace;background:{palette["surface"]};border-radius:2pt;padding:1pt 3pt}}pre code{{background:transparent;padding:0}}
 blockquote{{margin:14pt 0;padding:10pt 14pt;background:{palette["surface"]};border-inline-start:4pt solid {palette["accent"]};color:{palette["body"]}}}blockquote>:last-child{{margin-bottom:0}}
 hr{{border:0;border-top:1pt solid {palette["rule"]};margin:18pt 0}}li>ul,li>ol{{margin:4pt 0 0}}li>p{{margin:0 0 5pt}}
-.page-break{{break-before:page}}img{{display:block;max-width:100%;max-height:{picture_fit:.2f}pt;height:auto;margin:14pt auto;border-radius:5pt}}
+.page-break{{break-before:page}}.columns{{column-gap:22pt;column-rule:.5pt solid {palette["rule"]}}}.columns-2{{column-count:2}}.columns-3{{column-count:3}}
+.columns h2,.columns h3{{break-after:avoid-column}}.columns li,.columns figure,.columns table{{break-inside:avoid-column}}img{{display:block;max-width:100%;max-height:{picture_fit:.2f}pt;height:auto;margin:14pt auto;border-radius:5pt}}
 figure{{margin:14pt 0;text-align:center;page-break-inside:avoid}}figure img{{max-height:{figure_fit:.2f}pt;margin:0 auto 6pt}}
-figcaption{{font-size:8.5pt;color:{palette["muted"]};text-align:center}}
+figcaption{{font-size:{size(8.5)};color:{palette["muted"]};text-align:center}}
 '''
         return f'<!doctype html><html dir="{direction}"><head><meta charset="utf-8"><style>'+style+'</style></head><body>'+body+'</body></html>'
     @staticmethod
@@ -362,6 +393,12 @@ figcaption{{font-size:8.5pt;color:{palette["muted"]};text-align:center}}
         if isinstance(spec.get("font"), str) and SAFE_FONT_NAME.fullmatch(spec["font"].strip()) and spec["font"].strip() != DEFAULT_FONT_FAMILY and spec.get("palette") is None:
             errors.append("a non-Chainabit font override requires a complete palette")
         errors.extend(validate_palette(spec.get("palette")))
+        columns = spec.get("columns")
+        if columns is not None and (isinstance(columns, bool) or not isinstance(columns, int) or not 1 <= columns <= MAX_COLUMNS):
+            errors.append(f"columns must be a whole number from 1 to {MAX_COLUMNS}")
+        size = spec.get("fontSize")
+        if size is not None and (isinstance(size, bool) or not isinstance(size, (int, float)) or not BODY_SIZE_RANGE[0] <= size <= BODY_SIZE_RANGE[1]):
+            errors.append(f"fontSize must be a number of points from {BODY_SIZE_RANGE[0]:g} to {BODY_SIZE_RANGE[1]:g}")
         # Every report text field is escaped and printed, so image markup or
         # inline image data in one would appear as characters, never a picture.
         written=[f"{where} ({found})" for where, value in _report_strings(spec) if (found := image_as_text(value))]

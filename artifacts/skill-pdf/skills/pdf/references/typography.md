@@ -18,6 +18,12 @@ Code remains intentionally monospaced through the approved mono stack. An
 explicit safe user font may override the brand default only when the runtime can
 resolve that requested family deterministically.
 
+Besides IBM Plex Sans the runtime installs DejaVu Serif and DejaVu Sans, each with
+regular and bold faces and no italic. They are the only serif and the only other
+sans available to a report spec's `font`; any other family name is refused. A
+request for a face that is not installed is declined up front, not approximated by
+drawing the page as a picture.
+
 ## Why the font is pinned rather than left to defaults
 
 The Latin Extended-A range — `ç ş ğ ı İ ö ü` and their capitals — is what Turkish
@@ -82,9 +88,11 @@ prompt to bypass the audited document system.
 
 `report_pdf.py` defaults to a 50pt left/right margin, 54pt top, 48pt bottom,
 and honours `"pageSize": "A4" | "letter"` and an optional `"margin"` (the same
-number-or-object shape) from the spec. Table column widths are given as
-relative numbers in `widths` and normalised to the frame width, so they do not
-have to add up to 100.
+number-or-object shape) from the spec. Table column widths are automatic;
+a report spec has no per-column width. The spec's `columns` (1 to 3) flows the
+blocks after the title through CSS columns, and `fontSize` (8 to 24 points) sets
+the body size from which every other text size is derived; both are described,
+with a complete example, in `SKILL.md`.
 
 ## Rules worth keeping when overriding
 

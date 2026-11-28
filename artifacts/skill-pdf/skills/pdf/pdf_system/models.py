@@ -150,6 +150,7 @@ class DocumentRequirements:
                 if any(isinstance(b, dict) and b.get("type") in {"heading", "bullets", "numbered", "table"} for b in blocks): need("rich_markdown", "structured report semantics detected")
                 if any(isinstance(b, dict) and b.get("type") == "image" for b in blocks): need("images", "report image block detected")
                 if content.get("header") or content.get("footer"): need("headers_footers", "report header/footer requested")
+                if (isinstance(content.get("columns"), int) and content["columns"] > 1) or content.get("fontSize") is not None: need("layout_controls", "report columns or body font size requested")
                 if content.get("color") or content.get("colors"): need("colors_rgb", "report color styling requested")
         if intent in {"professional", "print"}: need("print_quality", f"{intent} rendering requested")
         if intent in {"professional", "print"} and kind in {"markdown", "report"}: need("font_embedding", "professional typography requested")

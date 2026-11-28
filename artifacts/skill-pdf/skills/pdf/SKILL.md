@@ -3,7 +3,7 @@ name: pdf
 description: Create, validate, and manipulate secure PDF artifacts. Inspect required capabilities first and prefer the highest-quality available backend; never silently downgrade rich content.
 license: Apache-2.0
 metadata:
-  version: 5.5.6
+  version: 5.6.0
 ---
 
 # PDF artifact system
@@ -70,13 +70,29 @@ The renderer counts the pages it writes and reports them (`output.pages`). With
 Do not pad with filler, repetition or blank pages. The renderer refuses a source in
 which most of the sentences repeat an earlier sentence word for word.
 
-`skill-brand-defaults` is a composed foundation. Resolve visual identity before
-choosing an entrypoint. With no visual identity, this skill uses the Chainabit
-document system: IBM Plex Sans, restrained green accents, near-black hierarchy,
-generous A4 margins, readable tables, and sparing callouts. A user brand, guide,
-template, reference, font, or palette wins and must not be mixed with Chainabit
-branding. For a competing font, style, brand, or reference, write both the font
-and a complete custom palette into the report spec.
+`skill-brand-defaults` is a composed foundation. Resolve the look of the document
+before choosing an entrypoint, and resolve it from the whole request, not only
+from a named brand.
+
+- **The request gives no visual direction at all:** use the Chainabit document
+  system: IBM Plex Sans, restrained green accents, near-black hierarchy, generous
+  A4 margins, readable tables, sparing callouts. A report, memo or summary asked
+  for plainly is this case.
+- **The request gives any visual direction:** the look is the user's, and the
+  Chainabit system is not the answer. Write a complete `palette` and a `font` into
+  a report spec (the next section) and never mix in Chainabit colours or type.
+  Visual direction is a brand, guide, template, reference, font or palette, and it
+  is equally a described feel or style ("warm", "hand-made", "elegant", "playful",
+  "minimal", "not corporate", "like paper"), colours named in words ("earthy",
+  "navy and gold"), a typeface class ("serif", "handwritten"), a designed object
+  that implies a look (a menu, a flyer, an invitation, a certificate, a handout), a
+  layout ("two columns like a menu card"), and a reading condition ("readable from
+  arm's length" means large type). A document with that kind of brief that comes
+  back in the default look has failed the request, however correct its text is.
+
+Decide this once, before the first render, and choose the palette and font to
+match the feel the user described. Do not render the default look first and offer
+to restyle it afterwards.
 
 ```bash
 python3 {{SKILL_DIR}}/scripts/pdf_tool.py capabilities
@@ -119,13 +135,104 @@ Do not join generation and validation in one shell, as in
 To check a file yourself, run `{{SKILL_DIR}}/scripts/validate_pdf.py` as a
 separate command and rely on its own exit status.
 
-For a structured report, encode an explicit visual override in the JSON spec:
-`font` selects a safe installed family and `palette` supplies every `#RRGGBB`
-role — `background`, `surface`, `ink`, `body`, `muted`, `rule`, `accent`, and
-`accentInk`. A complete palette replaces the default rather than inheriting any
-Chainabit role; when a custom palette is used the automatic `CHAINABIT` footer
-is omitted. A non-Chainabit `font` without that complete palette is rejected.
-Use a report spec rather than unsafe custom CSS for a branded PDF.
+## Report spec: the complete format
+
+A styled or designed document is a JSON report spec. This section is the whole
+format; nothing needs to be learned from reading the scripts. Markdown sources
+(`md_to_pdf.py`) always use the Chainabit look, so a request with visual direction
+never goes through them.
+
+Write the spec as a file, then run the generator as its own command:
+
+```bash
+python3 {{SKILL_DIR}}/scripts/report_pdf.py menu.json menu.pdf --validate-only
+python3 {{SKILL_DIR}}/scripts/report_pdf.py menu.json menu.pdf --pages 1
+```
+
+`--validate-only` checks the spec without rendering and exits `1` naming every
+problem. Pass `--pages` whenever the request states a length.
+
+A complete spec. Only `title` and `blocks` are required; every other field is
+optional, and leaving out `palette` and `font` gives the Chainabit look:
+
+```json
+{
+  "title": "Example Bakery",
+  "author": "Example Bakery",
+  "subject": "Menu",
+  "language": "en",
+  "font": "DejaVu Serif",
+  "pageSize": "A4",
+  "margin": {"top": 48, "right": 44, "bottom": 44, "left": 44},
+  "fontSize": 15,
+  "columns": 2,
+  "palette": {
+    "background": "#FBF3E4",
+    "surface": "#F3E4C8",
+    "ink": "#3E2A1D",
+    "body": "#4A3526",
+    "muted": "#7A6450",
+    "rule": "#D8C09A",
+    "accent": "#B5541C",
+    "accentInk": "#FFF7E8"
+  },
+  "blocks": [
+    {"type": "paragraph", "text": "Naturally leavened for 48 hours and baked every morning."},
+    {"type": "heading", "text": "Breads"},
+    {"type": "table", "columns": ["Loaf", "Price"], "rows": [["48-hour sourdough", "€5.50"], ["Rye and seed", "€6.00"]]},
+    {"type": "heading", "text": "Coffee"},
+    {"type": "table", "columns": ["Drink", "Price"], "rows": [["Espresso", "€1.20"], ["Flat white", "€3.20"]]},
+    {"type": "heading", "text": "Also"},
+    {"type": "bullets", "items": ["Fresh orange juice €3.50", "Hot chocolate €3.00"]}
+  ]
+}
+```
+
+Fields:
+
+- `title` (required) prints as the page heading. `author`, `subject` and
+  `language` (a tag such as `en` or `tr`) are PDF metadata and print nowhere.
+  `header` and `footer` are running text at the top and bottom of every page.
+- `font` is one installed family: `IBM Plex Sans` (the default), `DejaVu Serif`
+  or `DejaVu Sans`. Each has regular and bold faces and no italic. Any other name
+  is refused. A font that is not installed (a script or hand-lettered face, a
+  named commercial typeface) cannot be used: say so in the first reply and pick
+  the closest installed family; never draw the page as a picture to get around it.
+  `fc-list : family` lists what is installed. A `font` other than the default
+  requires a complete `palette`.
+- `palette` takes all eight roles, each `#RRGGBB`, or is left out. `background` is
+  the page, `surface` the alternate table rows and quotes, `ink` the headings and
+  the table-header band, `body` the text, `muted` the page number and captions,
+  `rule` the lines, `accent` the title rule, section bars and bullets, and
+  `accentInk` the text printed on `ink` (table headers, code blocks). Keep `body`
+  against `background`, and `accentInk` against `ink`, at a clear contrast: dark on
+  light for paper. A complete palette replaces the default; there is no partial
+  palette.
+- `pageSize` is a name (`A4`, `A5`, `LETTER` and the other ISO sizes) or
+  `{"width": points, "height": points}`; `orientation` is `portrait` or
+  `landscape`; `margin` is a number of points or `{top, right, bottom, left}`.
+- `fontSize` is the body text in points, 8 to 24 (default 10.5). Headings, tables
+  and captions scale with it. A page read at a distance, such as a counter menu or
+  a poster, wants 14 to 18.
+- `columns` is 1 to 3. The title spans the page and the blocks after it flow
+  through the columns, in order, left to right. A table, list item or figure is
+  never split between columns, and a `pagebreak` block starts a new page. Without
+  `columns` the page is one column.
+- `blocks` is a non-empty list of: `{"type": "heading", "text": ...}`,
+  `{"type": "paragraph", "text": ...}`, `{"type": "bullets", "items": [...]}`,
+  `{"type": "numbered", "items": [...]}`,
+  `{"type": "table", "columns": [...], "rows": [[...]]}`,
+  `{"type": "image", "path": "relative/file.png", "caption": ...}`,
+  `{"type": "spacer", "height": points}` and `{"type": "pagebreak"}`. Text is plain:
+  there is no inline bold, italic or Markdown inside a block.
+
+There is no custom CSS, no per-block colour or size, no background image and no
+italic. A request for one of those cannot be met by a spec; say so in the first
+reply, state what the nearest available treatment is, and use it.
+
+No document prints a Chainabit mark: the automatic page footer is a page counter
+only, and the producer is recorded in the PDF's `Creator` metadata field, never on
+the page.
 
 Markdown sources are read as CommonMark with GFM pipe tables: ATX and setext
 headings, emphasis and strong emphasis, ordered and unordered lists nested by
