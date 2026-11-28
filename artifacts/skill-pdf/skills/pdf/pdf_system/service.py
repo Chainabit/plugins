@@ -51,6 +51,12 @@ DEFAULT_PALETTE = {
 }
 PALETTE_KEYS = tuple(DEFAULT_PALETTE)
 
+# fontconfig weights of the two faces the stylesheet declares. A face is asked for
+# by weight, not by a `style=Semibold` name: only a family that happens to call its
+# bold face "Semibold" answers that, so DejaVu Serif was resolved to its regular
+# file and every heading and strong run in a serif document printed unemboldened.
+FONT_WEIGHTS = {"Regular": 80, "Semibold": 180}
+
 
 def validate_palette(value: object) -> list[str]:
     if value is None:
@@ -269,7 +275,7 @@ class PdfService:
         else:
             try:
                 result = subprocess.run(
-                    ["fc-match", "-f", "%{family}\n%{file}\n", f"{family}:style={style}"],
+                    ["fc-match", "-f", "%{family}\n%{file}\n", f"{family}:weight={FONT_WEIGHTS[style]}"],
                     capture_output=True, text=True, check=False, timeout=5,
                 )
             except (OSError, subprocess.SubprocessError) as exc:
