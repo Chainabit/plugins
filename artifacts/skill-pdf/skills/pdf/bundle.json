@@ -4,8 +4,8 @@
     {
       "path": "SKILL.md",
       "type": "instructions",
-      "sha256": "387b561d7d78b19499dc4d64b7642726a37e2c49405d6f0c425012e2c40adda9",
-      "bytes": 14981,
+      "sha256": "b1050e632a494a93556cd45db7a47713e1105491ed927fe90e61bf8e5907b3e1",
+      "bytes": 20215,
       "mode": "0644"
     },
     {
@@ -18,8 +18,8 @@
     {
       "path": "pdf_system/backends.py",
       "type": "metadata",
-      "sha256": "eeafd970e0a042bb3fd4809e526c83252a6a8d3d10e6b15454975c72267d8cff",
-      "bytes": 18136,
+      "sha256": "3cd24d43c1b50ea44bdbcd6145aa21e892aa7b496190ee99bd31645ed070c1eb",
+      "bytes": 18235,
       "mode": "0644"
     },
     {
@@ -74,8 +74,8 @@
     {
       "path": "pdf_system/models.py",
       "type": "metadata",
-      "sha256": "250c2a089ee2a3269c59c93d37afbae05322f781639ff4b1dce83715a8136bd7",
-      "bytes": 8708,
+      "sha256": "011dfede8c87b2d82098be687f963d144b326f358cf725d59c9dfc28320f5177",
+      "bytes": 8906,
       "mode": "0644"
     },
     {
@@ -88,8 +88,8 @@
     {
       "path": "pdf_system/service.py",
       "type": "metadata",
-      "sha256": "97a802dcb34fddd4e3e31ec5de6f6c19e8c10fa1d384f03ee93beb8374fb8473",
-      "bytes": 28725,
+      "sha256": "e6b03259a2370c806fa1c7c70c37bb71990a824d04e28542c6a816f161551085",
+      "bytes": 31067,
       "mode": "0644"
     },
     {
@@ -123,8 +123,8 @@
     {
       "path": "references/typography.md",
       "type": "references",
-      "sha256": "50dce29d22fad667eda466129917aa1f855883323177b401aa95cd4b1cd44ea0",
-      "bytes": 6289,
+      "sha256": "44804fa904ae4f42f73e3a8582a62ddd93dec3cf50db6ccbb0e4025e0520fe2e",
+      "bytes": 6825,
       "mode": "0644"
     },
     {
@@ -156,6 +156,13 @@
       "mode": "0644"
     },
     {
+      "path": "tests/test_customer_document.py",
+      "type": "metadata",
+      "sha256": "3ddec2cfcb616cc1fc63e589748ca913fd96776f4456449a00764412ca61fdf7",
+      "bytes": 4087,
+      "mode": "0644"
+    },
+    {
       "path": "tests/test_document_contract.py",
       "type": "metadata",
       "sha256": "64075784ae08ccaaf52a0ab52f12cabaea89548619e8791ec5371295e2811389",
@@ -179,8 +186,8 @@
     {
       "path": "tests/test_markdown_rendering.py",
       "type": "metadata",
-      "sha256": "6b36ad4b2180a64e7a3d42fae68eb6b6f3e1fb7f77e433a562e1677b8d08aee5",
-      "bytes": 28404,
+      "sha256": "29de2b3b0a84cefef948d3e9a7d0679c98e8cb5b60144aaef285697a89a2d5e0",
+      "bytes": 28398,
       "mode": "0644"
     },
     {
@@ -200,15 +207,22 @@
     {
       "path": "tests/test_pdf_system.py",
       "type": "metadata",
-      "sha256": "856f5cc2ce88c9f84f71dcf70dd237e69c1a8cb0cc88fa0913115e20900ba246",
-      "bytes": 31745,
+      "sha256": "5207c1c8c11c3a57f53e0137986956fa1dd9bea8297d4d366ed228e7dad52903",
+      "bytes": 31713,
       "mode": "0644"
     },
     {
       "path": "tests/test_report_lists.py",
       "type": "metadata",
-      "sha256": "23453cec3d4371887bcef48c774603dd2feaf8b84126bddf4c4aa6fc12fd283b",
-      "bytes": 3022,
+      "sha256": "d1cb86377e7ee1a162d806005fabac0fa1fbc005b3e9e0f3b70ffb0b5580a94d",
+      "bytes": 3015,
+      "mode": "0644"
+    },
+    {
+      "path": "tests/test_skill_instructions.py",
+      "type": "metadata",
+      "sha256": "3f436adff3658709727301242e67b1ae271daff986ddb92defefbe3142bc165f",
+      "bytes": 4728,
       "mode": "0644"
     },
     {
@@ -223,6 +237,13 @@
       "type": "metadata",
       "sha256": "eb86b2a104d1538811ca716fb6dac588fe0ae935729209148f8c9f4a6a73abf6",
       "bytes": 4157,
+      "mode": "0644"
+    },
+    {
+      "path": "tests/test_visual_direction.py",
+      "type": "metadata",
+      "sha256": "c58520ebc096fc6fa1c7e089588b42c88eb88ddd3dbc3f4c3664999346f88fc4",
+      "bytes": 12359,
       "mode": "0644"
     }
   ]
